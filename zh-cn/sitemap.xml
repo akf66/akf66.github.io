@@ -2,11 +2,12 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://example.org/zh-cn/categories/</loc>
+    <loc>https://example.org/categories/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="https://example.org/categories/"
+                href="https://example.org/en/categories/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -21,36 +22,27 @@
     <xhtml:link
                 rel="alternate"
                 hreflang="zh-cn"
-                href="https://example.org/zh-cn/categories/"
+                href="https://example.org/categories/"
                 />
   </url><url>
-    <loc>https://example.org/zh-cn/</loc>
+    <loc>https://example.org/post/golang-backend-pitfalls/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/rand/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="https://example.org/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="ja"
-                href="https://example.org/ja/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-cn"
-                href="https://example.org/zh-cn/"
-                />
-  </url><url>
-    <loc>https://example.org/zh-cn/tags/</loc>
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="https://example.org/tags/"
+                href="https://example.org/en/tags/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -65,7 +57,48 @@
     <xhtml:link
                 rel="alternate"
                 hreflang="zh-cn"
-                href="https://example.org/zh-cn/tags/"
+                href="https://example.org/tags/"
                 />
+  </url><url>
+    <loc>https://example.org/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/en/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="ja"
+                href="https://example.org/ja/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh-cn"
+                href="https://example.org/"
+                />
+  </url><url>
+    <loc>https://example.org/archives/</loc>
+    <lastmod>2025-07-26T21:46:25+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/markdown/</loc>
+    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/post/main/</loc>
+    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/about/</loc>
+    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/categories/%E6%96%87%E6%9C%AC%E7%BC%96%E8%BE%91%E8%BD%AF%E4%BB%B6/</loc>
+    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/friend/</loc>
+    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
   </url>
 </urlset>

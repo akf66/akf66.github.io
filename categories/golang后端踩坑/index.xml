@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Golang后端踩坑 on 鼠鼠的自我救赎</title>
+    <link>https://example.org/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</link>
+    <description>Recent content from 鼠鼠的自我救赎</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    
+    <managingEditor>13935468012@163.com (AKF)</managingEditor>
+    <webMaster>13935468012@163.com (AKF)</webMaster>
+    
+    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
+    
+    <lastBuildDate>Tue, 02 Dec 2025 00:00:00 +0000</lastBuildDate>
+    
+    
+    <atom:link href="https://example.org/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/index.xml" rel="self" type="application/rss&#43;xml" />
+    
+
+    
+    
+
+    <item>
+      <title>Golang Rand 线性同余的坑</title>
+      <link>https://example.org/post/golang-backend-pitfalls/</link>
+      <pubDate>Tue, 02 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/golang-backend-pitfalls/</guid>
+      <description>
+        <![CDATA[<h1>Golang Rand 线性同余的坑</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>记录 Golang <code>math/rand</code> 使用线性同余算法（LCG）带来的问题。</p>
+        
+        <hr><p>本文2025-12-02首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-02</p>]]>
+      </description>
+      
+        <category>Golang后端踩坑</category>
+      
+    </item>
+    
+  </channel>
+</rss>

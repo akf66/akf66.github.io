@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Categories on 鼠鼠的自我救赎</title>
+    <link>https://example.org/en/categories/</link>
+    <description>Recent content from 鼠鼠的自我救赎</description>
+    <generator>Hugo</generator>
+    <language>en</language>
+    
+    <managingEditor>13935468012@163.com (AKF)</managingEditor>
+    <webMaster>13935468012@163.com (AKF)</webMaster>
+    
+    <copyright>All articles on this blog are licensed under the BY-NC-SA license agreement unless otherwise stated. Please indicate the source when reprinting!</copyright>
+    
+    
+    <atom:link href="https://example.org/en/categories/index.xml" rel="self" type="application/rss&#43;xml" />
+    
+
+    
+  </channel>
+</rss>

@@ -2,43 +2,16 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://example.org/archives/</loc>
-    <lastmod>2022-07-26T21:46:25+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/</loc>
-    <lastmod>2022-07-26T21:46:25+08:00</lastmod>
-    <xhtml:link
-                rel="alternate"
-                hreflang="ja"
-                href="https://example.org/ja/"
-                />
+    <loc>https://example.org/en/categories/</loc>
     <xhtml:link
                 rel="alternate"
                 hreflang="zh-cn"
-                href="https://example.org/zh-cn/"
+                href="https://example.org/categories/"
                 />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="https://example.org/"
-                />
-  </url><url>
-    <loc>https://example.org/categories/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="ja"
                 href="https://example.org/ja/categories/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-cn"
-                href="https://example.org/zh-cn/categories/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -48,26 +21,19 @@
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="https://example.org/categories/"
+                href="https://example.org/en/categories/"
                 />
   </url><url>
-    <loc>https://example.org/tags/markdown/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/post/main/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
+    <loc>https://example.org/en/tags/</loc>
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh-cn"
+                href="https://example.org/tags/"
+                />
     <xhtml:link
                 rel="alternate"
                 hreflang="ja"
                 href="https://example.org/ja/tags/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-cn"
-                href="https://example.org/zh-cn/tags/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -77,22 +43,29 @@
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="https://example.org/tags/"
+                href="https://example.org/en/tags/"
                 />
   </url><url>
-    <loc>https://example.org/categories/test/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/test/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/post/chinese/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/about/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/friend/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
+    <loc>https://example.org/en/</loc>
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh-cn"
+                href="https://example.org/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="ja"
+                href="https://example.org/ja/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/en/"
+                />
   </url>
 </urlset>

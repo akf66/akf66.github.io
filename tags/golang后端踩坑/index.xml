@@ -22,13 +22,13 @@
     
 
     <item>
-      <title>Golang Rand 线性同余的坑</title>
+      <title>Golang Randder线性同余的坑</title>
       <link>https://example.org/post/golang-backend-pitfalls/</link>
       <pubDate>Tue, 02 Dec 2025 00:00:00 &#43;0000</pubDate>
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang-backend-pitfalls/</guid>
       <description>
-        <![CDATA[<h1>Golang Rand 线性同余的坑</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Golang Randder线性同余的坑</h1><p>作者：AKF（13935468012@163.com）</p>
         
           <p>记录 Golang <code>math/rand</code> 使用线性同余算法（LCG）带来的问题。</p>
         

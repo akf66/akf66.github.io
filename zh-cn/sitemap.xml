@@ -3,7 +3,7 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://example.org/categories/</loc>
-    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -25,20 +25,17 @@
                 href="https://example.org/categories/"
                 />
   </url><url>
-    <loc>https://example.org/post/golang-backend-pitfalls/</loc>
-    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+    <loc>https://example.org/tags/hertz/</loc>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
-    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+    <loc>https://example.org/post/hert_kitex_start/</loc>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
-    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/rand/</loc>
-    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+    <loc>https://example.org/tags/kitex/</loc>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/</loc>
-    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -60,8 +57,17 @@
                 href="https://example.org/tags/"
                 />
   </url><url>
+    <loc>https://example.org/tags/wsl/</loc>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/post/wsl_question/</loc>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/</loc>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://example.org/</loc>
-    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -83,20 +89,26 @@
                 href="https://example.org/"
                 />
   </url><url>
+    <loc>https://example.org/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</loc>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/</loc>
+    <lastmod>2025-12-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/post/golang-backend-pitfalls/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
+    <lastmod>2025-12-02T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://example.org/archives/</loc>
     <lastmod>2025-07-26T21:46:25+08:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/markdown/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/post/main/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
     <loc>https://example.org/about/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/categories/%E6%96%87%E6%9C%AC%E7%BC%96%E8%BE%91%E8%BD%AF%E4%BB%B6/</loc>
-    <lastmod>2022-06-09T20:12:52+08:00</lastmod>
+    <lastmod>2024-12-04T20:12:52+08:00</lastmod>
   </url><url>
     <loc>https://example.org/friend/</loc>
     <lastmod>2022-06-09T20:12:52+08:00</lastmod>

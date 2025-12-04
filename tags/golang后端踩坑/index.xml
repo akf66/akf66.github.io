@@ -12,7 +12,7 @@
     
     <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
     
-    <lastBuildDate>Tue, 02 Dec 2025 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 04 Dec 2025 00:00:00 +0000</lastBuildDate>
     
     
     <atom:link href="https://example.org/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/index.xml" rel="self" type="application/rss&#43;xml" />
@@ -22,11 +22,31 @@
     
 
     <item>
+      <title>解决 GVM 安装后 cd 命令失效问题</title>
+      <link>https://example.org/post/devenv/gvm-cd-bug/</link>
+      <pubDate>Thu, 04 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/devenv/gvm-cd-bug/</guid>
+      <description>
+        <![CDATA[<h1>解决 GVM 安装后 cd 命令失效问题</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>在 Ubuntu 上安装 GVM 后，可能会遇到 <code>cd</code> 命令失效的问题。本文记录问题原因及解决方案。</p>
+        
+        <hr><p>本文2025-12-04首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-04</p>]]>
+      </description>
+      
+        <category>开发环境</category>
+      
+    </item>
+    
+    
+
+    <item>
       <title>Golang Randder线性同余的坑</title>
-      <link>https://example.org/post/golang-backend-pitfalls/</link>
+      <link>https://example.org/post/golang/rand-pitfalls/</link>
       <pubDate>Tue, 02 Dec 2025 00:00:00 &#43;0000</pubDate>
       <author>13935468012@163.com (AKF)</author>
-      <guid>https://example.org/post/golang-backend-pitfalls/</guid>
+      <guid>https://example.org/post/golang/rand-pitfalls/</guid>
       <description>
         <![CDATA[<h1>Golang Randder线性同余的坑</h1><p>作者：AKF（13935468012@163.com）</p>
         

@@ -8,7 +8,7 @@
   name="viewport"
   content="width=device-width, initial-scale=1, shrink-to-fit=no"
 /><title>
-  WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘 | AKF
+  Hertz &#43; Kitex 微服务项目搭建指南 | AKF
 </title>
 <meta name="description" content="...——。——..."/><script>
   window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"LanguageName\":\"English\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"ja\",\"LanguageName\":\"日本語\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"zh-cn\",\"LanguageName\":\"简体中文\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"zh-tw\",\"LanguageName\":\"繁體中文\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
@@ -34,12 +34,12 @@
     crossorigin="anonymous"
   /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
 <meta property="og:type" content="website" />
-  <meta property="og:title" content="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘 | AKF" />
+  <meta property="og:title" content="Hertz &#43; Kitex 微服务项目搭建指南 | AKF" />
   <meta
     property="og:description"
     content="...——。——..."
   />
-  <meta property="og:url" content="https://example.org/post/wsl_question/" />
+  <meta property="og:url" content="https://example.org/post/microservice/hertz-kitex-quickstart/" />
   <meta
     property="og:site_name"
     content="鼠鼠的自我救赎"
@@ -50,7 +50,7 @@
   />
   <meta property="article:author" content="AKF" />
   <meta property="article:published_time" content="2025-12-03T00:00:00&#43;00:00" />
-  <meta property="article:modified_time" content="2025-12-03T00:00:00&#43;00:00" /><meta property="article:tag" content="WSL" /><meta name="twitter:card" content="summary" />
+  <meta property="article:modified_time" content="2025-12-03T00:00:00&#43;00:00" /><meta property="article:tag" content="HertzKitex微服务" /><meta name="twitter:card" content="summary" />
   <meta name="twitter:image" content="/" />
 <link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.d1c21c9f44f45331a2bdda6a6b822a47d8306ba2479416bb762f085303f54783.css" />
 <link
@@ -178,9 +178,9 @@
         });
       </script>
     </nav></div>
-<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘"><div id="header-outer">
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Hertz &#43; Kitex 微服务项目搭建指南"><div id="header-outer">
     <div id="header-title"><span id="logo">
-            <h1 data-aos="slide-up">WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</h1>
+            <h1 data-aos="slide-up">Hertz &#43; Kitex 微服务项目搭建指南</h1>
           </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
   </div>
 </header><div id="content"
@@ -194,15 +194,11 @@
 <div class="sidebar-toc-wrapper toc-div-class">
   <nav id="TableOfContents">
   <ul>
-    <li><a href="#问题">问题</a></li>
-    <li><a href="#解决步骤">解决步骤</a>
-      <ul>
-        <li><a href="#1-关闭-wsl2">1. 关闭 WSL2</a></li>
-        <li><a href="#2-打开-diskpart">2. 打开 DiskPart</a></li>
-        <li><a href="#3-找到虚拟磁盘文件">3. 找到虚拟磁盘文件</a></li>
-        <li><a href="#4-选择并压缩磁盘">4. 选择并压缩磁盘</a></li>
-      </ul>
-    </li>
+    <li><a href="#项目结构">项目结构</a></li>
+    <li><a href="#环境准备">环境准备</a></li>
+    <li><a href="#step-1生成共享-model-库">Step 1：生成共享 Model 库</a></li>
+    <li><a href="#step-2创建-kitex-rpc-服务">Step 2：创建 Kitex RPC 服务</a></li>
+    <li><a href="#step-3创建-hertz-http-网关">Step 3：创建 Hertz HTTP 网关</a></li>
   </ul>
 </nav>
 </div></div>
@@ -218,7 +214,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">3</div>
+    <div>文章</div><div class="sidebar-state-number">5</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -228,7 +224,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">5</div>
+    <div class="sidebar-state-number">7</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -293,47 +289,112 @@
   </span></div>
 <div class="article-category"><a
       class="article-category-link"
-      href="/categories/%e5%bc%80%e5%8f%91%e7%8e%af%e5%a2%83"
+      href="/categories/%e5%be%ae%e6%9c%8d%e5%8a%a1%e6%a1%86%e6%9e%b6"
       data-aos="zoom-in"
-      >开发环境</a
+      >微服务框架</a
     ></div>
-</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><p>WSL2 删除文件后磁盘空间不释放？用 DiskPart 压缩虚拟磁盘解决。</p>
-<h2 id="问题">
-<a class="header-anchor" href="#%e9%97%ae%e9%a2%98"></a>
-问题
-</h2><p>WSL2 中删除文件或清理 Docker 镜像后，虚拟磁盘文件（ext4.vhdx）大小不会自动减少，导致宿主机磁盘空间被持续占用。</p>
-<h2 id="解决步骤">
-<a class="header-anchor" href="#%e8%a7%a3%e5%86%b3%e6%ad%a5%e9%aa%a4"></a>
-解决步骤
-</h2><h3 id="1-关闭-wsl2">
-<a class="header-anchor" href="#1-%e5%85%b3%e9%97%ad-wsl2"></a>
-1. 关闭 WSL2
-</h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="n">wsl</span> <span class="p">-</span><span class="n">-shutdown</span>
-</span></span></code></pre></div><h3 id="2-打开-diskpart">
-<a class="header-anchor" href="#2-%e6%89%93%e5%bc%80-diskpart"></a>
-2. 打开 DiskPart
-</h3><p>按 <code>Win + R</code>，输入 <code>diskpart</code>，以管理员身份运行。</p>
-<p><img src="https://www.gscblog.com/upload/02-dispart02.png" alt="打开DiskPart"></p>
-<h3 id="3-找到虚拟磁盘文件">
-<a class="header-anchor" href="#3-%e6%89%be%e5%88%b0%e8%99%9a%e6%8b%9f%e7%a3%81%e7%9b%98%e6%96%87%e4%bb%b6"></a>
-3. 找到虚拟磁盘文件
-</h3><p>虚拟磁盘文件路径一般在：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">C:\Users\你的用户名\AppData\Local\Packages\
-</span></span></code></pre></div><p>在该目录下搜索 <code>ext4.vhdx</code> 文件，记下完整路径。</p>
-<h3 id="4-选择并压缩磁盘">
-<a class="header-anchor" href="#4-%e9%80%89%e6%8b%a9%e5%b9%b6%e5%8e%8b%e7%bc%a9%e7%a3%81%e7%9b%98"></a>
-4. 选择并压缩磁盘
-</h3><p>在 DiskPart 中执行：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select vdisk file=&#34;C:\Users\你的用户名\AppData\Local\Packages\...\ext4.vhdx&#34;
-</span></span><span class="line"><span class="cl">compact vdisk
-</span></span></code></pre></div><p>等待进度到 100% 完成，关闭窗口即可。</p>
-<p><img src="https://www.gscblog.com/upload/02-dispart05.png" alt="压缩完成"></p></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><p>使用 Hertz 作为 HTTP 网关 + Kitex 作为 RPC 微服务的项目搭建流程。</p>
+<h2 id="项目结构">
+<a class="header-anchor" href="#%e9%a1%b9%e7%9b%ae%e7%bb%93%e6%9e%84"></a>
+项目结构
+</h2><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-gdscript3" data-lang="gdscript3"><span class="line"><span class="cl"><span class="o">.</span>
+</span></span><span class="line"><span class="cl"><span class="err">├──</span> <span class="n">go</span><span class="o">.</span><span class="n">mod</span>
+</span></span><span class="line"><span class="cl"><span class="err">├──</span> <span class="n">go</span><span class="o">.</span><span class="n">sum</span>
+</span></span><span class="line"><span class="cl"><span class="err">└──</span> <span class="n">server</span>
+</span></span><span class="line"><span class="cl">    <span class="err">├──</span> <span class="n">cmd</span>
+</span></span><span class="line"><span class="cl">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">api</span>          <span class="c1"># Hertz HTTP 网关</span>
+</span></span><span class="line"><span class="cl">    <span class="err">│</span>   <span class="err">└──</span> <span class="n">user</span>         <span class="c1"># Kitex RPC 服务</span>
+</span></span><span class="line"><span class="cl">    <span class="err">├──</span> <span class="n">idl</span>
+</span></span><span class="line"><span class="cl">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">base</span>
+</span></span><span class="line"><span class="cl">    <span class="err">│</span>   <span class="err">├──</span> <span class="n">http</span>         <span class="c1"># Hertz 用的 thrift</span>
+</span></span><span class="line"><span class="cl">    <span class="err">│</span>   <span class="err">└──</span> <span class="n">rpc</span>          <span class="c1"># Kitex 用的 thrift</span>
+</span></span><span class="line"><span class="cl">    <span class="err">└──</span> <span class="n">shared</span>
+</span></span><span class="line"><span class="cl">        <span class="err">├──</span> <span class="n">consts</span>
+</span></span><span class="line"><span class="cl">        <span class="err">└──</span> <span class="n">kitex_gen</span>    <span class="c1"># 共享的 model 库</span>
+</span></span></code></pre></div><h2 id="环境准备">
+<a class="header-anchor" href="#%e7%8e%af%e5%a2%83%e5%87%86%e5%a4%87"></a>
+环境准备
+</h2><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 安装 Hertz 脚手架</span>
+</span></span><span class="line"><span class="cl">go install github.com/cloudwego/hertz/cmd/hz@latest
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 安装 Kitex 脚手架</span>
+</span></span><span class="line"><span class="cl">go install github.com/cloudwego/kitex/tool/cmd/kitex@latest
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 高版本 Go 需要降级 thrift（解决脚手架生成问题）</span>
+</span></span><span class="line"><span class="cl">go get github.com/apache/thrift@v0.13.0
+</span></span></code></pre></div><h2 id="step-1生成共享-model-库">
+<a class="header-anchor" href="#step-1%e7%94%9f%e6%88%90%e5%85%b1%e4%ba%ab-model-%e5%ba%93"></a>
+Step 1：生成共享 Model 库
+</h2><p>在 <code>shared</code> 目录下生成 Kitex model：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> server/shared
+</span></span><span class="line"><span class="cl">kitex -module haha ./../../idl/rpc/user.thrift
+</span></span></code></pre></div><p>生成后会在 <code>kitex_gen</code> 目录下产生对应的 model 文件。</p>
+<h2 id="step-2创建-kitex-rpc-服务">
+<a class="header-anchor" href="#step-2%e5%88%9b%e5%bb%ba-kitex-rpc-%e6%9c%8d%e5%8a%a1"></a>
+Step 2：创建 Kitex RPC 服务
+</h2><p>进入 <code>server/cmd/user</code> 目录，指定使用共享的 model 库：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> server/cmd/user
+</span></span><span class="line"><span class="cl">kitex -service user <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>      -module haha <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>      -use haha/server/shared/kitex_gen <span class="se">\
+</span></span></span><span class="line"><span class="cl"><span class="se"></span>      ./../../idl/rpc/user.thrift
+</span></span></code></pre></div><p>生成结构：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">user/
+</span></span><span class="line"><span class="cl">├── build.sh
+</span></span><span class="line"><span class="cl">├── handler.go       # 在这里编写业务逻辑
+</span></span><span class="line"><span class="cl">├── kitex_info.yaml
+</span></span><span class="line"><span class="cl">├── main.go
+</span></span><span class="line"><span class="cl">└── script/
+</span></span><span class="line"><span class="cl">    └── bootstrap.sh
+</span></span></code></pre></div><blockquote>
+<p><strong>注意</strong>：<code>-service</code> 是增量覆盖模式，不会覆盖你修改过的代码。</p>
+</blockquote>
+<h2 id="step-3创建-hertz-http-网关">
+<a class="header-anchor" href="#step-3%e5%88%9b%e5%bb%ba-hertz-http-%e7%bd%91%e5%85%b3"></a>
+Step 3：创建 Hertz HTTP 网关
+</h2><p>进入 <code>server/cmd/api</code> 目录：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> server/cmd/api
+</span></span><span class="line"><span class="cl">hz new -idl ./../../idl/http/user.thrift -module haha/server/cmd/api
+</span></span></code></pre></div><p>生成结构：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">api/
+</span></span><span class="line"><span class="cl">├── biz/
+</span></span><span class="line"><span class="cl">│   ├── handler/
+</span></span><span class="line"><span class="cl">│   │   ├── ping.go
+</span></span><span class="line"><span class="cl">│   │   └── user/
+</span></span><span class="line"><span class="cl">│   │       └── user_service.go   # 业务逻辑
+</span></span><span class="line"><span class="cl">│   ├── model/
+</span></span><span class="line"><span class="cl">│   │   ├── base/
+</span></span><span class="line"><span class="cl">│   │   └── user/
+</span></span><span class="line"><span class="cl">│   └── router/
+</span></span><span class="line"><span class="cl">│       ├── register.go
+</span></span><span class="line"><span class="cl">│       └── user/
+</span></span><span class="line"><span class="cl">│           ├── middleware.go
+</span></span><span class="line"><span class="cl">│           └── user.go
+</span></span><span class="line"><span class="cl">├── main.go
+</span></span><span class="line"><span class="cl">├── router.go
+</span></span><span class="line"><span class="cl">├── router_gen.go
+</span></span><span class="line"><span class="cl">└── ...
+</span></span></code></pre></div><p>在 <code>handler</code> 和 <code>router</code> 中编写业务逻辑，然后在当前目录执行服务即可。</p></div>
     <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
       <a
         class="article-tag-list-link"
-        href="/tags/wsl"
+        href="/tags/hertz"
         rel="tag"
-        >WSL</a
+        >HERTZ</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/kitex"
+        rel="tag"
+        >KITEX</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e5%be%ae%e6%9c%8d%e5%8a%a1"
+        rel="tag"
+        >微服务</a
       >
     </li></ul>
 </footer>
@@ -342,29 +403,29 @@
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="https://t.alcy.cc/pc"
+              data-src="/random/14.webp"
               data-sizes="auto"
-              alt="Golang Randder线性同余的坑"
+              alt="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘"
               class="lazyload"
             /><a
-          href="/post/golang-backend-pitfalls/"
-          aria-label="前一篇:Golang Randder线性同余的坑"
-          title="前一篇:Golang Randder线性同余的坑"
+          href="/post/devenv/wsl2-disk-compact/"
+          aria-label="前一篇:WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘"
+          title="前一篇:WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘"
         ></a>
         <div class="article-nav-caption">前一篇</div>
-        <h3 class="article-nav-title">Golang Randder线性同余的坑</h3>
+        <h3 class="article-nav-title">WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="https://t.alcy.cc/bd"
+              data-src="/random/13.webp"
               data-sizes="auto"
-              alt="Hertz &#43; Kitex 微服务项目搭建指南"
+              alt="解决 GVM 安装后 cd 命令失效问题"
               class="lazyload"
             /><a
-          href="/post/hert_kitex_start/"
-          aria-label="后一篇:Hertz &#43; Kitex 微服务项目搭建指南"
-          title="后一篇:Hertz &#43; Kitex 微服务项目搭建指南"
+          href="/post/devenv/gvm-cd-bug/"
+          aria-label="后一篇:解决 GVM 安装后 cd 命令失效问题"
+          title="后一篇:解决 GVM 安装后 cd 命令失效问题"
         ></a>
         <div class="article-nav-caption">后一篇</div>
-        <h3 class="article-nav-title">Hertz &#43; Kitex 微服务项目搭建指南</h3>
+        <h3 class="article-nav-title">解决 GVM 安装后 cd 命令失效问题</h3>
       </div></nav></article></section>
         </div><footer id="footer" aria-label="Site footer">
   <div style="width: 100%; overflow: hidden">
@@ -387,10 +448,10 @@
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;1.6k</span
+          >&nbsp;2.3k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:04</span>
+        <span class="icon-coffee">&nbsp;00:06</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -416,15 +477,11 @@
 <div class="sidebar-toc-wrapper toc-div-class">
   <nav id="TableOfContents">
   <ul>
-    <li><a href="#问题">问题</a></li>
-    <li><a href="#解决步骤">解决步骤</a>
-      <ul>
-        <li><a href="#1-关闭-wsl2">1. 关闭 WSL2</a></li>
-        <li><a href="#2-打开-diskpart">2. 打开 DiskPart</a></li>
-        <li><a href="#3-找到虚拟磁盘文件">3. 找到虚拟磁盘文件</a></li>
-        <li><a href="#4-选择并压缩磁盘">4. 选择并压缩磁盘</a></li>
-      </ul>
-    </li>
+    <li><a href="#项目结构">项目结构</a></li>
+    <li><a href="#环境准备">环境准备</a></li>
+    <li><a href="#step-1生成共享-model-库">Step 1：生成共享 Model 库</a></li>
+    <li><a href="#step-2创建-kitex-rpc-服务">Step 2：创建 Kitex RPC 服务</a></li>
+    <li><a href="#step-3创建-hertz-http-网关">Step 3：创建 Hertz HTTP 网关</a></li>
   </ul>
 </nav>
 </div></div>
@@ -440,7 +497,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">3</div>
+    <div>文章</div><div class="sidebar-state-number">5</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -450,7 +507,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">5</div>
+    <div class="sidebar-state-number">7</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -526,9 +583,9 @@
   <div><script data-pjax>
         window.REIMU_POST = {
           author: "AKF",
-          title: "WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘",
-          url: "https:\/\/example.org\/post\/wsl_question\/",
-          description: "WSL2 删除文件后磁盘空间不释放？用 DiskPart 压缩虚拟磁盘解决。\n",
+          title: "Hertz \u002b Kitex 微服务项目搭建指南",
+          url: "https:\/\/example.org\/post\/microservice\/hertz-kitex-quickstart\/",
+          description: "使用 Hertz 作为 HTTP 网关 \u002b Kitex 作为 RPC 微服务的项目搭建流程。\n",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>开发环境 on 鼠鼠的自我救赎</title>
-    <link>https://example.org/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/</link>
+    <title>Gvm on 鼠鼠的自我救赎</title>
+    <link>https://example.org/tags/gvm/</link>
     <description>Recent content from 鼠鼠的自我救赎</description>
     <generator>Hugo</generator>
     <language>zh-cn</language>
@@ -15,7 +15,7 @@
     <lastBuildDate>Thu, 04 Dec 2025 00:00:00 +0000</lastBuildDate>
     
     
-    <atom:link href="https://example.org/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/index.xml" rel="self" type="application/rss&#43;xml" />
+    <atom:link href="https://example.org/tags/gvm/index.xml" rel="self" type="application/rss&#43;xml" />
     
 
     
@@ -53,26 +53,6 @@
           <p>GVM (Go Version Manager) 是一个管理多个 Go 版本的工具，方便在不同项目间切换 Go 版本。</p>
         
         <hr><p>本文2025-12-04首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-04</p>]]>
-      </description>
-      
-        <category>开发环境</category>
-      
-    </item>
-    
-    
-
-    <item>
-      <title>WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</title>
-      <link>https://example.org/post/devenv/wsl2-disk-compact/</link>
-      <pubDate>Wed, 03 Dec 2025 00:00:00 &#43;0000</pubDate>
-      <author>13935468012@163.com (AKF)</author>
-      <guid>https://example.org/post/devenv/wsl2-disk-compact/</guid>
-      <description>
-        <![CDATA[<h1>WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</h1><p>作者：AKF（13935468012@163.com）</p>
-        
-          <p>WSL2 删除文件后磁盘空间不释放？用 DiskPart 压缩虚拟磁盘解决。</p>
-        
-        <hr><p>本文2025-12-03首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-03</p>]]>
       </description>
       
         <category>开发环境</category>

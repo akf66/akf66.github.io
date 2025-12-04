@@ -23,10 +23,10 @@
 
     <item>
       <title>WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</title>
-      <link>https://example.org/post/wsl_question/</link>
+      <link>https://example.org/post/devenv/wsl2-disk-compact/</link>
       <pubDate>Wed, 03 Dec 2025 00:00:00 &#43;0000</pubDate>
       <author>13935468012@163.com (AKF)</author>
-      <guid>https://example.org/post/wsl_question/</guid>
+      <guid>https://example.org/post/devenv/wsl2-disk-compact/</guid>
       <description>
         <![CDATA[<h1>WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</h1><p>作者：AKF（13935468012@163.com）</p>
         

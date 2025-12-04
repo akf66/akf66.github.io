@@ -8,7 +8,7 @@
   name="viewport"
   content="width=device-width, initial-scale=1, shrink-to-fit=no"
 /><title>
-  归档 | AKF
+  解决 GVM 安装后 cd 命令失效问题 | AKF
 </title>
 <meta name="description" content="...——。——..."/><script>
   window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"LanguageName\":\"English\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"ja\",\"LanguageName\":\"日本語\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"zh-cn\",\"LanguageName\":\"简体中文\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"zh-tw\",\"LanguageName\":\"繁體中文\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
@@ -34,12 +34,12 @@
     crossorigin="anonymous"
   /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
 <meta property="og:type" content="website" />
-  <meta property="og:title" content="归档 | AKF" />
+  <meta property="og:title" content="解决 GVM 安装后 cd 命令失效问题 | AKF" />
   <meta
     property="og:description"
     content="...——。——..."
   />
-  <meta property="og:url" content="https://example.org/archives/" />
+  <meta property="og:url" content="https://example.org/post/devenv/gvm-cd-bug/" />
   <meta
     property="og:site_name"
     content="鼠鼠的自我救赎"
@@ -49,9 +49,9 @@
     content="/"
   />
   <meta property="article:author" content="AKF" />
-  <meta property="article:published_time" content="2025-07-26T21:46:25&#43;08:00" />
-  <meta property="article:modified_time" content="2025-07-26T21:46:25&#43;08:00" /><meta name="twitter:card" content="summary" />
-  <meta name="twitter:image" content="/" /><link rel="alternate" type="application/rss+xml" href="https://example.org/archives/index.xml" title="鼠鼠的自我救赎">
+  <meta property="article:published_time" content="2025-12-04T00:00:00&#43;00:00" />
+  <meta property="article:modified_time" content="2025-12-04T00:00:00&#43;00:00" /><meta property="article:tag" content="Golang后端踩坑gvm" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
 <link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.d1c21c9f44f45331a2bdda6a6b822a47d8306ba2479416bb762f085303f54783.css" />
 <link
     rel="preload"
@@ -128,7 +128,7 @@
         <span class="main-nav-link">友链</span>
       </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
   </nav>
-  <nav id="sub-nav" aria-label="Secondary navigation"><a id="nav-rss-link" class="nav-icon" href="/archives/index.xml" title="RSS 订阅" aria-label="RSS 订阅" target="_blank"></a></nav><nav id="i18n-nav" aria-label="Language selection">
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
       <div class="custom-dropdown">
         <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
           <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
@@ -178,19 +178,30 @@
         });
       </script>
     </nav></div>
-<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt=""><div id="header-outer">
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="解决 GVM 安装后 cd 命令失效问题"><div id="header-outer">
     <div id="header-title"><span id="logo">
-            <h1 data-aos="slide-up">归档</h1>
+            <h1 data-aos="slide-up">解决 GVM 安装后 cd 命令失效问题</h1>
           </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
   </div>
 </header><div id="content"
           aria-label="Page content"
           
-          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container "><div class="sidebar-wrapper">
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
     <div
       class="sidebar-wrap"
       data-aos="fade-up"
-    ><div class="sidebar-author">
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">文章目录</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#问题现象">问题现象</a></li>
+    <li><a href="#问题分析">问题分析</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
   <img
     data-src="/avatar/niuma.png"
     data-sizes="auto"
@@ -249,311 +260,117 @@
       <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
       <div class="sidebar-menu-link">友链</div>
     </div></div>
-</div>
-  </div><div class="sidebar-widget"><div class="widget-wrapper">
-    <div
-      class="widget-wrap"
-      data-aos="fade-up"
-    >
-      <div style="display: flex; justify-content: space-between;">
-        <h3 class="widget-title">分类</h3></div>
-      <div class="widget">
-        <ul class="category-list"><li class="category-list-item">
-                <a class="category-list-link" href="/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/" 
-                  title="Golang后端踩坑"
-                  >Golang后端踩坑</a
-                >
-              </li><li class="category-list-item">
-                <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" 
-                  title="开发环境"
-                  >开发环境</a
-                >
-              </li><li class="category-list-item">
-                <a class="category-list-link" href="/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/" 
-                  title="微服务框架"
-                  >微服务框架</a
-                >
-              </li></ul>
-      </div>
-    </div>
-  </div><div class="widget-wrapper">
-    <div
-      class="widget-wrap"
-      data-aos="fade-up"
-    >
-      <div style="display: flex; justify-content: space-between;">
-        <h3 class="widget-title">标签</h3></div>
-      <div class="widget">
-        <ul class="tag-list" itemprop="keywords"><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/"
-                  aria-label="标签: Golang后端踩坑"
-                  title="Golang后端踩坑"
-                >
-                  Golang后端踩坑
-                </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/gvm/"
-                  aria-label="标签: Gvm"
-                  title="Gvm"
-                >
-                  Gvm
-                </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/hertz/"
-                  aria-label="标签: Hertz"
-                  title="Hertz"
-                >
-                  Hertz
-                </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/kitex/"
-                  aria-label="标签: Kitex"
-                  title="Kitex"
-                >
-                  Kitex
-                </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/wsl/"
-                  aria-label="标签: WSL"
-                  title="WSL"
-                >
-                  WSL
-                </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
-                  aria-label="标签: 开发环境"
-                  title="开发环境"
-                >
-                  开发环境
-                </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"
-                  aria-label="标签: 微服务"
-                  title="微服务"
-                >
-                  微服务
-                </a>
-              </li></ul>
-      </div>
-    </div>
-  </div><div class="widget-wrapper">
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
   <div
-    class="widget-wrap"
+    class="article-inner"
     data-aos="fade-up"
   >
-    <h3 class="widget-title">标签云</h3><div class="widget tagcloud"><a
-            style="font-size:10px"
-            href="/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/"
-            aria-label="标签: Golang后端踩坑"
-            >Golang后端踩坑</a
-          ><a
-            style="font-size:10px"
-            href="/tags/gvm/"
-            aria-label="标签: Gvm"
-            >Gvm</a
-          ><a
-            style="font-size:10px"
-            href="/tags/hertz/"
-            aria-label="标签: Hertz"
-            >Hertz</a
-          ><a
-            style="font-size:10px"
-            href="/tags/kitex/"
-            aria-label="标签: Kitex"
-            >Kitex</a
-          ><a
-            style="font-size:10px"
-            href="/tags/wsl/"
-            aria-label="标签: WSL"
-            >WSL</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
-            aria-label="标签: 开发环境"
-            >开发环境</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"
-            aria-label="标签: 微服务"
-            >微服务</a
-          ></div>
-  </div>
-</div><div class="widget-wrapper">
-    <div
-      class="widget-wrap"
-      data-aos="fade-up"
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2025-12-04 00:00:00 &#43;0000 UTC" itemprop="datePublished"
+      >2025-12-04</time
     >
-      <h3 class="widget-title">最新文章</h3>
-      <div class="widget">
-        <ul><li>
-              <a href="/post/devenv/gvm-install/" title="GVM 安装与使用指南">GVM 安装与使用指南</a>
-            </li><li>
-              <a href="/post/devenv/gvm-cd-bug/" title="解决 GVM 安装后 cd 命令失效问题">解决 GVM 安装后 cd 命令失效问题</a>
-            </li><li>
-              <a href="/post/microservice/hertz-kitex-quickstart/" title="Hertz &#43; Kitex 微服务项目搭建指南">Hertz &#43; Kitex 微服务项目搭建指南</a>
-            </li><li>
-              <a href="/post/devenv/wsl2-disk-compact/" title="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘">WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</a>
-            </li><li>
-              <a href="/post/golang/rand-pitfalls/" title="Golang Randder线性同余的坑">Golang Randder线性同余的坑</a>
-            </li></ul>
-      </div>
-    </div>
-  </div></div></div></aside>
-<section id="main" aria-label="Main content"><div
-    class="archives-outer-wrap"
+    <time style="display: none;" id="post-update-time"
+      >2025-12-04</time
+    >
+  </span></div>
+<div class="article-category"><a
+      class="article-category-link"
+      href="/categories/%e5%bc%80%e5%8f%91%e7%8e%af%e5%a2%83"
+      data-aos="zoom-in"
+      >开发环境</a
+    ></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><p>在 Ubuntu 上安装 GVM 后，可能会遇到 <code>cd</code> 命令失效的问题。本文记录问题原因及解决方案。</p>
+<h2 id="问题现象">
+<a class="header-anchor" href="#%e9%97%ae%e9%a2%98%e7%8e%b0%e8%b1%a1"></a>
+问题现象
+</h2><p>安装 GVM 后，终端中 <code>cd</code> 命令无法正常工作。</p>
+<h2 id="问题分析">
+<a class="header-anchor" href="#%e9%97%ae%e9%a2%98%e5%88%86%e6%9e%90"></a>
+问题分析
+</h2><p>安装 GVM 后，<code>.bashrc</code> 末尾会添加：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="o">[[</span> -s <span class="s2">&#34;</span><span class="nv">$HOME</span><span class="s2">/.gvm/scripts/gvm&#34;</span> <span class="o">]]</span> <span class="o">&amp;&amp;</span> <span class="nb">source</span> <span class="s2">&#34;</span><span class="nv">$HOME</span><span class="s2">/.gvm/scripts/gvm&#34;</span>
+</span></span></code></pre></div><p>这个脚本会加载 <code>gvm-default</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># ~/.gvm/scripts/gvm</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">GVM_ROOT</span><span class="o">=</span><span class="nv">$HOME</span>/.gvm
+</span></span><span class="line"><span class="cl">. <span class="nv">$GVM_ROOT</span>/scripts/gvm-default
+</span></span></code></pre></div><p>问题出在 <code>gvm-default</code> 脚本的最后一行：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">. <span class="s2">&#34;</span><span class="nv">$GVM_ROOT</span><span class="s2">/scripts/env/cd&#34;</span> <span class="o">&amp;&amp;</span> <span class="nb">cd</span> .
+</span></span></code></pre></div><p>GVM 重写了 <code>cd</code> 命令（用于自动切换 Go 版本），但这会导致系统默认的 <code>cd</code> 命令被覆盖失效。</p>
+<h2 id="解决方案">
+<a class="header-anchor" href="#%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88"></a>
+解决方案
+</h2><p>在 <code>~/.gvm/scripts/gvm-default</code> 末尾添加 <code>unset cd</code>，取消 GVM 对 <code>cd</code> 的覆盖：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s1">&#39;unset cd&#39;</span> &gt;&gt; ~/.gvm/scripts/gvm-default
+</span></span></code></pre></div><p>添加后文件末尾应该是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">. <span class="s2">&#34;</span><span class="nv">$GVM_ROOT</span><span class="s2">/scripts/env/cd&#34;</span> <span class="o">&amp;&amp;</span> <span class="nb">cd</span> .
+</span></span><span class="line"><span class="cl"><span class="nb">unset</span> <span class="nb">cd</span>
+</span></span></code></pre></div><p>重新加载配置：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">source</span> ~/.bashrc
+</span></span></code></pre></div><p>验证修复：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="nb">cd</span> /tmp <span class="o">&amp;&amp;</span> <span class="nb">pwd</span>
+</span></span><span class="line"><span class="cl"><span class="c1"># 输出 /tmp 说明修复成功</span>
+</span></span></code></pre></div><h2 id="总结">
+<a class="header-anchor" href="#%e6%80%bb%e7%bb%93"></a>
+总结
+</h2><p>GVM 的 <code>cd</code> 覆盖功能本意是在切换目录时自动检测 <code>.go-version</code> 文件并切换 Go 版本，但实现上有 bug。通过 <code>unset cd</code> 可以恢复默认行为，同时不影响 GVM 的其他功能。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/golang%e5%90%8e%e7%ab%af%e8%b8%a9%e5%9d%91"
+        rel="tag"
+        >GOLANG后端踩坑</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/gvm"
+        rel="tag"
+        >GVM</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
     data-aos="fade-up"
-  ><div class="tag-wrap"><div
-      class="archives-tag-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-tag-list-link" href="/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/"
-        >Golang后端踩坑</a
-      >
-    </div><div
-      class="archives-tag-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-tag-list-link" href="/tags/gvm/"
-        >Gvm</a
-      >
-    </div><div
-      class="archives-tag-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-tag-list-link" href="/tags/hertz/"
-        >Hertz</a
-      >
-    </div><div
-      class="archives-tag-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-tag-list-link" href="/tags/kitex/"
-        >Kitex</a
-      >
-    </div><div
-      class="archives-tag-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-tag-list-link" href="/tags/wsl/"
-        >WSL</a
-      >
-    </div><div
-      class="archives-tag-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
-        >开发环境</a
-      >
-    </div><div
-      class="archives-tag-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-tag-list-link" href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"
-        >微服务</a
-      >
-    </div></div>
-<div class="category-wrap"><div
-      class="archives-category-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-category-list-link" href="/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/"
-        >Golang后端踩坑</a
-      >
-    </div><div
-      class="archives-category-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
-        >开发环境</a
-      >
-    </div><div
-      class="archives-category-list-item"
-      data-aos="zoom-in"
-    >
-      <a class="archives-category-list-link" href="/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/"
-        >微服务框架</a
-      >
-    </div></div><section class="archives-wrap" data-aos="fade-up">
-    <div class="archive-year-wrap">
-      <span class="archive-year">2025</span>
-    </div>
-    <ul><li class="archive-article">
-          <div class="archive-article-date">
-            <span>
-              <time
-                class="dt-published"
-                datetime="2025-12-04 00:00:00 &#43;0000 UTC"
-                itemprop="datePublished"
-                >2025-12</time
-              >
-            </span>
-          </div><a class="archive-article-title" href="/post/devenv/gvm-cd-bug/"
-              >解决 GVM 安装后 cd 命令失效问题</a
-            ></li><li class="archive-article">
-          <div class="archive-article-date">
-            <span>
-              <time
-                class="dt-published"
-                datetime="2025-12-04 00:00:00 &#43;0000 UTC"
-                itemprop="datePublished"
-                >2025-12</time
-              >
-            </span>
-          </div><a class="archive-article-title" href="/post/devenv/gvm-install/"
-              >GVM 安装与使用指南</a
-            ></li><li class="archive-article">
-          <div class="archive-article-date">
-            <span>
-              <time
-                class="dt-published"
-                datetime="2025-12-03 00:00:00 &#43;0000 UTC"
-                itemprop="datePublished"
-                >2025-12</time
-              >
-            </span>
-          </div><a class="archive-article-title" href="/post/devenv/wsl2-disk-compact/"
-              >WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</a
-            ></li><li class="archive-article">
-          <div class="archive-article-date">
-            <span>
-              <time
-                class="dt-published"
-                datetime="2025-12-03 00:00:00 &#43;0000 UTC"
-                itemprop="datePublished"
-                >2025-12</time
-              >
-            </span>
-          </div><a class="archive-article-title" href="/post/microservice/hertz-kitex-quickstart/"
-              >Hertz &#43; Kitex 微服务项目搭建指南</a
-            ></li><li class="archive-article">
-          <div class="archive-article-date">
-            <span>
-              <time
-                class="dt-published"
-                datetime="2025-12-02 00:00:00 &#43;0000 UTC"
-                itemprop="datePublished"
-                >2025-12</time
-              >
-            </span>
-          </div><a class="archive-article-title" href="/post/golang/rand-pitfalls/"
-              >Golang Randder线性同余的坑</a
-            ></li></ul>
-  </section></div><nav id="page-nav" aria-label="Pagination navigation" data-aos="fade-up"><span class="page-number current">1</span></nav>
-</section>
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/9.webp"
+              data-sizes="auto"
+              alt="Hertz &#43; Kitex 微服务项目搭建指南"
+              class="lazyload"
+            /><a
+          href="/post/microservice/hertz-kitex-quickstart/"
+          aria-label="前一篇:Hertz &#43; Kitex 微服务项目搭建指南"
+          title="前一篇:Hertz &#43; Kitex 微服务项目搭建指南"
+        ></a>
+        <div class="article-nav-caption">前一篇</div>
+        <h3 class="article-nav-title">Hertz &#43; Kitex 微服务项目搭建指南</h3>
+      </div><div class="article-nav-link-wrap right"><img
+              data-src="/random/2.webp"
+              data-sizes="auto"
+              alt="GVM 安装与使用指南"
+              class="lazyload"
+            /><a
+          href="/post/devenv/gvm-install/"
+          aria-label="后一篇:GVM 安装与使用指南"
+          title="后一篇:GVM 安装与使用指南"
+        ></a>
+        <div class="article-nav-caption">后一篇</div>
+        <h3 class="article-nav-title">GVM 安装与使用指南</h3>
+      </div></nav></article></section>
         </div><footer id="footer" aria-label="Site footer">
   <div style="width: 100%; overflow: hidden">
     <div class="footer-line"></div>
@@ -600,7 +417,18 @@
             <div class="arrow-up"></div>
           </div><div id="mask" class="hide"></div>
       </div><nav id="mobile-nav" aria-label="Mobile navigation">
-  <div class="sidebar-wrap"><div class="sidebar-author">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">文章目录</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#问题现象">问题现象</a></li>
+    <li><a href="#问题分析">问题分析</a></li>
+    <li><a href="#解决方案">解决方案</a></li>
+    <li><a href="#总结">总结</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
   <img
     data-src="/avatar/niuma.png"
     data-sizes="auto"
@@ -659,7 +487,10 @@
       <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
       <div class="sidebar-menu-link">友链</div>
     </div></div>
-</div></nav>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
 </div><script
     src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
     integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
@@ -695,9 +526,9 @@
   <div><script data-pjax>
         window.REIMU_POST = {
           author: "AKF",
-          title: "",
-          url: "https:\/\/example.org\/archives\/",
-          description: "",
+          title: "解决 GVM 安装后 cd 命令失效问题",
+          url: "https:\/\/example.org\/post\/devenv\/gvm-cd-bug\/",
+          description: "在 Ubuntu 上安装 GVM 后，可能会遇到 cd 命令失效的问题。本文记录问题原因及解决方案。\n",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {

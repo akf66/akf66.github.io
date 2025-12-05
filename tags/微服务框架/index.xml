@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Kitex on 鼠鼠的自我救赎</title>
-    <link>https://example.org/tags/kitex/</link>
+    <title>微服务框架 on 鼠鼠的自我救赎</title>
+    <link>https://example.org/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/</link>
     <description>Recent content from 鼠鼠的自我救赎</description>
     <generator>Hugo</generator>
     <language>zh-cn</language>
@@ -12,12 +12,32 @@
     
     <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
     
-    <lastBuildDate>Wed, 03 Dec 2025 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 04 Dec 2025 00:00:00 +0000</lastBuildDate>
     
     
-    <atom:link href="https://example.org/tags/kitex/index.xml" rel="self" type="application/rss&#43;xml" />
+    <atom:link href="https://example.org/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/index.xml" rel="self" type="application/rss&#43;xml" />
     
 
+    
+    
+
+    <item>
+      <title>Go-Zero 快速入门指南</title>
+      <link>https://example.org/post/microservice/go-zero/zero_start/</link>
+      <pubDate>Thu, 04 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/microservice/go-zero/zero_start/</guid>
+      <description>
+        <![CDATA[<h1>Go-Zero 快速入门指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>Go-Zero 是一个集成了各种工程实践的 Web 和 RPC 框架，本文记录从零开始搭建 Go-Zero 开发环境的完整流程。</p>
+        
+        <hr><p>本文2025-12-04首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-04</p>]]>
+      </description>
+      
+        <category>微服务</category>
+      
+    </item>
     
     
 

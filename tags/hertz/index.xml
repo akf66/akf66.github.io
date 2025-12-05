@@ -23,10 +23,10 @@
 
     <item>
       <title>Hertz &#43; Kitex 微服务项目搭建指南</title>
-      <link>https://example.org/post/microservice/hertz-kitex-quickstart/</link>
+      <link>https://example.org/post/microservice/kitex_hertz/hertz-kitex-quickstart/</link>
       <pubDate>Wed, 03 Dec 2025 00:00:00 &#43;0000</pubDate>
       <author>13935468012@163.com (AKF)</author>
-      <guid>https://example.org/post/microservice/hertz-kitex-quickstart/</guid>
+      <guid>https://example.org/post/microservice/kitex_hertz/hertz-kitex-quickstart/</guid>
       <description>
         <![CDATA[<h1>Hertz + Kitex 微服务项目搭建指南</h1><p>作者：AKF（13935468012@163.com）</p>
         
@@ -35,7 +35,7 @@
         <hr><p>本文2025-12-03首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-03</p>]]>
       </description>
       
-        <category>微服务框架</category>
+        <category>微服务</category>
       
     </item>
     

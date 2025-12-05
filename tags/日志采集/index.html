@@ -8,7 +8,7 @@
   name="viewport"
   content="width=device-width, initial-scale=1, shrink-to-fit=no"
 /><title>
-  WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘 | AKF
+  日志采集 | AKF
 </title>
 <meta name="description" content="...——。——..."/><script>
   window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"LanguageName\":\"English\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"ja\",\"LanguageName\":\"日本語\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"zh-cn\",\"LanguageName\":\"简体中文\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"zh-tw\",\"LanguageName\":\"繁體中文\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
@@ -34,12 +34,12 @@
     crossorigin="anonymous"
   /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
 <meta property="og:type" content="website" />
-  <meta property="og:title" content="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘 | AKF" />
+  <meta property="og:title" content="日志采集 | AKF" />
   <meta
     property="og:description"
     content="...——。——..."
   />
-  <meta property="og:url" content="https://example.org/post/devenv/wsl2-disk-compact/" />
+  <meta property="og:url" content="https://example.org/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/" />
   <meta
     property="og:site_name"
     content="鼠鼠的自我救赎"
@@ -49,9 +49,9 @@
     content="/"
   />
   <meta property="article:author" content="AKF" />
-  <meta property="article:published_time" content="2025-12-03T00:00:00&#43;00:00" />
-  <meta property="article:modified_time" content="2025-12-03T00:00:00&#43;00:00" /><meta property="article:tag" content="WSL" /><meta name="twitter:card" content="summary" />
-  <meta name="twitter:image" content="/" />
+  <meta property="article:published_time" content="2025-12-05T00:00:00&#43;00:00" />
+  <meta property="article:modified_time" content="2025-12-05T00:00:00&#43;00:00" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" /><link rel="alternate" type="application/rss+xml" href="https://example.org/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/index.xml" title="鼠鼠的自我救赎">
 <link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.d1c21c9f44f45331a2bdda6a6b822a47d8306ba2479416bb762f085303f54783.css" />
 <link
     rel="preload"
@@ -128,7 +128,7 @@
         <span class="main-nav-link">友链</span>
       </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
   </nav>
-  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+  <nav id="sub-nav" aria-label="Secondary navigation"><a id="nav-rss-link" class="nav-icon" href="/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/index.xml" title="RSS 订阅" aria-label="RSS 订阅" target="_blank"></a></nav><nav id="i18n-nav" aria-label="Language selection">
       <div class="custom-dropdown">
         <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
           <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
@@ -178,35 +178,19 @@
         });
       </script>
     </nav></div>
-<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘"><div id="header-outer">
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="日志采集"><div id="header-outer">
     <div id="header-title"><span id="logo">
-            <h1 data-aos="slide-up">WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</h1>
-          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+            <h1 data-aos="slide-up">标签</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"><span id="subtitle">日志采集</span></h2></div>
   </div>
 </header><div id="content"
           aria-label="Page content"
           
-          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container "><div class="sidebar-wrapper">
     <div
       class="sidebar-wrap"
       data-aos="fade-up"
-    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">文章目录</h3>
-<div class="sidebar-toc-wrapper toc-div-class">
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#问题">问题</a></li>
-    <li><a href="#解决步骤">解决步骤</a>
-      <ul>
-        <li><a href="#1-关闭-wsl2">1. 关闭 WSL2</a></li>
-        <li><a href="#2-打开-diskpart">2. 打开 DiskPart</a></li>
-        <li><a href="#3-找到虚拟磁盘文件">3. 找到虚拟磁盘文件</a></li>
-        <li><a href="#4-选择并压缩磁盘">4. 选择并压缩磁盘</a></li>
-      </ul>
-    </li>
-  </ul>
-</nav>
-</div></div>
-          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+    ><div class="sidebar-author">
   <img
     data-src="/avatar/niuma.png"
     data-sizes="auto"
@@ -265,107 +249,326 @@
       <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
       <div class="sidebar-menu-link">友链</div>
     </div></div>
-</div><div class="sidebar-btn-wrapper" style="position:static">
-            <div class="sidebar-toc-btn current"></div>
-            <div class="sidebar-common-btn"></div>
-          </div></div>
-  </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><article
-  class="h-entry article"
-  itemscope
-  itemtype="https://schema.org/BlogPosting"
->
+</div>
+  </div><div class="sidebar-widget"><div class="widget-wrapper">
+    <div
+      class="widget-wrap"
+      data-aos="fade-up"
+    >
+      <div style="display: flex; justify-content: space-between;">
+        <h3 class="widget-title">分类</h3></div>
+      <div class="widget">
+        <ul class="category-list"><li class="category-list-item">
+                <a class="category-list-link" href="/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/" 
+                  title="Golang后端踩坑"
+                  >Golang后端踩坑</a
+                >
+              </li><li class="category-list-item">
+                <a class="category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/" 
+                  title="开发环境"
+                  >开发环境</a
+                >
+              </li><li class="category-list-item">
+                <a class="category-list-link" href="/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/" 
+                  title="微服务"
+                  >微服务</a
+                >
+              </li></ul>
+      </div>
+    </div>
+  </div><div class="widget-wrapper">
+    <div
+      class="widget-wrap"
+      data-aos="fade-up"
+    >
+      <div style="display: flex; justify-content: space-between;">
+        <h3 class="widget-title">标签</h3></div>
+      <div class="widget">
+        <ul class="tag-list" itemprop="keywords"><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/go-zero/"
+                  aria-label="标签: Go-Zero"
+                  title="Go-Zero"
+                >
+                  Go-Zero
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/"
+                  aria-label="标签: Golang后端踩坑"
+                  title="Golang后端踩坑"
+                >
+                  Golang后端踩坑
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/gvm/"
+                  aria-label="标签: Gvm"
+                  title="Gvm"
+                >
+                  Gvm
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/hertz/"
+                  aria-label="标签: Hertz"
+                  title="Hertz"
+                >
+                  Hertz
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/kitex/"
+                  aria-label="标签: Kitex"
+                  title="Kitex"
+                >
+                  Kitex
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/wsl/"
+                  aria-label="标签: WSL"
+                  title="WSL"
+                >
+                  WSL
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
+                  aria-label="标签: 开发环境"
+                  title="开发环境"
+                >
+                  开发环境
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"
+                  aria-label="标签: 微服务"
+                  title="微服务"
+                >
+                  微服务
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/"
+                  aria-label="标签: 微服务框架"
+                  title="微服务框架"
+                >
+                  微服务框架
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/"
+                  aria-label="标签: 日志采集"
+                  title="日志采集"
+                >
+                  日志采集
+                </a>
+              </li></ul>
+      </div>
+    </div>
+  </div><div class="widget-wrapper">
   <div
-    class="article-inner"
+    class="widget-wrap"
     data-aos="fade-up"
   >
-    <div class="article-meta"><div class="article-date">
-  <span
-    class="article-date-link icon-calendar"
-    data-aos="zoom-in"
-  >
-    <time datetime="2025-12-03 00:00:00 &#43;0000 UTC" itemprop="datePublished"
-      >2025-12-03</time
+    <h3 class="widget-title">标签云</h3><div class="widget tagcloud"><a
+            style="font-size:10px"
+            href="/tags/go-zero/"
+            aria-label="标签: Go-Zero"
+            >Go-Zero</a
+          ><a
+            style="font-size:10px"
+            href="/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/"
+            aria-label="标签: Golang后端踩坑"
+            >Golang后端踩坑</a
+          ><a
+            style="font-size:10px"
+            href="/tags/gvm/"
+            aria-label="标签: Gvm"
+            >Gvm</a
+          ><a
+            style="font-size:10px"
+            href="/tags/hertz/"
+            aria-label="标签: Hertz"
+            >Hertz</a
+          ><a
+            style="font-size:10px"
+            href="/tags/kitex/"
+            aria-label="标签: Kitex"
+            >Kitex</a
+          ><a
+            style="font-size:10px"
+            href="/tags/wsl/"
+            aria-label="标签: WSL"
+            >WSL</a
+          ><a
+            style="font-size:10px"
+            href="/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
+            aria-label="标签: 开发环境"
+            >开发环境</a
+          ><a
+            style="font-size:10px"
+            href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"
+            aria-label="标签: 微服务"
+            >微服务</a
+          ><a
+            style="font-size:10px"
+            href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/"
+            aria-label="标签: 微服务框架"
+            >微服务框架</a
+          ><a
+            style="font-size:10px"
+            href="/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/"
+            aria-label="标签: 日志采集"
+            >日志采集</a
+          ></div>
+  </div>
+</div><div class="widget-wrapper">
+    <div
+      class="widget-wrap"
+      data-aos="fade-up"
     >
-    <time style="display: none;" id="post-update-time"
-      >2025-12-03</time
-    >
-  </span></div>
-<div class="article-category"><a
-      class="article-category-link"
-      href="/categories/%e5%bc%80%e5%8f%91%e7%8e%af%e5%a2%83"
+      <h3 class="widget-title">最新文章</h3>
+      <div class="widget">
+        <ul><li>
+              <a href="/post/study/study_01/" title="微服务日志采集链路：从文件到 Kibana">微服务日志采集链路：从文件到 Kibana</a>
+            </li><li>
+              <a href="/post/microservice/go-zero/zero_start/" title="Go-Zero 快速入门指南">Go-Zero 快速入门指南</a>
+            </li><li>
+              <a href="/post/devenv/gvm-install/" title="GVM 安装与使用指南">GVM 安装与使用指南</a>
+            </li><li>
+              <a href="/post/devenv/gvm-cd-bug/" title="解决 GVM 安装后 cd 命令失效问题">解决 GVM 安装后 cd 命令失效问题</a>
+            </li><li>
+              <a href="/post/microservice/kitex_hertz/hertz-kitex-quickstart/" title="Hertz &#43; Kitex 微服务项目搭建指南">Hertz &#43; Kitex 微服务项目搭建指南</a>
+            </li></ul>
+      </div>
+    </div>
+  </div></div></div></aside>
+<section id="main" aria-label="Main content"><div
+    class="archives-outer-wrap"
+    data-aos="fade-up"
+  ><div class="tag-wrap"><div
+      class="archives-tag-list-item"
       data-aos="zoom-in"
-      >开发环境</a
-    ></div>
-</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><p>WSL2 删除文件后磁盘空间不释放？用 DiskPart 压缩虚拟磁盘解决。</p>
-<h2 id="问题">
-<a class="header-anchor" href="#%e9%97%ae%e9%a2%98"></a>
-问题
-</h2><p>WSL2 中删除文件或清理 Docker 镜像后，虚拟磁盘文件（ext4.vhdx）大小不会自动减少，导致宿主机磁盘空间被持续占用。</p>
-<h2 id="解决步骤">
-<a class="header-anchor" href="#%e8%a7%a3%e5%86%b3%e6%ad%a5%e9%aa%a4"></a>
-解决步骤
-</h2><h3 id="1-关闭-wsl2">
-<a class="header-anchor" href="#1-%e5%85%b3%e9%97%ad-wsl2"></a>
-1. 关闭 WSL2
-</h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-powershell" data-lang="powershell"><span class="line"><span class="cl"><span class="n">wsl</span> <span class="p">-</span><span class="n">-shutdown</span>
-</span></span></code></pre></div><h3 id="2-打开-diskpart">
-<a class="header-anchor" href="#2-%e6%89%93%e5%bc%80-diskpart"></a>
-2. 打开 DiskPart
-</h3><p>按 <code>Win + R</code>，输入 <code>diskpart</code>，以管理员身份运行。</p>
-<p><img src="https://www.gscblog.com/upload/02-dispart02.png" alt="打开DiskPart"></p>
-<h3 id="3-找到虚拟磁盘文件">
-<a class="header-anchor" href="#3-%e6%89%be%e5%88%b0%e8%99%9a%e6%8b%9f%e7%a3%81%e7%9b%98%e6%96%87%e4%bb%b6"></a>
-3. 找到虚拟磁盘文件
-</h3><p>虚拟磁盘文件路径一般在：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">C:\Users\你的用户名\AppData\Local\Packages\
-</span></span></code></pre></div><p>在该目录下搜索 <code>ext4.vhdx</code> 文件，记下完整路径。</p>
-<h3 id="4-选择并压缩磁盘">
-<a class="header-anchor" href="#4-%e9%80%89%e6%8b%a9%e5%b9%b6%e5%8e%8b%e7%bc%a9%e7%a3%81%e7%9b%98"></a>
-4. 选择并压缩磁盘
-</h3><p>在 DiskPart 中执行：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">select vdisk file=&#34;C:\Users\你的用户名\AppData\Local\Packages\...\ext4.vhdx&#34;
-</span></span><span class="line"><span class="cl">compact vdisk
-</span></span></code></pre></div><p>等待进度到 100% 完成，关闭窗口即可。</p>
-<p><img src="https://www.gscblog.com/upload/02-dispart05.png" alt="压缩完成"></p></div>
-    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
-      <a
-        class="article-tag-list-link"
-        href="/tags/wsl"
-        rel="tag"
+    >
+      <a class="archives-tag-list-link" href="/tags/go-zero/"
+        >Go-Zero</a
+      >
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/"
+        >Golang后端踩坑</a
+      >
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/gvm/"
+        >Gvm</a
+      >
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/hertz/"
+        >Hertz</a
+      >
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/kitex/"
+        >Kitex</a
+      >
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/wsl/"
         >WSL</a
       >
-    </li></ul>
-</footer>
-  </div><nav
-    id="article-nav"
-    aria-label="Article navigation"
-    data-aos="fade-up"
-  ><div class="article-nav-link-wrap left"><img
-              data-src="/random/8.webp"
-              data-sizes="auto"
-              alt="Golang Randder线性同余的坑"
-              class="lazyload"
-            /><a
-          href="/post/golang/rand-pitfalls/"
-          aria-label="前一篇:Golang Randder线性同余的坑"
-          title="前一篇:Golang Randder线性同余的坑"
-        ></a>
-        <div class="article-nav-caption">前一篇</div>
-        <h3 class="article-nav-title">Golang Randder线性同余的坑</h3>
-      </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/15.webp"
-              data-sizes="auto"
-              alt="Hertz &#43; Kitex 微服务项目搭建指南"
-              class="lazyload"
-            /><a
-          href="/post/microservice/kitex_hertz/hertz-kitex-quickstart/"
-          aria-label="后一篇:Hertz &#43; Kitex 微服务项目搭建指南"
-          title="后一篇:Hertz &#43; Kitex 微服务项目搭建指南"
-        ></a>
-        <div class="article-nav-caption">后一篇</div>
-        <h3 class="article-nav-title">Hertz &#43; Kitex 微服务项目搭建指南</h3>
-      </div></nav></article></section>
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
+        >开发环境</a
+      >
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"
+        >微服务</a
+      >
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/"
+        >微服务框架</a
+      >
+    </div><div
+      class="archives-tag-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-tag-list-link" href="/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/"
+        >日志采集</a
+      >
+    </div></div>
+<div class="category-wrap"><div
+      class="archives-category-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-category-list-link" href="/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/"
+        >Golang后端踩坑</a
+      >
+    </div><div
+      class="archives-category-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-category-list-link" href="/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
+        >开发环境</a
+      >
+    </div><div
+      class="archives-category-list-item"
+      data-aos="zoom-in"
+    >
+      <a class="archives-category-list-link" href="/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"
+        >微服务</a
+      >
+    </div></div><section class="archives-wrap" data-aos="fade-up">
+    <div class="archive-year-wrap">
+      <span class="archive-year">2025</span>
+    </div>
+    <ul><li class="archive-article">
+          <div class="archive-article-date">
+            <span>
+              <time
+                class="dt-published"
+                datetime="2025-12-05 00:00:00 &#43;0000 UTC"
+                itemprop="datePublished"
+                >2025-12</time
+              >
+            </span>
+          </div><a class="archive-article-title" href="/post/study/study_01/"
+              >微服务日志采集链路：从文件到 Kibana</a
+            ></li></ul>
+  </section></div><nav id="page-nav" aria-label="Pagination navigation" data-aos="fade-up"><span class="page-number current">1</span></nav>
+</section>
         </div><footer id="footer" aria-label="Site footer">
   <div style="width: 100%; overflow: hidden">
     <div class="footer-line"></div>
@@ -412,23 +615,7 @@
             <div class="arrow-up"></div>
           </div><div id="mask" class="hide"></div>
       </div><nav id="mobile-nav" aria-label="Mobile navigation">
-  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">文章目录</h3>
-<div class="sidebar-toc-wrapper toc-div-class">
-  <nav id="TableOfContents">
-  <ul>
-    <li><a href="#问题">问题</a></li>
-    <li><a href="#解决步骤">解决步骤</a>
-      <ul>
-        <li><a href="#1-关闭-wsl2">1. 关闭 WSL2</a></li>
-        <li><a href="#2-打开-diskpart">2. 打开 DiskPart</a></li>
-        <li><a href="#3-找到虚拟磁盘文件">3. 找到虚拟磁盘文件</a></li>
-        <li><a href="#4-选择并压缩磁盘">4. 选择并压缩磁盘</a></li>
-      </ul>
-    </li>
-  </ul>
-</nav>
-</div></div>
-        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <div class="sidebar-wrap"><div class="sidebar-author">
   <img
     data-src="/avatar/niuma.png"
     data-sizes="auto"
@@ -487,10 +674,7 @@
       <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
       <div class="sidebar-menu-link">友链</div>
     </div></div>
-</div></div><div class="sidebar-btn-wrapper">
-        <div class="sidebar-toc-btn current"></div>
-        <div class="sidebar-common-btn"></div>
-      </div></nav>
+</div></nav>
 </div><script
     src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
     integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
@@ -526,9 +710,9 @@
   <div><script data-pjax>
         window.REIMU_POST = {
           author: "AKF",
-          title: "WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘",
-          url: "https:\/\/example.org\/post\/devenv\/wsl2-disk-compact\/",
-          description: "WSL2 删除文件后磁盘空间不释放？用 DiskPart 压缩虚拟磁盘解决。\n",
+          title: "日志采集",
+          url: "https:\/\/example.org\/tags\/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86\/",
+          description: "",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {

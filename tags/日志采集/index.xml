@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>微服务 on 鼠鼠的自我救赎</title>
-    <link>https://example.org/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/</link>
+    <title>日志采集 on 鼠鼠的自我救赎</title>
+    <link>https://example.org/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/</link>
     <description>Recent content from 鼠鼠的自我救赎</description>
     <generator>Hugo</generator>
     <language>zh-cn</language>
@@ -15,7 +15,7 @@
     <lastBuildDate>Fri, 05 Dec 2025 00:00:00 +0000</lastBuildDate>
     
     
-    <atom:link href="https://example.org/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/index.xml" rel="self" type="application/rss&#43;xml" />
+    <atom:link href="https://example.org/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/index.xml" rel="self" type="application/rss&#43;xml" />
     
 
     

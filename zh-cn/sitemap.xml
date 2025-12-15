@@ -2,8 +2,11 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://example.org/tags/aws/</loc>
+    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
+  </url><url>
     <loc>https://example.org/categories/</loc>
-    <lastmod>2025-12-15T00:00:00+00:00</lastmod>
+    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -25,17 +28,20 @@
                 href="https://example.org/categories/"
                 />
   </url><url>
-    <loc>https://example.org/categories/git/</loc>
-    <lastmod>2025-12-15T00:00:00+00:00</lastmod>
+    <loc>https://example.org/tags/devops/</loc>
+    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/git/</loc>
-    <lastmod>2025-12-15T00:00:00+00:00</lastmod>
+    <loc>https://example.org/tags/docker/</loc>
+    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/post/git/usegit/</loc>
-    <lastmod>2025-12-15T00:00:00+00:00</lastmod>
+    <loc>https://example.org/tags/go/</loc>
+    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/post/sdktools/aws-ecr-push-tool/</loc>
+    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/</loc>
-    <lastmod>2025-12-15T00:00:00+00:00</lastmod>
+    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -57,11 +63,8 @@
                 href="https://example.org/tags/"
                 />
   </url><url>
-    <loc>https://example.org/tags/%E7%89%88%E6%9C%AC%E6%8E%A7%E5%88%B6/</loc>
-    <lastmod>2025-12-15T00:00:00+00:00</lastmod>
-  </url><url>
     <loc>https://example.org/</loc>
-    <lastmod>2025-12-15T00:00:00+00:00</lastmod>
+    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -82,21 +85,6 @@
                 hreflang="zh-cn"
                 href="https://example.org/"
                 />
-  </url><url>
-    <loc>https://example.org/tags/aws/</loc>
-    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/devops/</loc>
-    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/docker/</loc>
-    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/go/</loc>
-    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/post/sdktools/aws-ecr-push-tool/</loc>
-    <lastmod>2025-12-14T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://example.org/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/</loc>
     <lastmod>2025-12-14T00:00:00+00:00</lastmod>

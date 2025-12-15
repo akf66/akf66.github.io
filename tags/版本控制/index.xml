@@ -22,6 +22,52 @@
     
 
     <item>
+      <title>Git squash 图形化使用指南</title>
+      <link>https://example.org/post/git/uesegit_squash_graph/</link>
+      <pubDate>Mon, 15 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/git/uesegit_squash_graph/</guid>
+      <description>
+        <![CDATA[<h1>Git squash 图形化使用指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <h1 id="git-squash--使用指南">
+<a class="header-anchor" href="#git-squash--%e4%bd%bf%e7%94%a8%e6%8c%87%e5%8d%97"></a>
+Git squash  使用指南
+</h1>
+        
+        <hr><p>本文2025-12-15首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-15</p>]]>
+      </description>
+      
+        <category>git</category>
+      
+    </item>
+    
+    
+
+    <item>
+      <title>Git squash 使用指南</title>
+      <link>https://example.org/post/git/usegit_squash/</link>
+      <pubDate>Mon, 15 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/git/usegit_squash/</guid>
+      <description>
+        <![CDATA[<h1>Git squash 使用指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <h1 id="git-cherry-pick-使用指南">
+<a class="header-anchor" href="#git-cherry-pick-%e4%bd%bf%e7%94%a8%e6%8c%87%e5%8d%97"></a>
+Git Cherry-Pick 使用指南
+</h1>
+        
+        <hr><p>本文2025-12-15首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-15</p>]]>
+      </description>
+      
+        <category>git</category>
+      
+    </item>
+    
+    
+
+    <item>
       <title>Git Cherry-Pick 图形化使用指南</title>
       <link>https://example.org/post/git/usegit_grpah/</link>
       <pubDate>Mon, 15 Dec 2025 00:00:00 &#43;0000</pubDate>

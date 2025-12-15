@@ -12,12 +12,32 @@
     
     <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
     
-    <lastBuildDate>Thu, 04 Dec 2025 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 13 Dec 2025 00:00:00 +0000</lastBuildDate>
     
     
     <atom:link href="https://example.org/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/index.xml" rel="self" type="application/rss&#43;xml" />
     
 
+    
+    
+
+    <item>
+      <title>Go Build Tag：条件编译的正确姿势</title>
+      <link>https://example.org/post/golang/go-build-tag/</link>
+      <pubDate>Sat, 13 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/golang/go-build-tag/</guid>
+      <description>
+        <![CDATA[<h1>Go Build Tag：条件编译的正确姿势</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>Build Tag 是 Go 的条件编译机制，让你控制哪些文件参与编译。简单说就是给文件打个&quot;标签&quot;，编译时可以选择性地包含或排除这些文件。</p>
+        
+        <hr><p>本文2025-12-13首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-13</p>]]>
+      </description>
+      
+        <category>Golang后端踩坑</category>
+      
+    </item>
     
     
 

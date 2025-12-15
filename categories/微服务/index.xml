@@ -12,12 +12,36 @@
     
     <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
     
-    <lastBuildDate>Sat, 06 Dec 2025 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Wed, 10 Dec 2025 00:00:00 +0000</lastBuildDate>
     
     
     <atom:link href="https://example.org/categories/%E5%BE%AE%E6%9C%8D%E5%8A%A1/index.xml" rel="self" type="application/rss&#43;xml" />
     
 
+    
+    
+
+    <item>
+      <title>鉴权登录限制设置</title>
+      <link>https://example.org/post/usefeat/go-zero-jwt-limiter/</link>
+      <pubDate>Wed, 10 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/usefeat/go-zero-jwt-limiter/</guid>
+      <description>
+        <![CDATA[<h1>鉴权登录限制设置</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <h2 id="前言">
+<a class="header-anchor" href="#%e5%89%8d%e8%a8%80"></a>
+前言
+</h2><p>在实际业务中，我们经常需要限制用户的同时登录设备数量。比如视频会员只允许同时在 2 台设备上登录，第 3 台设备登录时会把最早的那个踢下线。</p>
+<p>本文介绍如何在 Go-Zero 框架中实现这个功能。</p>
+        
+        <hr><p>本文2025-12-10首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-10</p>]]>
+      </description>
+      
+        <category>微服务</category><category>功能设计</category>
+      
+    </item>
     
     
 
@@ -31,6 +55,29 @@
         <![CDATA[<h1>Go-Zero 微服务网关：Nginx 统一入口实践</h1><p>作者：AKF（13935468012@163.com）</p>
         
           <p>理解 go-zero 中 API 与网关的关系，以及如何使用 Nginx 作为统一流量入口。</p>
+        
+        <hr><p>本文2025-12-06首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-06</p>]]>
+      </description>
+      
+        <category>微服务</category>
+      
+    </item>
+    
+    
+
+    <item>
+      <title>Go-Zero 鉴权</title>
+      <link>https://example.org/post/microservice/go-zero/go-zero%E5%B8%B8%E7%94%A8%E5%8A%9F%E8%83%BD/</link>
+      <pubDate>Sat, 06 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/microservice/go-zero/go-zero%E5%B8%B8%E7%94%A8%E5%8A%9F%E8%83%BD/</guid>
+      <description>
+        <![CDATA[<h1>Go-Zero 鉴权</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <h4 id="11-go-zero-jwt">
+<a class="header-anchor" href="#11-go-zero-jwt"></a>
+1.1 go-zero jwt
+</h4><p>上一节我们提到了，在desc/api文件中我们定义了go-zero自带的jwt中间件，生成代码后我们可以看到定义了jwt的api服务的路由，这里我们以usercenter服务举例，我们可以看下 go-zero-looklook/app/usercenter/cmd/api/internal/handler/routes.go 代码如下</p>
         
         <hr><p>本文2025-12-06首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-06</p>]]>
       </description>

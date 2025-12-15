@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>功能设计 on 鼠鼠的自我救赎</title>
+    <link>https://example.org/categories/%E5%8A%9F%E8%83%BD%E8%AE%BE%E8%AE%A1/</link>
+    <description>Recent content from 鼠鼠的自我救赎</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    
+    <managingEditor>13935468012@163.com (AKF)</managingEditor>
+    <webMaster>13935468012@163.com (AKF)</webMaster>
+    
+    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
+    
+    <lastBuildDate>Wed, 10 Dec 2025 00:00:00 +0000</lastBuildDate>
+    
+    
+    <atom:link href="https://example.org/categories/%E5%8A%9F%E8%83%BD%E8%AE%BE%E8%AE%A1/index.xml" rel="self" type="application/rss&#43;xml" />
+    
+
+    
+    
+
+    <item>
+      <title>鉴权登录限制设置</title>
+      <link>https://example.org/post/usefeat/go-zero-jwt-limiter/</link>
+      <pubDate>Wed, 10 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/usefeat/go-zero-jwt-limiter/</guid>
+      <description>
+        <![CDATA[<h1>鉴权登录限制设置</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <h2 id="前言">
+<a class="header-anchor" href="#%e5%89%8d%e8%a8%80"></a>
+前言
+</h2><p>在实际业务中，我们经常需要限制用户的同时登录设备数量。比如视频会员只允许同时在 2 台设备上登录，第 3 台设备登录时会把最早的那个踢下线。</p>
+<p>本文介绍如何在 Go-Zero 框架中实现这个功能。</p>
+        
+        <hr><p>本文2025-12-10首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-10</p>]]>
+      </description>
+      
+        <category>微服务</category><category>功能设计</category>
+      
+    </item>
+    
+  </channel>
+</rss>

@@ -42,6 +42,29 @@
     
 
     <item>
+      <title>Go-Zero 鉴权</title>
+      <link>https://example.org/post/microservice/go-zero/go-zero%E5%B8%B8%E7%94%A8%E5%8A%9F%E8%83%BD/</link>
+      <pubDate>Sat, 06 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/microservice/go-zero/go-zero%E5%B8%B8%E7%94%A8%E5%8A%9F%E8%83%BD/</guid>
+      <description>
+        <![CDATA[<h1>Go-Zero 鉴权</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <h4 id="11-go-zero-jwt">
+<a class="header-anchor" href="#11-go-zero-jwt"></a>
+1.1 go-zero jwt
+</h4><p>上一节我们提到了，在desc/api文件中我们定义了go-zero自带的jwt中间件，生成代码后我们可以看到定义了jwt的api服务的路由，这里我们以usercenter服务举例，我们可以看下 go-zero-looklook/app/usercenter/cmd/api/internal/handler/routes.go 代码如下</p>
+        
+        <hr><p>本文2025-12-06首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-06</p>]]>
+      </description>
+      
+        <category>微服务</category>
+      
+    </item>
+    
+    
+
+    <item>
       <title>Go-Zero 微服务最佳实践架构</title>
       <link>https://example.org/post/microservice/go-zero/go-zero%E6%9C%8D%E5%8A%A1%E8%AE%BE%E8%AE%A1/</link>
       <pubDate>Fri, 05 Dec 2025 00:00:00 &#43;0000</pubDate>

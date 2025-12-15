@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>云原生 on 鼠鼠的自我救赎</title>
+    <link>https://example.org/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/</link>
+    <description>Recent content from 鼠鼠的自我救赎</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    
+    <managingEditor>13935468012@163.com (AKF)</managingEditor>
+    <webMaster>13935468012@163.com (AKF)</webMaster>
+    
+    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
+    
+    <lastBuildDate>Sun, 14 Dec 2025 00:00:00 +0000</lastBuildDate>
+    
+    
+    <atom:link href="https://example.org/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/index.xml" rel="self" type="application/rss&#43;xml" />
+    
+
+    
+    
+
+    <item>
+      <title>Go 实现 Docker 镜像自动推送到 AWS ECR</title>
+      <link>https://example.org/post/sdktools/aws-ecr-push-tool/</link>
+      <pubDate>Sun, 14 Dec 2025 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/sdktools/aws-ecr-push-tool/</guid>
+      <description>
+        <![CDATA[<h1>Go 实现 Docker 镜像自动推送到 AWS ECR</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <h2 id="背景">
+<a class="header-anchor" href="#%e8%83%8c%e6%99%af"></a>
+背景
+</h2><p>在微服务架构中，我们经常需要将构建好的 Docker 镜像推送到容器镜像仓库。AWS ECR (Elastic Container Registry) 是 AWS 提供的托管式 Docker 镜像仓库服务。本文将介绍如何使用 Go 编写一个自动化工具，实现 Docker 镜像到 AWS ECR 的推送。</p>
+        
+        <hr><p>本文2025-12-14首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-14</p>]]>
+      </description>
+      
+        <category>云原生</category>
+      
+    </item>
+    
+  </channel>
+</rss>

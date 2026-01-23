@@ -243,7 +243,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -253,7 +253,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -355,7 +355,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">Namespace</span><span class="w">      </span><span class="kt">string</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">DeploymentName</span><span class="w"> </span><span class="kt">string</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">ContainerName</span><span class="w">  </span><span class="kt">string</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="2-命令行参数解析">
 <a class="header-anchor" href="#2-%e5%91%bd%e4%bb%a4%e8%a1%8c%e5%8f%82%e6%95%b0%e8%a7%a3%e6%9e%90"></a>
 2. 命令行参数解析
@@ -380,7 +380,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="nx">config</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">log</span><span class="p">.</span><span class="nf">Fatalf</span><span class="p">(</span><span class="s">&#34;Error: %v&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="3-获取-ecr-认证凭证">
 <a class="header-anchor" href="#3-%e8%8e%b7%e5%8f%96-ecr-%e8%ae%a4%e8%af%81%e5%87%ad%e8%af%81"></a>
 3. 获取 ECR 认证凭证
@@ -431,7 +431,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">repoURI</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">*</span><span class="nx">descOutput</span><span class="p">.</span><span class="nx">Repositories</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="nx">RepositoryUri</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">repoURI</span><span class="p">,</span><span class="w"> </span><span class="nb">string</span><span class="p">(</span><span class="nx">decodedToken</span><span class="p">),</span><span class="w"> </span><span class="kc">nil</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="4-docker-镜像操作">
 <a class="header-anchor" href="#4-docker-%e9%95%9c%e5%83%8f%e6%93%8d%e4%bd%9c"></a>
 4. Docker 镜像操作
@@ -443,7 +443,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Stdout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Stdout</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Stderr</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nf">Run</span><span class="p">()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h4 id="42-登录-ecr">
 <a class="header-anchor" href="#42-%e7%99%bb%e5%bd%95-ecr"></a>
 4.2 登录 ECR
@@ -462,7 +462,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nx">registryURL</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Stderr</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nf">Run</span><span class="p">()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h4 id="43-推送镜像">
 <a class="header-anchor" href="#43-%e6%8e%a8%e9%80%81%e9%95%9c%e5%83%8f"></a>
 4.3 推送镜像
@@ -471,7 +471,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Stdout</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Stdout</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">cmd</span><span class="p">.</span><span class="nx">Stderr</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">cmd</span><span class="p">.</span><span class="nf">Run</span><span class="p">()</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="5-主流程编排">
 <a class="header-anchor" href="#5-%e4%b8%bb%e6%b5%81%e7%a8%8b%e7%bc%96%e6%8e%92"></a>
 5. 主流程编排
@@ -504,7 +504,7 @@
 </span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">log</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Successfully pushed image: %s&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">fullImageURI</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h2 id="使用方式">
 <a class="header-anchor" href="#%e4%bd%bf%e7%94%a8%e6%96%b9%e5%bc%8f"></a>
 使用方式
@@ -521,10 +521,10 @@
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1"># 指定完整参数</span>
 </span></span><span class="line"><span class="cl">./ecr-push <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -region us-east-1 <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -image my-app:latest <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -tag v1.0.0 <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -repo your-org/your-service
+</span></span></span><span class="line"><span class="cl">  -region us-east-1 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -image my-app:latest <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -tag v1.0.0 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -repo your-org/your-service
 </span></span></code></pre></div><h3 id="参数说明">
 <a class="header-anchor" href="#%e5%8f%82%e6%95%b0%e8%af%b4%e6%98%8e"></a>
 参数说明
@@ -542,9 +542,9 @@
 <a class="header-anchor" href="#1-%e4%bd%bf%e7%94%a8%e7%8e%af%e5%a2%83%e5%8f%98%e9%87%8f"></a>
 1. 使用环境变量
 </h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="nx">accessKey</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nf">Getenv</span><span class="p">(</span><span class="s">&#34;AWS_ACCESS_KEY_ID&#34;</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">secretKey</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nf">Getenv</span><span class="p">(</span><span class="s">&#34;AWS_SECRET_ACCESS_KEY&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">secretKey</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nf">Getenv</span><span class="p">(</span><span class="s">&#34;AWS_SECRET_ACCESS_KEY&#34;</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">creds</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">credentials</span><span class="p">.</span><span class="nf">NewStaticCredentialsProvider</span><span class="p">(</span><span class="nx">accessKey</span><span class="p">,</span><span class="w"> </span><span class="nx">secretKey</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">creds</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">credentials</span><span class="p">.</span><span class="nf">NewStaticCredentialsProvider</span><span class="p">(</span><span class="nx">accessKey</span><span class="p">,</span><span class="w"> </span><span class="nx">secretKey</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="p">)</span><span class="w">
 </span></span></span></code></pre></div><h3 id="2-使用-iam-role">
 <a class="header-anchor" href="#2-%e4%bd%bf%e7%94%a8-iam-role"></a>
 2. 使用 IAM Role
@@ -554,7 +554,7 @@
 <a class="header-anchor" href="#3-%e4%bd%bf%e7%94%a8-aws-secrets-manager"></a>
 3. 使用 AWS Secrets Manager
 </h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 从 Secrets Manager 获取凭证</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">secretValue</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">getSecretFromSecretsManager</span><span class="p">(</span><span class="s">&#34;my-aws-credentials&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">secretValue</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">getSecretFromSecretsManager</span><span class="p">(</span><span class="s">&#34;my-aws-credentials&#34;</span><span class="p">)</span><span class="w">
 </span></span></span></code></pre></div><h2 id="集成到-cicd">
 <a class="header-anchor" href="#%e9%9b%86%e6%88%90%e5%88%b0-cicd"></a>
 集成到 CI/CD
@@ -640,7 +640,7 @@ GitHub Actions 示例
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/4.webp"
+              data-src="/random/16.webp"
               data-sizes="auto"
               alt="Go Build Tag：条件编译的正确姿势"
               class="lazyload"
@@ -652,7 +652,7 @@ GitHub Actions 示例
         <div class="article-nav-caption">前一篇</div>
         <h3 class="article-nav-title">Go Build Tag：条件编译的正确姿势</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/10.webp"
+              data-src="/random/8.webp"
               data-sizes="auto"
               alt="Git squash 图形化使用指南"
               class="lazyload"
@@ -669,7 +669,7 @@ GitHub Actions 示例
     <div class="footer-line"></div>
   </div>
   <div id="footer-info"><div>
-      <span class="icon-copyright"></span>2020-2025<span class="footer-info-sep rotate"></span>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
       AKF
     </div><div>
         基于&nbsp;<a
@@ -685,10 +685,10 @@ GitHub Actions 示例
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;12.3k</span
+          >&nbsp;17.4k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:35</span>
+        <span class="icon-coffee">&nbsp;00:47</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -763,7 +763,7 @@ GitHub Actions 示例
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -773,7 +773,7 @@ GitHub Actions 示例
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

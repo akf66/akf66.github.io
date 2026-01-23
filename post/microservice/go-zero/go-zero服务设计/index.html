@@ -224,7 +224,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -234,7 +234,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -445,14 +445,14 @@
 <a class="header-anchor" href="#%e7%94%9f%e6%88%90-model-%e4%bb%a3%e7%a0%81"></a>
 生成 Model 代码
 </h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">goctl model mysql datasource <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -url<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">username</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">passwd</span><span class="si">}</span><span class="s2">@tcp(</span><span class="si">${</span><span class="nv">host</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">port</span><span class="si">}</span><span class="s2">)/</span><span class="si">${</span><span class="nv">dbname</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -table<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">tables</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -dir<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">modeldir</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -cache<span class="o">=</span><span class="nb">true</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --style<span class="o">=</span>goZero
+</span></span></span><span class="line"><span class="cl">  -url<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">username</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">passwd</span><span class="si">}</span><span class="s2">@tcp(</span><span class="si">${</span><span class="nv">host</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">port</span><span class="si">}</span><span class="s2">)/</span><span class="si">${</span><span class="nv">dbname</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -table<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">tables</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -dir<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">modeldir</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -cache<span class="o">=</span><span class="nb">true</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --style<span class="o">=</span>goZero
 </span></span></code></pre></div><p>完整脚本示例：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="cp">#!/usr/bin/env bash
-</span></span></span><span class="line"><span class="cl"><span class="cp"></span>
+</span></span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="c1"># 使用方法：</span>
 </span></span><span class="line"><span class="cl"><span class="c1"># ./genModel.sh usercenter user</span>
 </span></span><span class="line"><span class="cl"><span class="c1"># ./genModel.sh usercenter user_auth</span>
@@ -470,20 +470,20 @@
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="nb">echo</span> <span class="s2">&#34;开始创建库：</span><span class="nv">$dbname</span><span class="s2"> 的表：</span><span class="nv">$tables</span><span class="s2">&#34;</span>
 </span></span><span class="line"><span class="cl">goctl model mysql datasource <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -url<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">username</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">passwd</span><span class="si">}</span><span class="s2">@tcp(</span><span class="si">${</span><span class="nv">host</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">port</span><span class="si">}</span><span class="s2">)/</span><span class="si">${</span><span class="nv">dbname</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -table<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">tables</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -dir<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">modeldir</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  -cache<span class="o">=</span><span class="nb">true</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --style<span class="o">=</span>goZero
+</span></span></span><span class="line"><span class="cl">  -url<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">username</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">passwd</span><span class="si">}</span><span class="s2">@tcp(</span><span class="si">${</span><span class="nv">host</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">port</span><span class="si">}</span><span class="s2">)/</span><span class="si">${</span><span class="nv">dbname</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -table<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">tables</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -dir<span class="o">=</span><span class="s2">&#34;</span><span class="si">${</span><span class="nv">modeldir</span><span class="si">}</span><span class="s2">&#34;</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  -cache<span class="o">=</span><span class="nb">true</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --style<span class="o">=</span>goZero
 </span></span></code></pre></div><p><strong>生成后的需要去将当前生成的复制到对应的目录中 ， 感觉这块可以用 gorm去替代</strong></p>
 <h3 id="创建-kafka-topic">
 <a class="header-anchor" href="#%e5%88%9b%e5%bb%ba-kafka-topic"></a>
 创建 Kafka Topic
 </h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">kafka-topics.sh --create <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --zookeeper zookeeper:2181 <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --replication-factor <span class="m">1</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --partitions <span class="m">1</span> <span class="se">\
-</span></span></span><span class="line"><span class="cl"><span class="se"></span>  --topic <span class="o">{</span>topic<span class="o">}</span>
+</span></span></span><span class="line"><span class="cl">  --zookeeper zookeeper:2181 <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --replication-factor <span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --partitions <span class="m">1</span> <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --topic <span class="o">{</span>topic<span class="o">}</span>
 </span></span></code></pre></div><h2 id="服务间调用关系">
 <a class="header-anchor" href="#%e6%9c%8d%e5%8a%a1%e9%97%b4%e8%b0%83%e7%94%a8%e5%85%b3%e7%b3%bb"></a>
 服务间调用关系
@@ -552,7 +552,7 @@
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/6.webp"
+              data-src="/random/22.webp"
               data-sizes="auto"
               alt="微服务日志采集链路：从文件到 Kibana"
               class="lazyload"
@@ -564,7 +564,7 @@
         <div class="article-nav-caption">前一篇</div>
         <h3 class="article-nav-title">微服务日志采集链路：从文件到 Kibana</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/11.webp"
+              data-src="/random/15.webp"
               data-sizes="auto"
               alt="使用 modd 实现 Go 项目热加载"
               class="lazyload"
@@ -581,7 +581,7 @@
     <div class="footer-line"></div>
   </div>
   <div id="footer-info"><div>
-      <span class="icon-copyright"></span>2020-2025<span class="footer-info-sep rotate"></span>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
       AKF
     </div><div>
         基于&nbsp;<a
@@ -597,10 +597,10 @@
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;12.3k</span
+          >&nbsp;17.4k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:35</span>
+        <span class="icon-coffee">&nbsp;00:47</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -656,7 +656,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -666,7 +666,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

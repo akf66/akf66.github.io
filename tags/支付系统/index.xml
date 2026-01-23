@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>支付系统 on 鼠鼠的自我救赎</title>
+    <link>https://example.org/tags/%E6%94%AF%E4%BB%98%E7%B3%BB%E7%BB%9F/</link>
+    <description>Recent content from 鼠鼠的自我救赎</description>
+    <generator>Hugo</generator>
+    <language>zh-cn</language>
+    
+    <managingEditor>13935468012@163.com (AKF)</managingEditor>
+    <webMaster>13935468012@163.com (AKF)</webMaster>
+    
+    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
+    
+    <lastBuildDate>Thu, 08 Jan 2026 00:00:00 +0000</lastBuildDate>
+    
+    
+    <atom:link href="https://example.org/tags/%E6%94%AF%E4%BB%98%E7%B3%BB%E7%BB%9F/index.xml" rel="self" type="application/rss&#43;xml" />
+    
+
+    
+    
+
+    <item>
+      <title>订单支付链接缓存设计：为什么是 9 分 30 秒？</title>
+      <link>https://example.org/post/golang/order-cache-ttl-design/</link>
+      <pubDate>Thu, 08 Jan 2026 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/golang/order-cache-ttl-design/</guid>
+      <description>
+        <![CDATA[<h1>订单支付链接缓存设计：为什么是 9 分 30 秒？</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>在支付系统中，生成支付链接是一个常见的操作。如果用户频繁点击&quot;支付&quot;按钮，每次都调用支付平台 API 创建新订单，不仅浪费资源，还可能触发风控。所以我们通常会缓存支付链接。</p>
+<p>但缓存时间设置多少才合理？这篇文章通过分析一个真实的代码片段，来讲解这背后的设计思路。</p>
+        
+        <hr><p>本文2026-01-08首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-08</p>]]>
+      </description>
+      
+        <category>Golang后端踩坑</category>
+      
+    </item>
+    
+  </channel>
+</rss>

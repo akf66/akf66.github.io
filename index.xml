@@ -12,12 +12,79 @@
     
     <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
     
-    <lastBuildDate>Mon, 15 Dec 2025 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 22 Jan 2026 00:00:00 +0000</lastBuildDate>
     
     
     <atom:link href="https://example.org/index.xml" rel="self" type="application/rss&#43;xml" />
     
 
+    
+    
+
+    <item>
+      <title>在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</title>
+      <link>https://example.org/post/devenv/k3s-install-kubectl/</link>
+      <pubDate>Thu, 22 Jan 2026 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/devenv/k3s-install-kubectl/</guid>
+      <description>
+        <![CDATA[<h1>在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>最近在本地机器上折腾轻量级 Kubernetes 时，发现 <strong>k3s</strong> 仍然是目前最省心、最省资源的单机/边缘/开发环境选择。</p>
+<p>但很多人（包括我一开始）都会遇到一个很烦人的问题：</p>
+<blockquote>
+<p>为什么每次都要打 <code>sudo k3s kubectl get pods</code> 这么长一串？有没有办法像正常 k8s 集群一样，直接敲 <code>kubectl</code> 就行？</p>
+</blockquote>
+<p>本文就完整记录一次从 <strong>零开始安装 k3s</strong> 到 <strong>彻底改成只用 kubectl</strong> 的全过程，适用于 Ubuntu/Debian/CentOS 等主流 Linux 系统。</p>
+        
+        <hr><p>本文2026-01-22首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-22</p>]]>
+      </description>
+      
+        <category>开发环境</category>
+      
+    </item>
+    
+    
+
+    <item>
+      <title>订单支付链接缓存设计：为什么是 9 分 30 秒？</title>
+      <link>https://example.org/post/golang/order-cache-ttl-design/</link>
+      <pubDate>Thu, 08 Jan 2026 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/golang/order-cache-ttl-design/</guid>
+      <description>
+        <![CDATA[<h1>订单支付链接缓存设计：为什么是 9 分 30 秒？</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>在支付系统中，生成支付链接是一个常见的操作。如果用户频繁点击&quot;支付&quot;按钮，每次都调用支付平台 API 创建新订单，不仅浪费资源，还可能触发风控。所以我们通常会缓存支付链接。</p>
+<p>但缓存时间设置多少才合理？这篇文章通过分析一个真实的代码片段，来讲解这背后的设计思路。</p>
+        
+        <hr><p>本文2026-01-08首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-08</p>]]>
+      </description>
+      
+        <category>Golang后端踩坑</category>
+      
+    </item>
+    
+    
+
+    <item>
+      <title>Go 定时任务完全指南：robfig/cron 库详解</title>
+      <link>https://example.org/post/golang/robfig-cron-guide/</link>
+      <pubDate>Thu, 08 Jan 2026 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/golang/robfig-cron-guide/</guid>
+      <description>
+        <![CDATA[<h1>Go 定时任务完全指南：robfig/cron 库详解</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>在后端开发中，定时任务是常见的需求：定期清理过期数据、发送定时通知、定时同步数据等。Go 的 <code>robfig/cron</code> 库提供了一个简洁而强大的解决方案。</p>
+<p>这篇文章通过实际例子，详细讲解如何使用 cron 库来实现各种定时任务。</p>
+        
+        <hr><p>本文2026-01-08首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-08</p>]]>
+      </description>
+      
+        <category>Golang后端踩坑</category>
+      
+    </item>
     
     
 
@@ -79,7 +146,7 @@ Git Cherry-Pick 使用指南
           <h2 id="前言">
 <a class="header-anchor" href="#%e5%89%8d%e8%a8%80"></a>
 前言
-</h2><p>相比命令行操作，使用图形化 Git 工具进行 cherry-pick 更加直观和便捷。本文将通过实际截图演示如何使用图形化工具（如 GitKraken、SourceTree、VS Code Git Graph 等）完成 cherry-pick 操作。</p>
+</h2><p>相比命令行操作，使用图形化 Git 工具进行 cherry-pick 更加直观和便捷。本文将通过实际截图演示如何使用图形化工具（如 GitKraken、SourceTree、VS Code Git Graph 等）完成 cherry-pick 操作。1</p>
         
         <hr><p>本文2025-12-15首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-15</p>]]>
       </description>
@@ -175,69 +242,6 @@ Git Cherry-Pick 使用指南
       </description>
       
         <category>微服务</category><category>功能设计</category>
-      
-    </item>
-    
-    
-
-    <item>
-      <title>使用 modd 实现 Go 项目热加载</title>
-      <link>https://example.org/post/study/modd%E7%83%AD%E5%8A%A0%E8%BD%BD/</link>
-      <pubDate>Sat, 06 Dec 2025 00:00:00 &#43;0000</pubDate>
-      <author>13935468012@163.com (AKF)</author>
-      <guid>https://example.org/post/study/modd%E7%83%AD%E5%8A%A0%E8%BD%BD/</guid>
-      <description>
-        <![CDATA[<h1>使用 modd 实现 Go 项目热加载</h1><p>作者：AKF（13935468012@163.com）</p>
-        
-          <p>modd 是一个轻量级的文件监听工具，可以在代码变更时自动重新编译并重启服务，提升开发效率。</p>
-        
-        <hr><p>本文2025-12-06首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-06</p>]]>
-      </description>
-      
-        <category>开发环境</category>
-      
-    </item>
-    
-    
-
-    <item>
-      <title>Go-Zero 微服务网关：Nginx 统一入口实践</title>
-      <link>https://example.org/post/microservice/go-zero/go-zero_nginx/</link>
-      <pubDate>Sat, 06 Dec 2025 00:00:00 &#43;0000</pubDate>
-      <author>13935468012@163.com (AKF)</author>
-      <guid>https://example.org/post/microservice/go-zero/go-zero_nginx/</guid>
-      <description>
-        <![CDATA[<h1>Go-Zero 微服务网关：Nginx 统一入口实践</h1><p>作者：AKF（13935468012@163.com）</p>
-        
-          <p>理解 go-zero 中 API 与网关的关系，以及如何使用 Nginx 作为统一流量入口。</p>
-        
-        <hr><p>本文2025-12-06首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-06</p>]]>
-      </description>
-      
-        <category>微服务</category>
-      
-    </item>
-    
-    
-
-    <item>
-      <title>Go-Zero 鉴权</title>
-      <link>https://example.org/post/microservice/go-zero/go-zero%E5%B8%B8%E7%94%A8%E5%8A%9F%E8%83%BD/</link>
-      <pubDate>Sat, 06 Dec 2025 00:00:00 &#43;0000</pubDate>
-      <author>13935468012@163.com (AKF)</author>
-      <guid>https://example.org/post/microservice/go-zero/go-zero%E5%B8%B8%E7%94%A8%E5%8A%9F%E8%83%BD/</guid>
-      <description>
-        <![CDATA[<h1>Go-Zero 鉴权</h1><p>作者：AKF（13935468012@163.com）</p>
-        
-          <h4 id="11-go-zero-jwt">
-<a class="header-anchor" href="#11-go-zero-jwt"></a>
-1.1 go-zero jwt
-</h4><p>上一节我们提到了，在desc/api文件中我们定义了go-zero自带的jwt中间件，生成代码后我们可以看到定义了jwt的api服务的路由，这里我们以usercenter服务举例，我们可以看下 go-zero-looklook/app/usercenter/cmd/api/internal/handler/routes.go 代码如下</p>
-        
-        <hr><p>本文2025-12-06首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-06</p>]]>
-      </description>
-      
-        <category>微服务</category>
       
     </item>
     

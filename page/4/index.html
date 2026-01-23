@@ -4,7 +4,7 @@
   data-theme-mode="auto"
   >
   <head>
-	<meta name="generator" content="Hugo 0.152.2"><meta charset="utf-8" />
+	<meta name="generator" content="Hugo 0.154.5"><meta charset="utf-8" />
 <meta
   name="viewport"
   content="width=device-width, initial-scale=1, shrink-to-fit=no"
@@ -50,8 +50,8 @@
     content="/"
   />
   <meta property="article:author" content="AKF" />
-  <meta property="article:published_time" content="2025-12-15T00:00:00&#43;00:00" />
-  <meta property="article:modified_time" content="2025-12-15T00:00:00&#43;00:00" /><meta name="twitter:card" content="summary" />
+  <meta property="article:published_time" content="2026-01-22T00:00:00&#43;00:00" />
+  <meta property="article:modified_time" content="2026-01-22T00:00:00&#43;00:00" /><meta name="twitter:card" content="summary" />
   <meta name="twitter:image" content="/" /><link rel="alternate" type="application/rss+xml" href="https://example.org/index.xml" title="鼠鼠的自我救赎">
 <link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.d1c21c9f44f45331a2bdda6a6b822a47d8306ba2479416bb762f085303f54783.css" />
 <link
@@ -151,7 +151,7 @@
 
         selectOptions.forEach((item) => {
           item.addEventListener("click", () => {
-            const langMap = {};langMap['en'] = '\/en\/';langMap['ja'] = '\/ja\/';langMap['zh-tw'] = '\/zh-tw\/';selectedLang.textContent = item.textContent;
+            const langMap = {};langMap['zh-tw'] = '\/zh-tw\/';langMap['en'] = '\/en\/';langMap['ja'] = '\/ja\/';selectedLang.textContent = item.textContent;
             selectItems.classList.remove("show");
             selectOptions.forEach((option) => {
               option.classList.remove("selected");
@@ -203,7 +203,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -213,7 +213,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -384,11 +384,11 @@
               </li><li class="tag-item">
                 <a
                   class="tag-link"
-                  href="/tags/kitex/"
-                  aria-label="标签: Kitex"
-                  title="Kitex"
+                  href="/tags/k3s/"
+                  aria-label="标签: K3s"
+                  title="K3s"
                 >
-                  Kitex
+                  K3s
                 </a>
               </li></ul>
       </div>
@@ -445,9 +445,24 @@
             >Hertz</a
           ><a
             style="font-size:10px"
+            href="/tags/k3s/"
+            aria-label="标签: K3s"
+            >K3s</a
+          ><a
+            style="font-size:10px"
             href="/tags/kitex/"
             aria-label="标签: Kitex"
             >Kitex</a
+          ><a
+            style="font-size:10px"
+            href="/tags/kubectl/"
+            aria-label="标签: Kubectl"
+            >Kubectl</a
+          ><a
+            style="font-size:10px"
+            href="/tags/kubernetes/"
+            aria-label="标签: Kubernetes"
+            >Kubernetes</a
           ><a
             style="font-size:10px"
             href="/tags/nginx/"
@@ -465,39 +480,24 @@
             >WSL</a
           ><a
             style="font-size:10px"
+            href="/tags/%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6/"
+            aria-label="标签: 任务调度"
+            >任务调度</a
+          ><a
+            style="font-size:10px"
             href="/tags/%E5%9B%BE%E5%BD%A2%E5%8C%96%E5%B7%A5%E5%85%B7/"
             aria-label="标签: 图形化工具"
             >图形化工具</a
           ><a
             style="font-size:10px"
+            href="/tags/%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/"
+            aria-label="标签: 定时任务"
+            >定时任务</a
+          ><a
+            style="font-size:10px"
             href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/"
             aria-label="标签: 开发工具"
             >开发工具</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/"
-            aria-label="标签: 开发环境"
-            >开发环境</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"
-            aria-label="标签: 微服务"
-            >微服务</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%A1%86%E6%9E%B6/"
-            aria-label="标签: 微服务框架"
-            >微服务框架</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E6%97%A5%E5%BF%97%E9%87%87%E9%9B%86/"
-            aria-label="标签: 日志采集"
-            >日志采集</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E6%9E%B6%E6%9E%84%E8%AE%BE%E8%AE%A1/"
-            aria-label="标签: 架构设计"
-            >架构设计</a
           ></div>
   </div>
 </div><div class="widget-wrapper">
@@ -508,15 +508,15 @@
       <h3 class="widget-title">最新文章</h3>
       <div class="widget">
         <ul><li>
+              <a href="/post/devenv/k3s-install-kubectl/" title="在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令">在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</a>
+            </li><li>
+              <a href="/post/golang/robfig-cron-guide/" title="Go 定时任务完全指南：robfig/cron 库详解">Go 定时任务完全指南：robfig/cron 库详解</a>
+            </li><li>
+              <a href="/post/golang/order-cache-ttl-design/" title="订单支付链接缓存设计：为什么是 9 分 30 秒？">订单支付链接缓存设计：为什么是 9 分 30 秒？</a>
+            </li><li>
               <a href="/post/git/usegit/" title="Git Cherry-Pick 使用指南">Git Cherry-Pick 使用指南</a>
             </li><li>
               <a href="/post/git/usegit_grpah/" title="Git Cherry-Pick 图形化使用指南">Git Cherry-Pick 图形化使用指南</a>
-            </li><li>
-              <a href="/post/git/usegit_squash/" title="Git squash 使用指南">Git squash 使用指南</a>
-            </li><li>
-              <a href="/post/git/uesegit_squash_graph/" title="Git squash 图形化使用指南">Git squash 图形化使用指南</a>
-            </li><li>
-              <a href="/post/sdktools/aws-ecr-push-tool/" title="Go 实现 Docker 镜像自动推送到 AWS ECR">Go 实现 Docker 镜像自动推送到 AWS ECR</a>
             </li></ul>
       </div>
     </div>
@@ -529,16 +529,142 @@
     data-aos="fade-up"
   ><a
         class="post-link"
-        href="/post/golang/rand-pitfalls/"
-        aria-label="Golang Randder线性同余的坑"
-        title="Golang Randder线性同余的坑"
+        href="/post/devenv/gvm-cd-bug/"
+        aria-label="解决 GVM 安装后 cd 命令失效问题"
+        title="解决 GVM 安装后 cd 命令失效问题"
       >
       </a><div
       class="
         post-cover left
       "
     ><img
-            data-src="/random/12.webp"
+            data-src="/random/25.webp"
+            data-sizes="auto"
+            alt="解决 GVM 安装后 cd 命令失效问题"
+            class="lazyload"
+          /></div>
+    <div class="post-info">
+      <div class="post-meta">
+        <span
+          ><span class="icon-calendar"></span
+          >2025-12-04</span
+        ><span
+          ><span class="icon-pencil"></span
+          >308 字</span
+        >
+        <span
+          ><span class="icon-clock"></span
+          >1 分钟</span
+        >
+      </div>
+      <h2 class="post-title">解决 GVM 安装后 cd 命令失效问题</h2>
+      <article class="post-article">在 Ubuntu 上安装 GVM 后，可能会遇到 cd 命令失效的问题。本文记录问题原因及解决方案。
+</article>
+    </div>
+  </div>
+</div>
+<div class="post-wrapper">
+  <div
+    class="
+      post-wrap right
+    "
+    data-aos="fade-up"
+  ><a
+        class="post-link"
+        href="/post/microservice/kitex_hertz/hertz-kitex-quickstart/"
+        aria-label="Hertz &#43; Kitex 微服务项目搭建指南"
+        title="Hertz &#43; Kitex 微服务项目搭建指南"
+      >
+      </a><div
+      class="
+        post-cover right
+      "
+    ><img
+            data-src="/random/18.webp"
+            data-sizes="auto"
+            alt="Hertz &#43; Kitex 微服务项目搭建指南"
+            class="lazyload"
+          /></div>
+    <div class="post-info">
+      <div class="post-meta">
+        <span
+          ><span class="icon-calendar"></span
+          >2025-12-03</span
+        ><span
+          ><span class="icon-pencil"></span
+          >466 字</span
+        >
+        <span
+          ><span class="icon-clock"></span
+          >1 分钟</span
+        >
+      </div>
+      <h2 class="post-title">Hertz &#43; Kitex 微服务项目搭建指南</h2>
+      <article class="post-article">使用 Hertz 作为 HTTP 网关 + Kitex 作为 RPC 微服务的项目搭建流程。
+</article>
+    </div>
+  </div>
+</div>
+<div class="post-wrapper">
+  <div
+    class="
+      post-wrap left
+    "
+    data-aos="fade-up"
+  ><a
+        class="post-link"
+        href="/post/devenv/wsl2-disk-compact/"
+        aria-label="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘"
+        title="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘"
+      >
+      </a><div
+      class="
+        post-cover left
+      "
+    ><img
+            data-src="/random/20.webp"
+            data-sizes="auto"
+            alt="WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘"
+            class="lazyload"
+          /></div>
+    <div class="post-info">
+      <div class="post-meta">
+        <span
+          ><span class="icon-calendar"></span
+          >2025-12-03</span
+        ><span
+          ><span class="icon-pencil"></span
+          >298 字</span
+        >
+        <span
+          ><span class="icon-clock"></span
+          >1 分钟</span
+        >
+      </div>
+      <h2 class="post-title">WSL2 磁盘空间释放：使用 DiskPart 压缩虚拟磁盘</h2>
+      <article class="post-article">WSL2 删除文件后磁盘空间不释放？用 DiskPart 压缩虚拟磁盘解决。
+</article>
+    </div>
+  </div>
+</div>
+<div class="post-wrapper">
+  <div
+    class="
+      post-wrap right
+    "
+    data-aos="fade-up"
+  ><a
+        class="post-link"
+        href="/post/golang/rand-pitfalls/"
+        aria-label="Golang Randder线性同余的坑"
+        title="Golang Randder线性同余的坑"
+      >
+      </a><div
+      class="
+        post-cover right
+      "
+    ><img
+            data-src="/random/3.webp"
             data-sizes="auto"
             alt="Golang Randder线性同余的坑"
             class="lazyload"
@@ -566,7 +692,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap right
+      post-wrap left
     "
     data-aos="fade-up"
   ><a
@@ -577,10 +703,10 @@
       >
       </a><div
       class="
-        post-cover right
+        post-cover left
       "
     ><img
-            data-src="/random/23.webp"
+            data-src="/random/26.webp"
             data-sizes="auto"
             alt=""
             class="lazyload"
@@ -613,7 +739,7 @@
     <div class="footer-line"></div>
   </div>
   <div id="footer-info"><div>
-      <span class="icon-copyright"></span>2020-2025<span class="footer-info-sep rotate"></span>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
       AKF
     </div><div>
         基于&nbsp;<a
@@ -629,10 +755,10 @@
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;12.3k</span
+          >&nbsp;17.4k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:35</span>
+        <span class="icon-coffee">&nbsp;00:47</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -666,7 +792,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -676,7 +802,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

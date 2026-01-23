@@ -221,7 +221,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -231,7 +231,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -326,12 +326,12 @@
 2. Filebeat 采集
 </h3><p>Filebeat 是轻量级的日志采集器，守着日志文件：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># filebeat.yml</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">filebeat.inputs</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">filebeat.inputs</span><span class="p">:</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l">log</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">paths</span><span class="p">:</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">      </span>- <span class="l">/var/log/looklook/*.log</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">output.kafka</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">output.kafka</span><span class="p">:</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">hosts</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&#34;kafka:9092&#34;</span><span class="p">]</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">topic</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;looklook-log&#34;</span><span class="w">
 </span></span></span></code></pre></div><p>工作方式：</p>
@@ -356,15 +356,15 @@
 4. go-stash 处理
 </h3><p>go-stash（或 Logstash）从 Kafka 拉取日志，做清洗转换：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="c"># 典型处理</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">Input</span><span class="p">:</span><span class="w">  </span>{<span class="s2">&#34;time&#34;</span><span class="p">:</span><span class="s2">&#34;2025-12-06&#34;</span><span class="p">,</span><span class="s2">&#34;level&#34;</span><span class="p">:</span><span class="s2">&#34;info&#34;</span><span class="p">,</span><span class="s2">&#34;msg&#34;</span><span class="p">:</span><span class="s2">&#34;user login&#34;</span><span class="p">,</span><span class="s2">&#34;user_id&#34;</span><span class="p">:</span><span class="m">123</span>}<span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">Input</span><span class="p">:</span><span class="w">  </span>{<span class="s2">&#34;time&#34;</span><span class="p">:</span><span class="s2">&#34;2025-12-06&#34;</span><span class="p">,</span><span class="s2">&#34;level&#34;</span><span class="p">:</span><span class="s2">&#34;info&#34;</span><span class="p">,</span><span class="s2">&#34;msg&#34;</span><span class="p">:</span><span class="s2">&#34;user login&#34;</span><span class="p">,</span><span class="s2">&#34;user_id&#34;</span><span class="p">:</span><span class="m">123</span>}<span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">处理</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">处理</span><span class="p">:</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">解析 JSON 字段</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">时间格式转换</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">过滤无用字段</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">添加索引名</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nt">Output</span><span class="p">:</span><span class="w"> </span><span class="l">写入 ES 的 looklook-log-2025.12.06 索引</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">Output</span><span class="p">:</span><span class="w"> </span><span class="l">写入 ES 的 looklook-log-2025.12.06 索引</span><span class="w">
 </span></span></span></code></pre></div><h3 id="5-elasticsearch-存储">
 <a class="header-anchor" href="#5-elasticsearch-%e5%ad%98%e5%82%a8"></a>
 5. Elasticsearch 存储
@@ -415,7 +415,7 @@
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/30.webp"
+              data-src="/random/21.webp"
               data-sizes="auto"
               alt="Go-Zero 快速入门指南"
               class="lazyload"
@@ -427,7 +427,7 @@
         <div class="article-nav-caption">前一篇</div>
         <h3 class="article-nav-title">Go-Zero 快速入门指南</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/29.webp"
+              data-src="/random/27.webp"
               data-sizes="auto"
               alt="Go-Zero 微服务最佳实践架构"
               class="lazyload"
@@ -444,7 +444,7 @@
     <div class="footer-line"></div>
   </div>
   <div id="footer-info"><div>
-      <span class="icon-copyright"></span>2020-2025<span class="footer-info-sep rotate"></span>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
       AKF
     </div><div>
         基于&nbsp;<a
@@ -460,10 +460,10 @@
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;12.3k</span
+          >&nbsp;17.4k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:35</span>
+        <span class="icon-coffee">&nbsp;00:47</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -516,7 +516,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -526,7 +526,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

@@ -216,7 +216,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -226,7 +226,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -337,7 +337,7 @@ Nginx 网关配置
 </span></span><span class="line"><span class="cl">    <span class="kn">error_log</span> <span class="s">/var/log/nginx/looklook.com_error.log</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1"># 订单服务
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kn">location</span> <span class="s">/order/</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/order/</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$http_host</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">REMOTE-HOST</span> <span class="nv">$remote_addr</span><span class="p">;</span>
@@ -346,7 +346,7 @@ Nginx 网关配置
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1"># 支付服务
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kn">location</span> <span class="s">/payment/</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/payment/</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$http_host</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">REMOTE-HOST</span> <span class="nv">$remote_addr</span><span class="p">;</span>
@@ -355,7 +355,7 @@ Nginx 网关配置
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1"># 旅游服务
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kn">location</span> <span class="s">/travel/</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/travel/</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$http_host</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">REMOTE-HOST</span> <span class="nv">$remote_addr</span><span class="p">;</span>
@@ -364,7 +364,7 @@ Nginx 网关配置
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">    <span class="c1"># 用户中心
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span>    <span class="kn">location</span> <span class="s">/usercenter/</span> <span class="p">{</span>
+</span></span></span><span class="line"><span class="cl">    <span class="kn">location</span> <span class="s">/usercenter/</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">Host</span> <span class="nv">$http_host</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">X-Real-IP</span> <span class="nv">$remote_addr</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">        <span class="kn">proxy_set_header</span> <span class="s">REMOTE-HOST</span> <span class="nv">$remote_addr</span><span class="p">;</span>
@@ -391,22 +391,22 @@ Nginx 网关配置
 JWT 鉴权
 </h2><p>在 API 定义文件中配置需要鉴权的路由：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 需要登录的接口</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="err">@</span><span class="nf">server</span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="err">@</span><span class="nf">server</span><span class="p">(</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">prefix</span><span class="p">:</span><span class="w"> </span><span class="nx">usercenter</span><span class="o">/</span><span class="nx">v1</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">group</span><span class="p">:</span><span class="w"> </span><span class="nx">user</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">jwt</span><span class="p">:</span><span class="w"> </span><span class="nx">JwtAuth</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="nx">service</span><span class="w"> </span><span class="nx">usercenter</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nx">service</span><span class="w"> </span><span class="nx">usercenter</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="err">@</span><span class="nx">doc</span><span class="w"> </span><span class="s">&#34;get user info&#34;</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="err">@</span><span class="nx">handler</span><span class="w"> </span><span class="nx">detail</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">post</span><span class="w"> </span><span class="o">/</span><span class="nx">user</span><span class="o">/</span><span class="nf">detail</span><span class="w"> </span><span class="p">(</span><span class="nx">UserInfoReq</span><span class="p">)</span><span class="w"> </span><span class="nf">returns</span><span class="w"> </span><span class="p">(</span><span class="nx">UserInfoResp</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><p>在 Logic 中获取用户 ID：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">l</span><span class="w"> </span><span class="o">*</span><span class="nx">DetailLogic</span><span class="p">)</span><span class="w"> </span><span class="nf">Detail</span><span class="p">(</span><span class="nx">req</span><span class="w"> </span><span class="nx">types</span><span class="p">.</span><span class="nx">UserInfoReq</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">types</span><span class="p">.</span><span class="nx">UserInfoResp</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// JWT 鉴权通过后，从 ctx 中获取 userId</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">userId</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">ctxdata</span><span class="p">.</span><span class="nf">GetUidFromCtx</span><span class="p">(</span><span class="nx">l</span><span class="p">.</span><span class="nx">ctx</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// ...</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h2 id="总结">
 <a class="header-anchor" href="#%e6%80%bb%e7%bb%93"></a>
 总结
@@ -479,7 +479,7 @@ JWT 鉴权
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/29.webp"
+              data-src="/random/12.webp"
               data-sizes="auto"
               alt="使用 modd 实现 Go 项目热加载"
               class="lazyload"
@@ -491,7 +491,7 @@ JWT 鉴权
         <div class="article-nav-caption">前一篇</div>
         <h3 class="article-nav-title">使用 modd 实现 Go 项目热加载</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/6.webp"
+              data-src="/random/26.webp"
               data-sizes="auto"
               alt="Go-Zero 鉴权"
               class="lazyload"
@@ -508,7 +508,7 @@ JWT 鉴权
     <div class="footer-line"></div>
   </div>
   <div id="footer-info"><div>
-      <span class="icon-copyright"></span>2020-2025<span class="footer-info-sep rotate"></span>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
       AKF
     </div><div>
         基于&nbsp;<a
@@ -524,10 +524,10 @@ JWT 鉴权
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;12.3k</span
+          >&nbsp;17.4k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:35</span>
+        <span class="icon-coffee">&nbsp;00:47</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -575,7 +575,7 @@ JWT 鉴权
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -585,7 +585,7 @@ JWT 鉴权
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

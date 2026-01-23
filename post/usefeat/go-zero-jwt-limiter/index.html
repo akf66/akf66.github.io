@@ -228,7 +228,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -238,7 +238,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -362,22 +362,22 @@ Lua 脚本
 Go 封装
 </h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">jwtLimiter</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">import</span><span class="w"> </span><span class="p">(</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;context&#34;</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">_</span><span class="w"> </span><span class="s">&#34;embed&#34;</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;fmt&#34;</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;creaibo/common/utils&#34;</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="s">&#34;github.com/zeromicro/go-zero/core/stores/redis&#34;</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="cp">//go:embed limiter.lua</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">var</span><span class="w"> </span><span class="nx">luaScript</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="cp">//go:embed limiter.lua</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">luaScript</span><span class="w"> </span><span class="kt">string</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">JwtLimiter</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">JwtLimiter</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">redis</span><span class="w"> </span><span class="o">*</span><span class="nx">redis</span><span class="p">.</span><span class="nx">Redis</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">size</span><span class="w">  </span><span class="kt">int64</span><span class="w"> </span><span class="c1">// 允许同时登录数量</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><blockquote>
 <p><strong>关于 <code>//go:embed</code></strong></p>
 <p>这是 Go 1.16+ 引入的 embed 特性。<code>//go:embed limiter.lua</code> 是编译器指令，作用是在编译时将同目录下的 <code>limiter.lua</code> 文件内容自动读取并赋值给 <code>luaScript</code> 变量。</p>
@@ -394,9 +394,9 @@ Go 封装
 </span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">redis</span><span class="p">:</span><span class="w"> </span><span class="nx">redis</span><span class="p">,</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">size</span><span class="p">:</span><span class="w">  </span><span class="mi">2</span><span class="p">,</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">j</span><span class="w"> </span><span class="o">*</span><span class="nx">JwtLimiter</span><span class="p">)</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">uid</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">score</span><span class="w"> </span><span class="kt">float64</span><span class="p">,</span><span class="w"> </span><span class="nx">jwt</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">j</span><span class="w"> </span><span class="o">*</span><span class="nx">JwtLimiter</span><span class="p">)</span><span class="w"> </span><span class="nf">Add</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">uid</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">score</span><span class="w"> </span><span class="kt">float64</span><span class="p">,</span><span class="w"> </span><span class="nx">jwt</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">key</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">utils</span><span class="p">.</span><span class="nf">GenJwtLimiterKey</span><span class="p">(</span><span class="nx">uid</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">scoreStr</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;%f&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">score</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">sizeStr</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Sprintf</span><span class="p">(</span><span class="s">&#34;%d&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">j</span><span class="p">.</span><span class="nx">size</span><span class="p">)</span><span class="w">
@@ -407,21 +407,21 @@ Go 封装
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">result</span><span class="p">.(</span><span class="kt">int64</span><span class="p">)</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">j</span><span class="w"> </span><span class="o">*</span><span class="nx">JwtLimiter</span><span class="p">)</span><span class="w"> </span><span class="nf">Remove</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">uid</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">jwt</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">j</span><span class="w"> </span><span class="o">*</span><span class="nx">JwtLimiter</span><span class="p">)</span><span class="w"> </span><span class="nf">Remove</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">uid</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">jwt</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">key</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">utils</span><span class="p">.</span><span class="nf">GenJwtLimiterKey</span><span class="p">(</span><span class="nx">uid</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">j</span><span class="p">.</span><span class="nx">redis</span><span class="p">.</span><span class="nf">ZremCtx</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">key</span><span class="p">,</span><span class="w"> </span><span class="nx">jwt</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="key-生成">
 <a class="header-anchor" href="#key-%e7%94%9f%e6%88%90"></a>
 Key 生成
 </h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">utils</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">GenJwtLimiterKey</span><span class="p">(</span><span class="nx">userId</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">GenJwtLimiterKey</span><span class="p">(</span><span class="nx">userId</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="s">&#34;jwt_limiter:&#34;</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">userId</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h2 id="使用方式">
 <a class="header-anchor" href="#%e4%bd%bf%e7%94%a8%e6%96%b9%e5%bc%8f"></a>
 使用方式
@@ -450,7 +450,7 @@ Key 生成
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">types</span><span class="p">.</span><span class="nx">LoginResp</span><span class="p">{</span><span class="nx">Token</span><span class="p">:</span><span class="w"> </span><span class="nx">token</span><span class="p">},</span><span class="w"> </span><span class="kc">nil</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="jwt-中间件验证">
 <a class="header-anchor" href="#jwt-%e4%b8%ad%e9%97%b4%e4%bb%b6%e9%aa%8c%e8%af%81"></a>
 JWT 中间件验证
@@ -471,7 +471,7 @@ JWT 中间件验证
 </span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="nf">next</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="用户登出时">
 <a class="header-anchor" href="#%e7%94%a8%e6%88%b7%e7%99%bb%e5%87%ba%e6%97%b6"></a>
 用户登出时
@@ -481,7 +481,7 @@ JWT 中间件验证
 </span></span></span><span class="line"><span class="cl"><span class="w">	
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">limiter</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">jwtLimiter</span><span class="p">.</span><span class="nf">NewJwtLimiter</span><span class="p">(</span><span class="nx">l</span><span class="p">.</span><span class="nx">svcCtx</span><span class="p">.</span><span class="nx">Redis</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">limiter</span><span class="p">.</span><span class="nf">Remove</span><span class="p">(</span><span class="nx">l</span><span class="p">.</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">uid</span><span class="p">,</span><span class="w"> </span><span class="nx">token</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h2 id="流程图">
 <a class="header-anchor" href="#%e6%b5%81%e7%a8%8b%e5%9b%be"></a>
 流程图
@@ -538,7 +538,7 @@ JWT 中间件验证
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/11.webp"
+              data-src="/random/18.webp"
               data-sizes="auto"
               alt="Go-Zero 鉴权"
               class="lazyload"
@@ -550,7 +550,7 @@ JWT 中间件验证
         <div class="article-nav-caption">前一篇</div>
         <h3 class="article-nav-title">Go-Zero 鉴权</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/7.webp"
+              data-src="/random/8.webp"
               data-sizes="auto"
               alt="Go Build Tag：条件编译的正确姿势"
               class="lazyload"
@@ -567,7 +567,7 @@ JWT 中间件验证
     <div class="footer-line"></div>
   </div>
   <div id="footer-info"><div>
-      <span class="icon-copyright"></span>2020-2025<span class="footer-info-sep rotate"></span>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
       AKF
     </div><div>
         基于&nbsp;<a
@@ -583,10 +583,10 @@ JWT 中间件验证
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;12.3k</span
+          >&nbsp;17.4k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:35</span>
+        <span class="icon-coffee">&nbsp;00:47</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -646,7 +646,7 @@ JWT 中间件验证
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -656,7 +656,7 @@ JWT 中间件验证
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

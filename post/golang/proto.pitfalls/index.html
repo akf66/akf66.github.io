@@ -215,7 +215,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -225,7 +225,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -303,14 +303,14 @@
 踩坑示例
 </h2><p>以下写法在<strong>同一份 <code>.proto</code> 文件</strong>里会直接编译失败：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-protobuf" data-lang="protobuf"><span class="line"><span class="cl"><span class="kd">enum</span> <span class="n">Status1</span> <span class="p">{</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span>  <span class="n">OK</span>      <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span>  <span class="n">NOT</span><span class="o">-</span><span class="n">OK</span>  <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>   <span class="c1">// 带连字符
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span><span class="err">
+</span></span></span><span class="line"><span class="cl">  <span class="n">OK</span>      <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="err">
+</span></span></span><span class="line"><span class="cl">  <span class="n">NOT</span><span class="o">-</span><span class="n">OK</span>  <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>   <span class="c1">// 带连字符
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="err">
 </span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="kd">enum</span> <span class="n">Status2</span> <span class="p">{</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span>  <span class="n">OK</span>      <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span>  <span class="n">NOT</span><span class="o">-</span><span class="n">OK</span>  <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>   <span class="c1">// 带连字符
-</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="p">}</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="kd">enum</span> <span class="n">Status2</span> <span class="p">{</span><span class="err">
+</span></span></span><span class="line"><span class="cl">  <span class="n">OK</span>      <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="err">
+</span></span></span><span class="line"><span class="cl">  <span class="n">NOT</span><span class="o">-</span><span class="n">OK</span>  <span class="o">=</span> <span class="mi">1</span><span class="p">;</span>   <span class="c1">// 带连字符
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="err">
 </span></span></span></code></pre></div><p><strong>报错信息</strong></p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback"><span class="line"><span class="cl">&#34;OK&#34; is already defined in &#34;your.proto&#34;.
 </span></span><span class="line"><span class="cl">&#34;NOT_OK&#34; is already defined in &#34;your.proto&#34;.
@@ -324,21 +324,21 @@
 正确姿势
 </h2><p>给每个枚举值加 <strong>统一前缀</strong>，保证全文件唯一：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-protobuf" data-lang="protobuf"><span class="line"><span class="cl"><span class="kd">enum</span> <span class="n">Status1</span> <span class="p">{</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span>  <span class="n">STATUS1_OK</span>     <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span>  <span class="n">STATUS1_NOT_OK</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="p">}</span><span class="err">
+</span></span></span><span class="line"><span class="cl">  <span class="n">STATUS1_OK</span>     <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="err">
+</span></span></span><span class="line"><span class="cl">  <span class="n">STATUS1_NOT_OK</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="err">
 </span></span></span><span class="line"><span class="cl"><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="kd">enum</span> <span class="n">Status2</span> <span class="p">{</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span>  <span class="n">STATUS2_OK</span>     <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span>  <span class="n">STATUS2_NOT_OK</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span><span class="err">
-</span></span></span><span class="line"><span class="cl"><span class="err"></span><span class="p">}</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="kd">enum</span> <span class="n">Status2</span> <span class="p">{</span><span class="err">
+</span></span></span><span class="line"><span class="cl">  <span class="n">STATUS2_OK</span>     <span class="o">=</span> <span class="mi">0</span><span class="p">;</span><span class="err">
+</span></span></span><span class="line"><span class="cl">  <span class="n">STATUS2_NOT_OK</span> <span class="o">=</span> <span class="mi">1</span><span class="p">;</span><span class="err">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="err">
 </span></span></span></code></pre></div><p>编译后 Go 代码示例：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="kd">const</span><span class="w"> </span><span class="p">(</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Status1_OK</span><span class="w">     </span><span class="nx">Status1</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Status1_NOT_OK</span><span class="w"> </span><span class="nx">Status1</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Status2_OK</span><span class="w">     </span><span class="nx">Status2</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">0</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Status2_NOT_OK</span><span class="w"> </span><span class="nx">Status2</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">)</span><span class="w">
 </span></span></span></code></pre></div><p>彼此独立，不会冲突。</p>
 <h2 id="前后端协议解耦">
 <a class="header-anchor" href="#%e5%89%8d%e5%90%8e%e7%ab%af%e5%8d%8f%e8%ae%ae%e8%a7%a3%e8%80%a6"></a>
@@ -355,15 +355,15 @@
 </ul>
 <p>示例：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 通讯层</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">OrderStatusResp</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">OrderStatusResp</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Status</span><span class="w"> </span><span class="nx">common_pb</span><span class="p">.</span><span class="nx">OrderStatus</span><span class="w"> </span><span class="s">`json:&#34;status&#34;`</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// 存储层</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">type</span><span class="w"> </span><span class="nx">Order</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 存储层</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">Order</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ID</span><span class="w">     </span><span class="kt">uint</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Status</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="s">`gorm:&#34;type:tinyint;index&#34;`</span><span class="w"> </span><span class="c1">// 自定义映射</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h2 id="小结">
 <a class="header-anchor" href="#%e5%b0%8f%e7%bb%93"></a>
 小结
@@ -395,7 +395,7 @@
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/9.webp"
+              data-src="/random/6.webp"
               data-sizes="auto"
               alt="GVM 安装与使用指南"
               class="lazyload"
@@ -407,7 +407,7 @@
         <div class="article-nav-caption">前一篇</div>
         <h3 class="article-nav-title">GVM 安装与使用指南</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/17.webp"
+              data-src="/random/16.webp"
               data-sizes="auto"
               alt="Go-Zero 快速入门指南"
               class="lazyload"
@@ -424,7 +424,7 @@
     <div class="footer-line"></div>
   </div>
   <div id="footer-info"><div>
-      <span class="icon-copyright"></span>2020-2025<span class="footer-info-sep rotate"></span>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
       AKF
     </div><div>
         基于&nbsp;<a
@@ -440,10 +440,10 @@
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;12.3k</span
+          >&nbsp;17.4k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:35</span>
+        <span class="icon-coffee">&nbsp;00:47</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -490,7 +490,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -500,7 +500,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

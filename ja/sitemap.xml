@@ -32,13 +32,13 @@
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="en"
-                href="https://example.org/en/tags/"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/tags/"
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/tags/"
+                hreflang="en"
+                href="https://example.org/en/tags/"
                 />
     <xhtml:link
                 rel="alternate"

@@ -222,7 +222,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -232,7 +232,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -308,7 +308,7 @@
 </h2><p>在文件开头添加 <code>//go:build</code> 指令：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="cp">//go:build tagname</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
 </span></span></span></code></pre></div><p>注意：<code>//go:build</code> 必须在 <code>package</code> 声明之前，且与 <code>package</code> 之间要有空行。</p>
 <h2 id="常见使用场景">
 <a class="header-anchor" href="#%e5%b8%b8%e8%a7%81%e4%bd%bf%e7%94%a8%e5%9c%ba%e6%99%af"></a>
@@ -319,43 +319,43 @@
 </h3><p>Go 标准库大量使用这种方式处理跨平台代码：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="cp">//go:build linux</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// 这个文件只在 Linux 下编译</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">platformSpecificFunc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 这个文件只在 Linux 下编译</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">platformSpecificFunc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// Linux 特定实现</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="cp">//go:build windows</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// 这个文件只在 Windows 下编译</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">platformSpecificFunc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 这个文件只在 Windows 下编译</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">platformSpecificFunc</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// Windows 特定实现</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="2-独立工具脚本">
 <a class="header-anchor" href="#2-%e7%8b%ac%e7%ab%8b%e5%b7%a5%e5%85%b7%e8%84%9a%e6%9c%ac"></a>
 2. 独立工具脚本
 </h3><p>当你在同一个 <code>cmd</code> 目录下有多个入口文件时：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="cp">//go:build gen</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// 只有显式指定 -tags gen 才编译</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 只有显式指定 -tags gen 才编译</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c1">// 代码生成逻辑</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h3 id="3-测试调试代码">
 <a class="header-anchor" href="#3-%e6%b5%8b%e8%af%95%e8%b0%83%e8%af%95%e4%bb%a3%e7%a0%81"></a>
 3. 测试/调试代码
 </h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="cp">//go:build debug</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kn">package</span><span class="w"> </span><span class="nx">main</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// 只在 debug 模式下编译</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="kd">func</span><span class="w"> </span><span class="nf">debugLog</span><span class="p">(</span><span class="nx">msg</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 只在 debug 模式下编译</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">debugLog</span><span class="p">(</span><span class="nx">msg</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;[DEBUG]&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">msg</span><span class="p">)</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><h2 id="运行方式">
 <a class="header-anchor" href="#%e8%bf%90%e8%a1%8c%e6%96%b9%e5%bc%8f"></a>
 运行方式
@@ -369,16 +369,16 @@
 组合条件
 </h2><p>Build Tag 支持逻辑运算：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="cp">//go:build linux &amp;&amp; amd64</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Linux 且 amd64 架构</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Linux 且 amd64 架构</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="cp">//go:build linux || darwin</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// Linux 或 macOS</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="cp">//go:build linux || darwin</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Linux 或 macOS</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="cp">//go:build !windows</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// 非 Windows 平台</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="cp">//go:build !windows</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// 非 Windows 平台</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="cp">//go:build (linux || darwin) &amp;&amp; !cgo</span><span class="w">
-</span></span></span><span class="line"><span class="cl"><span class="w"></span><span class="c1">// (Linux 或 macOS) 且不使用 cgo</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="cp">//go:build (linux || darwin) &amp;&amp; !cgo</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// (Linux 或 macOS) 且不使用 cgo</span><span class="w">
 </span></span></span></code></pre></div><h2 id="更好的替代方案子目录">
 <a class="header-anchor" href="#%e6%9b%b4%e5%a5%bd%e7%9a%84%e6%9b%bf%e4%bb%a3%e6%96%b9%e6%a1%88%e5%ad%90%e7%9b%ae%e5%bd%95"></a>
 更好的替代方案：子目录
@@ -439,7 +439,7 @@
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/25.webp"
+              data-src="/random/28.webp"
               data-sizes="auto"
               alt="鉴权登录限制设置"
               class="lazyload"
@@ -451,7 +451,7 @@
         <div class="article-nav-caption">前一篇</div>
         <h3 class="article-nav-title">鉴权登录限制设置</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/30.webp"
+              data-src="/random/14.webp"
               data-sizes="auto"
               alt="Go 实现 Docker 镜像自动推送到 AWS ECR"
               class="lazyload"
@@ -468,7 +468,7 @@
     <div class="footer-line"></div>
   </div>
   <div id="footer-info"><div>
-      <span class="icon-copyright"></span>2020-2025<span class="footer-info-sep rotate"></span>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
       AKF
     </div><div>
         基于&nbsp;<a
@@ -484,10 +484,10 @@
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;12.3k</span
+          >&nbsp;17.4k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:35</span>
+        <span class="icon-coffee">&nbsp;00:47</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -541,7 +541,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">20</div>
+    <div>文章</div><div class="sidebar-state-number">23</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -551,7 +551,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">23</div>
+    <div class="sidebar-state-number">30</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

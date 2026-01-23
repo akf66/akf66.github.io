@@ -12,12 +12,37 @@
     
     <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
     
-    <lastBuildDate>Sat, 06 Dec 2025 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Thu, 22 Jan 2026 00:00:00 +0000</lastBuildDate>
     
     
     <atom:link href="https://example.org/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/index.xml" rel="self" type="application/rss&#43;xml" />
     
 
+    
+    
+
+    <item>
+      <title>在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</title>
+      <link>https://example.org/post/devenv/k3s-install-kubectl/</link>
+      <pubDate>Thu, 22 Jan 2026 00:00:00 &#43;0000</pubDate>
+      <author>13935468012@163.com (AKF)</author>
+      <guid>https://example.org/post/devenv/k3s-install-kubectl/</guid>
+      <description>
+        <![CDATA[<h1>在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</h1><p>作者：AKF（13935468012@163.com）</p>
+        
+          <p>最近在本地机器上折腾轻量级 Kubernetes 时，发现 <strong>k3s</strong> 仍然是目前最省心、最省资源的单机/边缘/开发环境选择。</p>
+<p>但很多人（包括我一开始）都会遇到一个很烦人的问题：</p>
+<blockquote>
+<p>为什么每次都要打 <code>sudo k3s kubectl get pods</code> 这么长一串？有没有办法像正常 k8s 集群一样，直接敲 <code>kubectl</code> 就行？</p>
+</blockquote>
+<p>本文就完整记录一次从 <strong>零开始安装 k3s</strong> 到 <strong>彻底改成只用 kubectl</strong> 的全过程，适用于 Ubuntu/Debian/CentOS 等主流 Linux 系统。</p>
+        
+        <hr><p>本文2026-01-22首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-22</p>]]>
+      </description>
+      
+        <category>开发环境</category>
+      
+    </item>
     
     
 

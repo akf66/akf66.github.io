@@ -3,7 +3,7 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://example.org/categories/</loc>
-    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -25,17 +25,17 @@
                 href="https://example.org/categories/"
                 />
   </url><url>
-    <loc>https://example.org/tags/k3s/</loc>
-    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+    <loc>https://example.org/post/golang/tencent-sms-service/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/kubectl/</loc>
-    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+    <loc>https://example.org/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
   </url><url>
-    <loc>https://example.org/tags/kubernetes/</loc>
-    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+    <loc>https://example.org/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/</loc>
-    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -57,19 +57,11 @@
                 href="https://example.org/tags/"
                 />
   </url><url>
-    <loc>https://example.org/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/</loc>
-    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/</loc>
-    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+    <loc>https://example.org/tags/%E7%9F%AD%E4%BF%A1%E6%9C%8D%E5%8A%A1/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://example.org/</loc>
-    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/"
-                />
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -82,20 +74,40 @@
                 />
     <xhtml:link
                 rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/"
+                />
+    <xhtml:link
+                rel="alternate"
                 hreflang="zh-cn"
                 href="https://example.org/"
                 />
+  </url><url>
+    <loc>https://example.org/tags/%E8%85%BE%E8%AE%AF%E4%BA%91/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/%E9%AA%8C%E8%AF%81%E7%A0%81/</loc>
+    <lastmod>2026-02-03T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/k3s/</loc>
+    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/kubectl/</loc>
+    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/kubernetes/</loc>
+    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/categories/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/</loc>
+    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/%E5%BC%80%E5%8F%91%E7%8E%AF%E5%A2%83/</loc>
+    <lastmod>2026-01-22T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://example.org/post/devenv/k3s-install-kubectl/</loc>
     <lastmod>2026-01-22T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://example.org/post/golang/robfig-cron-guide/</loc>
-    <lastmod>2026-01-08T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
-    <lastmod>2026-01-08T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</loc>
     <lastmod>2026-01-08T00:00:00+00:00</lastmod>
   </url><url>
     <loc>https://example.org/post/golang/order-cache-ttl-design/</loc>

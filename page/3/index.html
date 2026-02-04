@@ -4,7 +4,7 @@
   data-theme-mode="auto"
   >
   <head>
-	<meta name="generator" content="Hugo 0.154.5"><meta charset="utf-8" />
+	<meta name="generator" content="Hugo 0.155.2"><meta charset="utf-8" />
 <meta
   name="viewport"
   content="width=device-width, initial-scale=1, shrink-to-fit=no"
@@ -50,8 +50,8 @@
     content="/"
   />
   <meta property="article:author" content="AKF" />
-  <meta property="article:published_time" content="2026-01-22T00:00:00&#43;00:00" />
-  <meta property="article:modified_time" content="2026-01-22T00:00:00&#43;00:00" /><meta name="twitter:card" content="summary" />
+  <meta property="article:published_time" content="2026-02-03T00:00:00&#43;00:00" />
+  <meta property="article:modified_time" content="2026-02-03T00:00:00&#43;00:00" /><meta name="twitter:card" content="summary" />
   <meta name="twitter:image" content="/" /><link rel="alternate" type="application/rss+xml" href="https://example.org/index.xml" title="鼠鼠的自我救赎">
 <link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.d1c21c9f44f45331a2bdda6a6b822a47d8306ba2479416bb762f085303f54783.css" />
 <link
@@ -151,7 +151,7 @@
 
         selectOptions.forEach((item) => {
           item.addEventListener("click", () => {
-            const langMap = {};langMap['zh-tw'] = '\/zh-tw\/';langMap['en'] = '\/en\/';langMap['ja'] = '\/ja\/';selectedLang.textContent = item.textContent;
+            const langMap = {};langMap['en'] = '\/en\/';langMap['ja'] = '\/ja\/';langMap['zh-tw'] = '\/zh-tw\/';selectedLang.textContent = item.textContent;
             selectItems.classList.remove("show");
             selectOptions.forEach((option) => {
               option.classList.remove("selected");
@@ -203,7 +203,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">23</div>
+    <div>文章</div><div class="sidebar-state-number">24</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -213,7 +213,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">30</div>
+    <div class="sidebar-state-number">33</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -508,6 +508,8 @@
       <h3 class="widget-title">最新文章</h3>
       <div class="widget">
         <ul><li>
+              <a href="/post/golang/tencent-sms-service/" title="Go 腾讯云短信服务封装：验证码发送完整指南">Go 腾讯云短信服务封装：验证码发送完整指南</a>
+            </li><li>
               <a href="/post/devenv/k3s-install-kubectl/" title="在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令">在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</a>
             </li><li>
               <a href="/post/golang/robfig-cron-guide/" title="Go 定时任务完全指南：robfig/cron 库详解">Go 定时任务完全指南：robfig/cron 库详解</a>
@@ -515,8 +517,6 @@
               <a href="/post/golang/order-cache-ttl-design/" title="订单支付链接缓存设计：为什么是 9 分 30 秒？">订单支付链接缓存设计：为什么是 9 分 30 秒？</a>
             </li><li>
               <a href="/post/git/usegit/" title="Git Cherry-Pick 使用指南">Git Cherry-Pick 使用指南</a>
-            </li><li>
-              <a href="/post/git/usegit_grpah/" title="Git Cherry-Pick 图形化使用指南">Git Cherry-Pick 图形化使用指南</a>
             </li></ul>
       </div>
     </div>
@@ -529,16 +529,58 @@
     data-aos="fade-up"
   ><a
         class="post-link"
-        href="/post/study/modd%E7%83%AD%E5%8A%A0%E8%BD%BD/"
-        aria-label="使用 modd 实现 Go 项目热加载"
-        title="使用 modd 实现 Go 项目热加载"
+        href="/post/microservice/go-zero/go-zero_nginx/"
+        aria-label="Go-Zero 微服务网关：Nginx 统一入口实践"
+        title="Go-Zero 微服务网关：Nginx 统一入口实践"
       >
       </a><div
       class="
         post-cover left
       "
     ><img
-            data-src="/random/7.webp"
+            data-src="/random/5.webp"
+            data-sizes="auto"
+            alt="Go-Zero 微服务网关：Nginx 统一入口实践"
+            class="lazyload"
+          /></div>
+    <div class="post-info">
+      <div class="post-meta">
+        <span
+          ><span class="icon-calendar"></span
+          >2025-12-06</span
+        ><span
+          ><span class="icon-pencil"></span
+          >930 字</span
+        >
+        <span
+          ><span class="icon-clock"></span
+          >2 分钟</span
+        >
+      </div>
+      <h2 class="post-title">Go-Zero 微服务网关：Nginx 统一入口实践</h2>
+      <article class="post-article">理解 go-zero 中 API 与网关的关系，以及如何使用 Nginx 作为统一流量入口。
+</article>
+    </div>
+  </div>
+</div>
+<div class="post-wrapper">
+  <div
+    class="
+      post-wrap right
+    "
+    data-aos="fade-up"
+  ><a
+        class="post-link"
+        href="/post/study/modd%E7%83%AD%E5%8A%A0%E8%BD%BD/"
+        aria-label="使用 modd 实现 Go 项目热加载"
+        title="使用 modd 实现 Go 项目热加载"
+      >
+      </a><div
+      class="
+        post-cover right
+      "
+    ><img
+            data-src="/random/24.webp"
             data-sizes="auto"
             alt="使用 modd 实现 Go 项目热加载"
             class="lazyload"
@@ -566,7 +608,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap right
+      post-wrap left
     "
     data-aos="fade-up"
   ><a
@@ -577,10 +619,10 @@
       >
       </a><div
       class="
-        post-cover right
+        post-cover left
       "
     ><img
-            data-src="/random/2.webp"
+            data-src="/random/6.webp"
             data-sizes="auto"
             alt="Go-Zero 微服务最佳实践架构"
             class="lazyload"
@@ -608,7 +650,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap left
+      post-wrap right
     "
     data-aos="fade-up"
   ><a
@@ -619,10 +661,10 @@
       >
       </a><div
       class="
-        post-cover left
+        post-cover right
       "
     ><img
-            data-src="/random/6.webp"
+            data-src="/random/16.webp"
             data-sizes="auto"
             alt="微服务日志采集链路：从文件到 Kibana"
             class="lazyload"
@@ -650,7 +692,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap right
+      post-wrap left
     "
     data-aos="fade-up"
   ><a
@@ -661,10 +703,10 @@
       >
       </a><div
       class="
-        post-cover right
+        post-cover left
       "
     ><img
-            data-src="/random/3.webp"
+            data-src="/random/10.webp"
             data-sizes="auto"
             alt="Go-Zero 快速入门指南"
             class="lazyload"
@@ -692,7 +734,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap left
+      post-wrap right
     "
     data-aos="fade-up"
   ><a
@@ -703,10 +745,10 @@
       >
       </a><div
       class="
-        post-cover left
+        post-cover right
       "
     ><img
-            data-src="/random/26.webp"
+            data-src="/random/4.webp"
             data-sizes="auto"
             alt="Golang 后端踩坑：Protobuf 枚举命名与全局唯一性"
             class="lazyload"
@@ -727,48 +769,6 @@
       </div>
       <h2 class="post-title">Golang 后端踩坑：Protobuf 枚举命名与全局唯一性</h2>
       <article class="post-article"> 背景 在 Go 项目中使用 Protobuf 定义枚举时，由于 protoc-gen-go 会把枚举值编译成 包级常量，所有枚举值默认放在 同一命名空间。一旦同名，即使分属不同枚举，也会触发 全局唯一性冲突，protoc 直接报错。
-</article>
-    </div>
-  </div>
-</div>
-<div class="post-wrapper">
-  <div
-    class="
-      post-wrap right
-    "
-    data-aos="fade-up"
-  ><a
-        class="post-link"
-        href="/post/devenv/gvm-install/"
-        aria-label="GVM 安装与使用指南"
-        title="GVM 安装与使用指南"
-      >
-      </a><div
-      class="
-        post-cover right
-      "
-    ><img
-            data-src="/random/2.webp"
-            data-sizes="auto"
-            alt="GVM 安装与使用指南"
-            class="lazyload"
-          /></div>
-    <div class="post-info">
-      <div class="post-meta">
-        <span
-          ><span class="icon-calendar"></span
-          >2025-12-04</span
-        ><span
-          ><span class="icon-pencil"></span
-          >426 字</span
-        >
-        <span
-          ><span class="icon-clock"></span
-          >1 分钟</span
-        >
-      </div>
-      <h2 class="post-title">GVM 安装与使用指南</h2>
-      <article class="post-article">GVM (Go Version Manager) 是一个管理多个 Go 版本的工具，方便在不同项目间切换 Go 版本。
 </article>
     </div>
   </div>
@@ -800,10 +800,10 @@
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;17.4k</span
+          >&nbsp;18.8k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:47</span>
+        <span class="icon-coffee">&nbsp;00:50</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -837,7 +837,7 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">23</div>
+    <div>文章</div><div class="sidebar-state-number">24</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
@@ -847,7 +847,7 @@
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">30</div>
+    <div class="sidebar-state-number">33</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

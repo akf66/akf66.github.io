@@ -32,13 +32,13 @@
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="ja"
-                href="https://example.org/ja/tags/"
+                hreflang="en"
+                href="https://example.org/en/tags/"
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="en"
-                href="https://example.org/en/tags/"
+                hreflang="ja"
+                href="https://example.org/ja/tags/"
                 />
     <xhtml:link
                 rel="alternate"

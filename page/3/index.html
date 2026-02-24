@@ -4,7 +4,7 @@
   data-theme-mode="auto"
   >
   <head>
-	<meta name="generator" content="Hugo 0.155.2"><meta charset="utf-8" />
+	<meta name="generator" content="Hugo 0.156.0"><meta charset="utf-8" />
 <meta
   name="viewport"
   content="width=device-width, initial-scale=1, shrink-to-fit=no"
@@ -50,8 +50,8 @@
     content="/"
   />
   <meta property="article:author" content="AKF" />
-  <meta property="article:published_time" content="2026-02-03T00:00:00&#43;00:00" />
-  <meta property="article:modified_time" content="2026-02-03T00:00:00&#43;00:00" /><meta name="twitter:card" content="summary" />
+  <meta property="article:published_time" content="2026-02-24T00:00:00&#43;00:00" />
+  <meta property="article:modified_time" content="2026-02-24T00:00:00&#43;00:00" /><meta name="twitter:card" content="summary" />
   <meta name="twitter:image" content="/" /><link rel="alternate" type="application/rss+xml" href="https://example.org/index.xml" title="鼠鼠的自我救赎">
 <link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.d1c21c9f44f45331a2bdda6a6b822a47d8306ba2479416bb762f085303f54783.css" />
 <link
@@ -203,17 +203,17 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">24</div>
+    <div>文章</div><div class="sidebar-state-number">26</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
     <div class="sidebar-state-number">
-      6
+      7
     </div>
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">33</div>
+    <div class="sidebar-state-number">37</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -268,6 +268,11 @@
                 <a class="category-list-link" href="/categories/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/" 
                   title="Golang后端踩坑"
                   >Golang后端踩坑</a
+                >
+              </li><li class="category-list-item">
+                <a class="category-list-link" href="/categories/kubernetes/" 
+                  title="Kubernetes"
+                  >Kubernetes</a
                 >
               </li><li class="category-list-item">
                 <a class="category-list-link" href="/categories/%E4%BA%91%E5%8E%9F%E7%94%9F/" 
@@ -375,20 +380,20 @@
               </li><li class="tag-item">
                 <a
                   class="tag-link"
+                  href="/tags/helm/"
+                  aria-label="标签: Helm"
+                  title="Helm"
+                >
+                  Helm
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
                   href="/tags/hertz/"
                   aria-label="标签: Hertz"
                   title="Hertz"
                 >
                   Hertz
-                </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/k3s/"
-                  aria-label="标签: K3s"
-                  title="K3s"
-                >
-                  K3s
                 </a>
               </li></ul>
       </div>
@@ -440,6 +445,11 @@
             >Gvm</a
           ><a
             style="font-size:10px"
+            href="/tags/helm/"
+            aria-label="标签: Helm"
+            >Helm</a
+          ><a
+            style="font-size:10px"
             href="/tags/hertz/"
             aria-label="标签: Hertz"
             >Hertz</a
@@ -470,9 +480,19 @@
             >Nginx</a
           ><a
             style="font-size:10px"
+            href="/tags/nginx-ingress/"
+            aria-label="标签: Nginx Ingress"
+            >Nginx Ingress</a
+          ><a
+            style="font-size:10px"
             href="/tags/proto/"
             aria-label="标签: Proto"
             >Proto</a
+          ><a
+            style="font-size:10px"
+            href="/tags/tke/"
+            aria-label="标签: TKE"
+            >TKE</a
           ><a
             style="font-size:10px"
             href="/tags/wsl/"
@@ -483,21 +503,6 @@
             href="/tags/%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6/"
             aria-label="标签: 任务调度"
             >任务调度</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E5%9B%BE%E5%BD%A2%E5%8C%96%E5%B7%A5%E5%85%B7/"
-            aria-label="标签: 图形化工具"
-            >图形化工具</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/"
-            aria-label="标签: 定时任务"
-            >定时任务</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7/"
-            aria-label="标签: 开发工具"
-            >开发工具</a
           ></div>
   </div>
 </div><div class="widget-wrapper">
@@ -508,6 +513,8 @@
       <h3 class="widget-title">最新文章</h3>
       <div class="widget">
         <ul><li>
+              <a href="/post/k8s/nginx-ingress/tke%E5%8D%87%E7%BA%A7%E8%AE%B0%E5%BD%95/" title="TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置">TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置</a>
+            </li><li>
               <a href="/post/golang/tencent-sms-service/" title="Go 腾讯云短信服务封装：验证码发送完整指南">Go 腾讯云短信服务封装：验证码发送完整指南</a>
             </li><li>
               <a href="/post/devenv/k3s-install-kubectl/" title="在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令">在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</a>
@@ -515,8 +522,6 @@
               <a href="/post/golang/robfig-cron-guide/" title="Go 定时任务完全指南：robfig/cron 库详解">Go 定时任务完全指南：robfig/cron 库详解</a>
             </li><li>
               <a href="/post/golang/order-cache-ttl-design/" title="订单支付链接缓存设计：为什么是 9 分 30 秒？">订单支付链接缓存设计：为什么是 9 分 30 秒？</a>
-            </li><li>
-              <a href="/post/git/usegit/" title="Git Cherry-Pick 使用指南">Git Cherry-Pick 使用指南</a>
             </li></ul>
       </div>
     </div>
@@ -529,16 +534,58 @@
     data-aos="fade-up"
   ><a
         class="post-link"
-        href="/post/microservice/go-zero/go-zero_nginx/"
-        aria-label="Go-Zero 微服务网关：Nginx 统一入口实践"
-        title="Go-Zero 微服务网关：Nginx 统一入口实践"
+        href="/post/microservice/go-zero/go-zero%E5%B8%B8%E7%94%A8%E5%8A%9F%E8%83%BD/"
+        aria-label="Go-Zero 鉴权"
+        title="Go-Zero 鉴权"
       >
       </a><div
       class="
         post-cover left
       "
     ><img
-            data-src="/random/5.webp"
+            data-src="/random/22.webp"
+            data-sizes="auto"
+            alt="Go-Zero 鉴权"
+            class="lazyload"
+          /></div>
+    <div class="post-info">
+      <div class="post-meta">
+        <span
+          ><span class="icon-calendar"></span
+          >2025-12-06</span
+        ><span
+          ><span class="icon-pencil"></span
+          >209 字</span
+        >
+        <span
+          ><span class="icon-clock"></span
+          >1 分钟</span
+        >
+      </div>
+      <h2 class="post-title">Go-Zero 鉴权</h2>
+      <article class="post-article"> 1.1 go-zero jwt 上一节我们提到了，在desc/api文件中我们定义了go-zero自带的jwt中间件，生成代码后我们可以看到定义了jwt的api服务的路由，这里我们以usercenter服务举例，我们可以看下 go-zero-looklook/app/usercenter/cmd/api/internal/handler/routes.go 代码如下
+</article>
+    </div>
+  </div>
+</div>
+<div class="post-wrapper">
+  <div
+    class="
+      post-wrap right
+    "
+    data-aos="fade-up"
+  ><a
+        class="post-link"
+        href="/post/microservice/go-zero/go-zero_nginx/"
+        aria-label="Go-Zero 微服务网关：Nginx 统一入口实践"
+        title="Go-Zero 微服务网关：Nginx 统一入口实践"
+      >
+      </a><div
+      class="
+        post-cover right
+      "
+    ><img
+            data-src="/random/15.webp"
             data-sizes="auto"
             alt="Go-Zero 微服务网关：Nginx 统一入口实践"
             class="lazyload"
@@ -566,7 +613,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap right
+      post-wrap left
     "
     data-aos="fade-up"
   ><a
@@ -577,10 +624,10 @@
       >
       </a><div
       class="
-        post-cover right
+        post-cover left
       "
     ><img
-            data-src="/random/24.webp"
+            data-src="/random/17.webp"
             data-sizes="auto"
             alt="使用 modd 实现 Go 项目热加载"
             class="lazyload"
@@ -608,7 +655,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap left
+      post-wrap right
     "
     data-aos="fade-up"
   ><a
@@ -619,10 +666,10 @@
       >
       </a><div
       class="
-        post-cover left
+        post-cover right
       "
     ><img
-            data-src="/random/6.webp"
+            data-src="/random/27.webp"
             data-sizes="auto"
             alt="Go-Zero 微服务最佳实践架构"
             class="lazyload"
@@ -650,7 +697,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap right
+      post-wrap left
     "
     data-aos="fade-up"
   ><a
@@ -661,10 +708,10 @@
       >
       </a><div
       class="
-        post-cover right
+        post-cover left
       "
     ><img
-            data-src="/random/16.webp"
+            data-src="/random/11.webp"
             data-sizes="auto"
             alt="微服务日志采集链路：从文件到 Kibana"
             class="lazyload"
@@ -692,7 +739,7 @@
 <div class="post-wrapper">
   <div
     class="
-      post-wrap left
+      post-wrap right
     "
     data-aos="fade-up"
   ><a
@@ -703,10 +750,10 @@
       >
       </a><div
       class="
-        post-cover left
+        post-cover right
       "
     ><img
-            data-src="/random/10.webp"
+            data-src="/random/28.webp"
             data-sizes="auto"
             alt="Go-Zero 快速入门指南"
             class="lazyload"
@@ -731,51 +778,9 @@
     </div>
   </div>
 </div>
-<div class="post-wrapper">
-  <div
-    class="
-      post-wrap right
-    "
-    data-aos="fade-up"
-  ><a
-        class="post-link"
-        href="/post/golang/proto.pitfalls/"
-        aria-label="Golang 后端踩坑：Protobuf 枚举命名与全局唯一性"
-        title="Golang 后端踩坑：Protobuf 枚举命名与全局唯一性"
-      >
-      </a><div
-      class="
-        post-cover right
-      "
-    ><img
-            data-src="/random/4.webp"
-            data-sizes="auto"
-            alt="Golang 后端踩坑：Protobuf 枚举命名与全局唯一性"
-            class="lazyload"
-          /></div>
-    <div class="post-info">
-      <div class="post-meta">
-        <span
-          ><span class="icon-calendar"></span
-          >2025-12-04</span
-        ><span
-          ><span class="icon-pencil"></span
-          >653 字</span
-        >
-        <span
-          ><span class="icon-clock"></span
-          >2 分钟</span
-        >
-      </div>
-      <h2 class="post-title">Golang 后端踩坑：Protobuf 枚举命名与全局唯一性</h2>
-      <article class="post-article"> 背景 在 Go 项目中使用 Protobuf 定义枚举时，由于 protoc-gen-go 会把枚举值编译成 包级常量，所有枚举值默认放在 同一命名空间。一旦同名，即使分属不同枚举，也会触发 全局唯一性冲突，protoc 直接报错。
-</article>
-    </div>
-  </div>
-</div>
 <nav id="page-nav" aria-label="Pagination navigation" data-aos="fade-up"><a class="extend prev" rel="prev" href="/page/2/">
       &laquo;
-      上一页</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><a class="extend next" rel="next" href="/page/4/">
+      上一页</a><a class="page-number" href="/">1</a><a class="page-number" href="/page/2/">2</a><span class="page-number current">3</span><a class="page-number" href="/page/4/">4</a><a class="page-number" href="/page/5/">5</a><a class="extend next" rel="next" href="/page/4/">
       下一页 &raquo;
     </a></nav>
 </section>
@@ -800,10 +805,10 @@
         >
       </div><div>
         <span class="icon-brush"
-          >&nbsp;18.8k</span
+          >&nbsp;19.9k</span
         >
         &nbsp;|&nbsp;
-        <span class="icon-coffee">&nbsp;00:50</span>
+        <span class="icon-coffee">&nbsp;00:54</span>
       </div><div>
         <span class="icon-eye"></span>
         <span id="busuanzi_container_site_pv"
@@ -837,17 +842,17 @@
 </div>
 <div class="sidebar-state">
   <div class="sidebar-state-article">
-    <div>文章</div><div class="sidebar-state-number">24</div>
+    <div>文章</div><div class="sidebar-state-number">26</div>
   </div>
   <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
     <div>分类</div>
     <div class="sidebar-state-number">
-      6
+      7
     </div>
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>标签</div>
-    <div class="sidebar-state-number">33</div>
+    <div class="sidebar-state-number">37</div>
   </a>
 </div>
 <div class="sidebar-social"></div>

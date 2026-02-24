@@ -1,0 +1,709 @@
+<!doctype html>
+<html
+  lang="zh-cn" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置 | AKF
+</title>
+<meta name="description" content="...——。——..."/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"LanguageName\":\"English\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"ja\",\"LanguageName\":\"日本語\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"zh-cn\",\"LanguageName\":\"简体中文\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false},{\"Lang\":\"zh-tw\",\"LanguageName\":\"繁體中文\",\"LanguageCode\":\"\",\"Title\":\"\",\"LanguageDirection\":\"\",\"Weight\":1,\"Disabled\":false}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置 | AKF" />
+  <meta
+    property="og:description"
+    content="...——。——..."
+  />
+  <meta property="og:url" content="https://example.org/post/k8s/nginx-ingress/tke%E5%8D%87%E7%BA%A7%E8%AE%B0%E5%BD%95/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-02-24T00:00:00&#43;00:00" />
+  <meta property="article:modified_time" content="2026-02-24T00:00:00&#43;00:00" /><meta property="article:tag" content="KubernetesTKENginx IngressHelm鉴权" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.d1c21c9f44f45331a2bdda6a6b822a47d8306ba2479416bb762f085303f54783.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">鼠鼠努力奔跑中...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+本文章没有找到对应的语言版本
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">首页</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">归档</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">关于</span>
+      </a><a class="main-nav-link-wrap" href="/friend">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">友链</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">文章目录</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-远程连接-tke-集群">1. 远程连接 TKE 集群</a></li>
+    <li><a href="#2-通过-helm-部署-nginx-ingress-controller">2. 通过 Helm 部署 Nginx Ingress Controller</a>
+      <ul>
+        <li><a href="#21-添加-helm-仓库">2.1 添加 Helm 仓库</a></li>
+        <li><a href="#22-安装升级-nginx-ingress">2.2 安装/升级 Nginx Ingress</a></li>
+        <li><a href="#23-values-配置详解">2.3 Values 配置详解</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-ingress-统一鉴权配置auth_request-方案">3. Ingress 统一鉴权配置（auth_request 方案）</a>
+      <ul>
+        <li><a href="#31-配置示例">3.1 配置示例</a></li>
+        <li><a href="#32-工作流程">3.2 工作流程</a></li>
+        <li><a href="#33-多服务场景下的关键注意事项">3.3 多服务场景下的关键注意事项</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>文章</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>分类</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>标签</div>
+    <div class="sidebar-state-number">37</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="首页"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">首页</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="归档"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">归档</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="关于"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">关于</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/friend"
+        aria-label="友链"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">友链</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-02-24 00:00:00 &#43;0000 UTC" itemprop="datePublished"
+      >2026-02-24</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-02-24</time
+    >
+  </span></div>
+<div class="article-category"><a
+      class="article-category-link"
+      href="/categories/kubernetes"
+      data-aos="zoom-in"
+      >KUBERNETES</a
+    ></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><p>记录一次在腾讯云 TKE 集群上，通过 Helm 升级部署 Nginx Ingress Controller 的完整过程，包括远程连接集群、Helm Values 配置要点，以及利用 <code>auth_request</code> 实现统一鉴权的 Ingress 配置方案。</p>
+<h2 id="1-远程连接-tke-集群">
+<a class="header-anchor" href="#1-%e8%bf%9c%e7%a8%8b%e8%bf%9e%e6%8e%a5-tke-%e9%9b%86%e7%be%a4"></a>
+1. 远程连接 TKE 集群
+</h2><p>首先需要在 TKE 控制台开启公网访问，下载集群的 kubeconfig 凭证文件，然后在本地配置：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl"><span class="c1"># 将 TKE 凭证加入 KUBECONFIG</span>
+</span></span><span class="line"><span class="cl"><span class="nb">export</span> <span class="nv">KUBECONFIG</span><span class="o">=</span><span class="nv">$KUBECONFIG</span>:/home/akf/下载/tke/cls-g9mon6gq-config
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看可用的 context</span>
+</span></span><span class="line"><span class="cl">kubectl config --kubeconfig<span class="o">=</span>/home/akf/下载/tke/cls-g9mon6gq-config get-contexts
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 切换到目标集群 context</span>
+</span></span><span class="line"><span class="cl">kubectl config --kubeconfig<span class="o">=</span>/home/akf/下载/tke/cls-g9mon6gq-config use-context cls-g9mon6gq-100045431505-context-default
+</span></span></code></pre></div><p>连接成功后，就可以在本地通过 <code>kubectl</code> 操作远程 TKE 集群了。</p>
+<h2 id="2-通过-helm-部署-nginx-ingress-controller">
+<a class="header-anchor" href="#2-%e9%80%9a%e8%bf%87-helm-%e9%83%a8%e7%bd%b2-nginx-ingress-controller"></a>
+2. 通过 Helm 部署 Nginx Ingress Controller
+</h2><h3 id="21-添加-helm-仓库">
+<a class="header-anchor" href="#21-%e6%b7%bb%e5%8a%a0-helm-%e4%bb%93%e5%ba%93"></a>
+2.1 添加 Helm 仓库
+</h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+</span></span><span class="line"><span class="cl">helm repo update
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 查看已添加的仓库</span>
+</span></span><span class="line"><span class="cl">helm repo list
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1"># 搜索可用的 chart 版本</span>
+</span></span><span class="line"><span class="cl">helm search repo ingress-nginx
+</span></span></code></pre></div><h3 id="22-安装升级-nginx-ingress">
+<a class="header-anchor" href="#22-%e5%ae%89%e8%a3%85%e5%8d%87%e7%ba%a7-nginx-ingress"></a>
+2.2 安装/升级 Nginx Ingress
+</h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">helm upgrade --install prod-nginx ingress-nginx/ingress-nginx <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --namespace ingress-nginx --create-namespace <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --set controller.ingressClass<span class="o">=</span>ingress-new <span class="se">\
+</span></span></span><span class="line"><span class="cl">  --set controller.ingressClassResource.name<span class="o">=</span>ingress-new
+</span></span></code></pre></div><h3 id="23-values-配置详解">
+<a class="header-anchor" href="#23-values-%e9%85%8d%e7%bd%ae%e8%af%a6%e8%a7%a3"></a>
+2.3 Values 配置详解
+</h3><p>实际部署时建议使用 values 文件进行管理，以下是一份经过验证的配置：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">controller</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="c"># 允许使用 snippet 注解（auth_request 等高级配置必须开启）</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">allowSnippetAnnotations</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">config</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">allow-snippet-annotations</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;true&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">use-forwarded-headers</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;true&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="c"># 将注解风险等级调整为 Critical，否则 snippet 注解会被拦截</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">annotations-risk-level</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;Critical&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">admissionWebhooks</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">patch</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">digest</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">k8smirror/ingress-nginx-kube-webhook-certgen</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">registry</span><span class="p">:</span><span class="w"> </span><span class="l">docker.io</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">        </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="l">v1.6.5</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">digest</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">k8smirror/ingress-nginx-controller</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">registry</span><span class="p">:</span><span class="w"> </span><span class="l">docker.io</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="l">v1.14.1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ingressClass</span><span class="p">:</span><span class="w"> </span><span class="l">nginx-creaibo</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">ingressClassResource</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l">nginx-creaibo</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">opentelemetry</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">defaultBackend</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">digest</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l">k8smirror/defaultbackend-amd64</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">registry</span><span class="p">:</span><span class="w"> </span><span class="l">docker.io</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">    </span><span class="nt">tag</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;1.5&#34;</span><span class="w">
+</span></span></span></code></pre></div><blockquote>
+<p><strong>注意：</strong> 如果需要使用 <code>configuration-snippet</code> 或 <code>server-snippet</code> 注解，必须同时开启 <code>allowSnippetAnnotations: true</code> 并将 <code>annotations-risk-level</code> 设置为 <code>&quot;Critical&quot;</code>，否则 Ingress 资源会被 admission webhook 拒绝。</p>
+</blockquote>
+<h2 id="3-ingress-统一鉴权配置auth_request-方案">
+<a class="header-anchor" href="#3-ingress-%e7%bb%9f%e4%b8%80%e9%89%b4%e6%9d%83%e9%85%8d%e7%bd%aeauth_request-%e6%96%b9%e6%a1%88"></a>
+3. Ingress 统一鉴权配置（auth_request 方案）
+</h2><p>在微服务架构中，通常希望在网关层统一处理鉴权，而不是每个服务各自实现。Nginx Ingress 的 <code>auth_request</code> 机制可以很好地解决这个问题。</p>
+<h3 id="31-配置示例">
+<a class="header-anchor" href="#31-%e9%85%8d%e7%bd%ae%e7%a4%ba%e4%be%8b"></a>
+3.1 配置示例
+</h3><p>以下是一个完整的 Ingress annotations 配置，通过 <code>auth_request</code> 将请求先转发到鉴权服务验证，验证通过后再将用户信息注入到上游请求头中：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">annotations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l">messagent-ingress</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">kubernetes.io/ingress.rule-mix</span><span class="p">:</span><span class="w"> </span><span class="s2">&#34;true&#34;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">nginx.ingress.kubernetes.io/configuration-snippet</span><span class="p">:</span><span class="w"> </span><span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    auth_request /auth-internal;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    auth_request_set $user_id $upstream_http_x_user_id;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    auth_request_set $token_key $upstream_http_x_token_key;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    proxy_set_header X-User-Id $user_id;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    proxy_set_header X-Token-Key $token_key;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">nginx.ingress.kubernetes.io/server-snippet</span><span class="p">:</span><span class="w"> </span><span class="p">|</span><span class="sd">
+</span></span></span><span class="line"><span class="cl"><span class="sd">    location = /auth-internal {
+</span></span></span><span class="line"><span class="cl"><span class="sd">      internal;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_pass http://new-api.messagent.svc.cluster.local:3000/api/auth/verify;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_pass_request_body off;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_set_header Content-Length &#34;&#34;;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_set_header X-Original-IP $realip_remote_addr;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_set_header X-Original-URI $request_uri;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_set_header X-Original-Host $host;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_set_header X-Original-Method $request_method;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_set_header Host $host;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_set_header Cookie $http_cookie;
+</span></span></span><span class="line"><span class="cl"><span class="sd">      proxy_intercept_errors on;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    }
+</span></span></span><span class="line"><span class="cl"><span class="sd">    error_page 401 = @auth_error;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    location @auth_error {
+</span></span></span><span class="line"><span class="cl"><span class="sd">      return 401 &#39;Unauthorized&#39;;
+</span></span></span><span class="line"><span class="cl"><span class="sd">    }</span><span class="w">
+</span></span></span></code></pre></div><h3 id="32-工作流程">
+<a class="header-anchor" href="#32-%e5%b7%a5%e4%bd%9c%e6%b5%81%e7%a8%8b"></a>
+3.2 工作流程
+</h3><ol>
+<li>客户端请求到达 Nginx Ingress</li>
+<li><code>configuration-snippet</code> 中的 <code>auth_request /auth-internal</code> 触发子请求</li>
+<li>Nginx 将子请求转发到 <code>server-snippet</code> 中定义的 <code>/auth-internal</code> location</li>
+<li><code>/auth-internal</code> 将请求代理到鉴权服务 <code>new-api.messagent.svc.cluster.local:3000/api/auth/verify</code></li>
+<li>鉴权服务返回 200 则放行，并通过响应头传回 <code>X-User-Id</code> 和 <code>X-Token-Key</code></li>
+<li><code>auth_request_set</code> 提取这些值，<code>proxy_set_header</code> 注入到上游服务的请求头中</li>
+<li>鉴权服务返回 401 则触发 <code>@auth_error</code>，直接返回 <code>401 Unauthorized</code></li>
+</ol>
+<h3 id="33-多服务场景下的关键注意事项">
+<a class="header-anchor" href="#33-%e5%a4%9a%e6%9c%8d%e5%8a%a1%e5%9c%ba%e6%99%af%e4%b8%8b%e7%9a%84%e5%85%b3%e9%94%ae%e6%b3%a8%e6%84%8f%e4%ba%8b%e9%a1%b9"></a>
+3.3 多服务场景下的关键注意事项
+</h3><p>当集群中存在多个服务共用同一个 Ingress 时，鉴权服务需要知道原始请求的完整信息才能正确判断权限。以下两个 header 必须传入：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-nginx" data-lang="nginx"><span class="line"><span class="cl"><span class="k">proxy_set_header</span> <span class="s">X-Original-URI</span> <span class="nv">$request_uri</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="k">proxy_set_header</span> <span class="s">X-Original-Host</span> <span class="nv">$host</span><span class="p">;</span>
+</span></span></code></pre></div><p>如果缺少这两个 header，鉴权服务将无法区分请求来自哪个域名、访问的是哪个路径，导致鉴权逻辑无法正确执行或请求转发异常。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/kubernetes"
+        rel="tag"
+        >KUBERNETES</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/tke"
+        rel="tag"
+        >TKE</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/nginx-ingress"
+        rel="tag"
+        >NGINX INGRESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/helm"
+        rel="tag"
+        >HELM</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e9%89%b4%e6%9d%83"
+        rel="tag"
+        >鉴权</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/23.webp"
+              data-sizes="auto"
+              alt="Go 腾讯云短信服务封装：验证码发送完整指南"
+              class="lazyload"
+            /><a
+          href="/post/golang/tencent-sms-service/"
+          aria-label="前一篇:Go 腾讯云短信服务封装：验证码发送完整指南"
+          title="前一篇:Go 腾讯云短信服务封装：验证码发送完整指南"
+        ></a>
+        <div class="article-nav-caption">前一篇</div>
+        <h3 class="article-nav-title">Go 腾讯云短信服务封装：验证码发送完整指南</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        基于&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >总访问量&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >总访客量&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">文章目录</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#1-远程连接-tke-集群">1. 远程连接 TKE 集群</a></li>
+    <li><a href="#2-通过-helm-部署-nginx-ingress-controller">2. 通过 Helm 部署 Nginx Ingress Controller</a>
+      <ul>
+        <li><a href="#21-添加-helm-仓库">2.1 添加 Helm 仓库</a></li>
+        <li><a href="#22-安装升级-nginx-ingress">2.2 安装/升级 Nginx Ingress</a></li>
+        <li><a href="#23-values-配置详解">2.3 Values 配置详解</a></li>
+      </ul>
+    </li>
+    <li><a href="#3-ingress-统一鉴权配置auth_request-方案">3. Ingress 统一鉴权配置（auth_request 方案）</a>
+      <ul>
+        <li><a href="#31-配置示例">3.1 配置示例</a></li>
+        <li><a href="#32-工作流程">3.2 工作流程</a></li>
+        <li><a href="#33-多服务场景下的关键注意事项">3.3 多服务场景下的关键注意事项</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>文章</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>分类</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>标签</div>
+    <div class="sidebar-state-number">37</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="首页"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">首页</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="归档"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">归档</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="关于"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">关于</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/friend"
+        aria-label="友链"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">友链</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置",
+          url: "https:\/\/example.org\/post\/k8s\/nginx-ingress\/tke%E5%8D%87%E7%BA%A7%E8%AE%B0%E5%BD%95\/",
+          description: "记录一次在腾讯云 TKE 集群上，通过 Helm 升级部署 Nginx Ingress Controller 的完整过程，包括远程连接集群、Helm Values 配置要点，以及利用 auth_request 实现统一鉴权的 Ingress 配置方案。\n",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

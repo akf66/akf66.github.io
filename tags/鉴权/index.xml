@@ -5,12 +5,12 @@
     <link>https://example.org/tags/%E9%89%B4%E6%9D%83/</link>
     <description>Recent content from 鼠鼠的自我救赎</description>
     <generator>Hugo</generator>
-    <language>zh-cn</language>
+    <language>en</language>
     
     <managingEditor>13935468012@163.com (AKF)</managingEditor>
     <webMaster>13935468012@163.com (AKF)</webMaster>
     
-    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
+    <copyright>All articles on this blog are licensed under the BY-NC-SA license agreement unless otherwise stated. Please indicate the source when reprinting!</copyright>
     
     <lastBuildDate>Tue, 24 Feb 2026 00:00:00 +0000</lastBuildDate>
     
@@ -28,11 +28,11 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/k8s/nginx-ingress/tke%E5%8D%87%E7%BA%A7%E8%AE%B0%E5%BD%95/</guid>
       <description>
-        <![CDATA[<h1>TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>记录一次在腾讯云 TKE 集群上，通过 Helm 升级部署 Nginx Ingress Controller 的完整过程，包括远程连接集群、Helm Values 配置要点，以及利用 <code>auth_request</code> 实现统一鉴权的 Ingress 配置方案。</p>
         
-        <hr><p>本文2026-02-24首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-02-24</p>]]>
+        <hr><p>Published on 2026-02-24 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-02-24</p>]]>
       </description>
       
         <category>Kubernetes</category>

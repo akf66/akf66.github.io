@@ -7,7 +7,7 @@
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="https://example.org/en/categories/"
+                href="https://example.org/categories/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -21,8 +21,8 @@
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-cn"
-                href="https://example.org/categories/"
+                hreflang="en"
+                href="https://example.org/en/categories/"
                 />
   </url><url>
     <loc>https://example.org/tags/helm/</loc>
@@ -42,6 +42,11 @@
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
+                href="https://example.org/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
                 href="https://example.org/en/tags/"
                 />
     <xhtml:link
@@ -53,11 +58,6 @@
                 rel="alternate"
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/tags/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-cn"
-                href="https://example.org/tags/"
                 />
   </url><url>
     <loc>https://example.org/tags/tke/</loc>
@@ -74,6 +74,11 @@
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
+                href="https://example.org/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
                 href="https://example.org/en/"
                 />
     <xhtml:link
@@ -85,11 +90,6 @@
                 rel="alternate"
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-cn"
-                href="https://example.org/"
                 />
   </url><url>
     <loc>https://example.org/post/golang/tencent-sms-service/</loc>

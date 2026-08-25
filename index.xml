@@ -5,12 +5,12 @@
     <link>https://example.org/algolia.json</link>
     <description>Recent content from 鼠鼠的自我救赎</description>
     <generator>Hugo</generator>
-    <language>zh-cn</language>
+    <language>en</language>
     
     <managingEditor>13935468012@163.com (AKF)</managingEditor>
     <webMaster>13935468012@163.com (AKF)</webMaster>
     
-    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
+    <copyright>All articles on this blog are licensed under the BY-NC-SA license agreement unless otherwise stated. Please indicate the source when reprinting!</copyright>
     
     <lastBuildDate>Tue, 24 Feb 2026 00:00:00 +0000</lastBuildDate>
     
@@ -28,11 +28,11 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/k8s/nginx-ingress/tke%E5%8D%87%E7%BA%A7%E8%AE%B0%E5%BD%95/</guid>
       <description>
-        <![CDATA[<h1>TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>TKE 集群 Nginx Ingress 升级部署全记录：从远程连接到 Auth 鉴权配置</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>记录一次在腾讯云 TKE 集群上，通过 Helm 升级部署 Nginx Ingress Controller 的完整过程，包括远程连接集群、Helm Values 配置要点，以及利用 <code>auth_request</code> 实现统一鉴权的 Ingress 配置方案。</p>
         
-        <hr><p>本文2026-02-24首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-02-24</p>]]>
+        <hr><p>Published on 2026-02-24 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-02-24</p>]]>
       </description>
       
         <category>Kubernetes</category>
@@ -48,11 +48,11 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/tencent-sms-service/</guid>
       <description>
-        <![CDATA[<h1>Go 腾讯云短信服务封装：验证码发送完整指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Go 腾讯云短信服务封装：验证码发送完整指南</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>在用户认证场景中，短信验证码是常见的身份验证方式。本文介绍如何基于腾讯云 SMS SDK 封装一个简洁易用的短信发送服务，支持多种业务场景的验证码发送。</p>
         
-        <hr><p>本文2026-02-03首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-02-03</p>]]>
+        <hr><p>Published on 2026-02-03 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-02-03</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>
@@ -68,7 +68,7 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/devenv/k3s-install-kubectl/</guid>
       <description>
-        <![CDATA[<h1>在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>最近在本地机器上折腾轻量级 Kubernetes 时，发现 <strong>k3s</strong> 仍然是目前最省心、最省资源的单机/边缘/开发环境选择。</p>
 <p>但很多人（包括我一开始）都会遇到一个很烦人的问题：</p>
@@ -77,7 +77,7 @@
 </blockquote>
 <p>本文就完整记录一次从 <strong>零开始安装 k3s</strong> 到 <strong>彻底改成只用 kubectl</strong> 的全过程，适用于 Ubuntu/Debian/CentOS 等主流 Linux 系统。</p>
         
-        <hr><p>本文2026-01-22首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-22</p>]]>
+        <hr><p>Published on 2026-01-22 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-01-22</p>]]>
       </description>
       
         <category>开发环境</category>
@@ -93,12 +93,12 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/order-cache-ttl-design/</guid>
       <description>
-        <![CDATA[<h1>订单支付链接缓存设计：为什么是 9 分 30 秒？</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>订单支付链接缓存设计：为什么是 9 分 30 秒？</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>在支付系统中，生成支付链接是一个常见的操作。如果用户频繁点击&quot;支付&quot;按钮，每次都调用支付平台 API 创建新订单，不仅浪费资源，还可能触发风控。所以我们通常会缓存支付链接。</p>
 <p>但缓存时间设置多少才合理？这篇文章通过分析一个真实的代码片段，来讲解这背后的设计思路。</p>
         
-        <hr><p>本文2026-01-08首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-08</p>]]>
+        <hr><p>Published on 2026-01-08 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-01-08</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>
@@ -114,12 +114,12 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/robfig-cron-guide/</guid>
       <description>
-        <![CDATA[<h1>Go 定时任务完全指南：robfig/cron 库详解</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Go 定时任务完全指南：robfig/cron 库详解</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>在后端开发中，定时任务是常见的需求：定期清理过期数据、发送定时通知、定时同步数据等。Go 的 <code>robfig/cron</code> 库提供了一个简洁而强大的解决方案。</p>
 <p>这篇文章通过实际例子，详细讲解如何使用 cron 库来实现各种定时任务。</p>
         
-        <hr><p>本文2026-01-08首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-08</p>]]>
+        <hr><p>Published on 2026-01-08 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-01-08</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>
@@ -135,14 +135,14 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/git/uesegit_squash_graph/</guid>
       <description>
-        <![CDATA[<h1>Git squash 图形化使用指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Git squash 图形化使用指南</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <h1 id="git-squash--使用指南">
 <a class="header-anchor" href="#git-squash--%e4%bd%bf%e7%94%a8%e6%8c%87%e5%8d%97"></a>
 Git squash  使用指南
 </h1>
         
-        <hr><p>本文2025-12-15首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-15</p>]]>
+        <hr><p>Published on 2025-12-15 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-15</p>]]>
       </description>
       
         <category>git</category>
@@ -158,14 +158,14 @@ Git squash  使用指南
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/git/usegit_squash/</guid>
       <description>
-        <![CDATA[<h1>Git squash 使用指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Git squash 使用指南</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <h1 id="git-cherry-pick-使用指南">
 <a class="header-anchor" href="#git-cherry-pick-%e4%bd%bf%e7%94%a8%e6%8c%87%e5%8d%97"></a>
 Git Cherry-Pick 使用指南
 </h1>
         
-        <hr><p>本文2025-12-15首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-15</p>]]>
+        <hr><p>Published on 2025-12-15 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-15</p>]]>
       </description>
       
         <category>git</category>
@@ -181,14 +181,14 @@ Git Cherry-Pick 使用指南
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/git/usegit_grpah/</guid>
       <description>
-        <![CDATA[<h1>Git Cherry-Pick 图形化使用指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Git Cherry-Pick 图形化使用指南</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <h2 id="前言">
 <a class="header-anchor" href="#%e5%89%8d%e8%a8%80"></a>
 前言
 </h2><p>相比命令行操作，使用图形化 Git 工具进行 cherry-pick 更加直观和便捷。本文将通过实际截图演示如何使用图形化工具（如 GitKraken、SourceTree、VS Code Git Graph 等）完成 cherry-pick 操作。1</p>
         
-        <hr><p>本文2025-12-15首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-15</p>]]>
+        <hr><p>Published on 2025-12-15 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-15</p>]]>
       </description>
       
         <category>git</category>
@@ -204,14 +204,14 @@ Git Cherry-Pick 使用指南
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/git/usegit/</guid>
       <description>
-        <![CDATA[<h1>Git Cherry-Pick 使用指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Git Cherry-Pick 使用指南</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <h2 id="什么是-cherry-pick">
 <a class="header-anchor" href="#%e4%bb%80%e4%b9%88%e6%98%af-cherry-pick"></a>
 什么是 Cherry-Pick？
 </h2><p>Cherry-pick 是 Git 中一个强大的功能，它允许你从一个分支中选择特定的提交（commit），并将其应用到另一个分支上。这在需要将某些特定的修改从一个分支移植到另一个分支时非常有用。</p>
         
-        <hr><p>本文2025-12-15首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-15</p>]]>
+        <hr><p>Published on 2025-12-15 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-15</p>]]>
       </description>
       
         <category>git</category>
@@ -227,14 +227,14 @@ Git Cherry-Pick 使用指南
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/sdktools/aws-ecr-push-tool/</guid>
       <description>
-        <![CDATA[<h1>Go 实现 Docker 镜像自动推送到 AWS ECR</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Go 实现 Docker 镜像自动推送到 AWS ECR</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <h2 id="背景">
 <a class="header-anchor" href="#%e8%83%8c%e6%99%af"></a>
 背景
 </h2><p>在微服务架构中，我们经常需要将构建好的 Docker 镜像推送到容器镜像仓库。AWS ECR (Elastic Container Registry) 是 AWS 提供的托管式 Docker 镜像仓库服务。本文将介绍如何使用 Go 编写一个自动化工具，实现 Docker 镜像到 AWS ECR 的推送。</p>
         
-        <hr><p>本文2025-12-14首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-14</p>]]>
+        <hr><p>Published on 2025-12-14 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-14</p>]]>
       </description>
       
         <category>云原生</category>

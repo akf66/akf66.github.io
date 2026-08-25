@@ -5,18 +5,18 @@
     <loc>https://example.org/ja/categories/</loc>
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-cn"
-                href="https://example.org/categories/"
-                />
-    <xhtml:link
-                rel="alternate"
                 hreflang="en"
-                href="https://example.org/en/categories/"
+                href="https://example.org/categories/"
                 />
     <xhtml:link
                 rel="alternate"
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/en/categories/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -27,7 +27,7 @@
     <loc>https://example.org/ja/tags/</loc>
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-cn"
+                hreflang="en"
                 href="https://example.org/tags/"
                 />
     <xhtml:link
@@ -37,30 +37,30 @@
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/tags/"
+                hreflang="ja"
+                href="https://example.org/ja/tags/"
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="ja"
-                href="https://example.org/ja/tags/"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/tags/"
                 />
   </url><url>
     <loc>https://example.org/ja/</loc>
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-cn"
-                href="https://example.org/"
-                />
-    <xhtml:link
-                rel="alternate"
                 hreflang="en"
-                href="https://example.org/en/"
+                href="https://example.org/"
                 />
     <xhtml:link
                 rel="alternate"
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/en/"
                 />
     <xhtml:link
                 rel="alternate"

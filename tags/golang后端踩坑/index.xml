@@ -5,12 +5,12 @@
     <link>https://example.org/tags/golang%E5%90%8E%E7%AB%AF%E8%B8%A9%E5%9D%91/</link>
     <description>Recent content from 鼠鼠的自我救赎</description>
     <generator>Hugo</generator>
-    <language>zh-cn</language>
+    <language>en</language>
     
     <managingEditor>13935468012@163.com (AKF)</managingEditor>
     <webMaster>13935468012@163.com (AKF)</webMaster>
     
-    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
+    <copyright>All articles on this blog are licensed under the BY-NC-SA license agreement unless otherwise stated. Please indicate the source when reprinting!</copyright>
     
     <lastBuildDate>Tue, 03 Feb 2026 00:00:00 +0000</lastBuildDate>
     
@@ -28,11 +28,11 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/tencent-sms-service/</guid>
       <description>
-        <![CDATA[<h1>Go 腾讯云短信服务封装：验证码发送完整指南</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Go 腾讯云短信服务封装：验证码发送完整指南</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>在用户认证场景中，短信验证码是常见的身份验证方式。本文介绍如何基于腾讯云 SMS SDK 封装一个简洁易用的短信发送服务，支持多种业务场景的验证码发送。</p>
         
-        <hr><p>本文2026-02-03首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-02-03</p>]]>
+        <hr><p>Published on 2026-02-03 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-02-03</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>
@@ -48,12 +48,12 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/order-cache-ttl-design/</guid>
       <description>
-        <![CDATA[<h1>订单支付链接缓存设计：为什么是 9 分 30 秒？</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>订单支付链接缓存设计：为什么是 9 分 30 秒？</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>在支付系统中，生成支付链接是一个常见的操作。如果用户频繁点击&quot;支付&quot;按钮，每次都调用支付平台 API 创建新订单，不仅浪费资源，还可能触发风控。所以我们通常会缓存支付链接。</p>
 <p>但缓存时间设置多少才合理？这篇文章通过分析一个真实的代码片段，来讲解这背后的设计思路。</p>
         
-        <hr><p>本文2026-01-08首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-08</p>]]>
+        <hr><p>Published on 2026-01-08 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-01-08</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>
@@ -69,12 +69,12 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/robfig-cron-guide/</guid>
       <description>
-        <![CDATA[<h1>Go 定时任务完全指南：robfig/cron 库详解</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Go 定时任务完全指南：robfig/cron 库详解</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>在后端开发中，定时任务是常见的需求：定期清理过期数据、发送定时通知、定时同步数据等。Go 的 <code>robfig/cron</code> 库提供了一个简洁而强大的解决方案。</p>
 <p>这篇文章通过实际例子，详细讲解如何使用 cron 库来实现各种定时任务。</p>
         
-        <hr><p>本文2026-01-08首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-08</p>]]>
+        <hr><p>Published on 2026-01-08 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-01-08</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>
@@ -90,11 +90,11 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/go-build-tag/</guid>
       <description>
-        <![CDATA[<h1>Go Build Tag：条件编译的正确姿势</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Go Build Tag：条件编译的正确姿势</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>Build Tag 是 Go 的条件编译机制，让你控制哪些文件参与编译。简单说就是给文件打个&quot;标签&quot;，编译时可以选择性地包含或排除这些文件。</p>
         
-        <hr><p>本文2025-12-13首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-13</p>]]>
+        <hr><p>Published on 2025-12-13 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-13</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>
@@ -110,11 +110,11 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/devenv/gvm-cd-bug/</guid>
       <description>
-        <![CDATA[<h1>解决 GVM 安装后 cd 命令失效问题</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>解决 GVM 安装后 cd 命令失效问题</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>在 Ubuntu 上安装 GVM 后，可能会遇到 <code>cd</code> 命令失效的问题。本文记录问题原因及解决方案。</p>
         
-        <hr><p>本文2025-12-04首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-04</p>]]>
+        <hr><p>Published on 2025-12-04 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-04</p>]]>
       </description>
       
         <category>开发环境</category><category>Golang后端踩坑</category>
@@ -130,14 +130,14 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/proto.pitfalls/</guid>
       <description>
-        <![CDATA[<h1>Golang 后端踩坑：Protobuf 枚举命名与全局唯一性</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Golang 后端踩坑：Protobuf 枚举命名与全局唯一性</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <h2 id="背景">
 <a class="header-anchor" href="#%e8%83%8c%e6%99%af"></a>
 背景
 </h2><p>在 Go 项目中使用 Protobuf 定义枚举时，由于 <code>protoc-gen-go</code> 会把枚举值编译成 <strong>包级常量</strong>，所有枚举值默认放在 <strong>同一命名空间</strong>。一旦同名，即使分属不同枚举，也会触发 <strong>全局唯一性冲突</strong>，<code>protoc</code> 直接报错。</p>
         
-        <hr><p>本文2025-12-04首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-04</p>]]>
+        <hr><p>Published on 2025-12-04 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-04</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>
@@ -153,11 +153,11 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/rand-pitfalls/</guid>
       <description>
-        <![CDATA[<h1>Golang Randder线性同余的坑</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Golang Randder线性同余的坑</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>记录 Golang <code>math/rand</code> 使用线性同余算法（LCG）带来的问题。</p>
         
-        <hr><p>本文2025-12-02首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2025-12-02</p>]]>
+        <hr><p>Published on 2025-12-02 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2025-12-02</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>

@@ -5,12 +5,12 @@
     <link>https://example.org/tags/%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1/</link>
     <description>Recent content from 鼠鼠的自我救赎</description>
     <generator>Hugo</generator>
-    <language>zh-cn</language>
+    <language>en</language>
     
     <managingEditor>13935468012@163.com (AKF)</managingEditor>
     <webMaster>13935468012@163.com (AKF)</webMaster>
     
-    <copyright>本博客所有文章除特别声明外，均采用 BY-NC-SA 许可协议。转载请注明出处！</copyright>
+    <copyright>All articles on this blog are licensed under the BY-NC-SA license agreement unless otherwise stated. Please indicate the source when reprinting!</copyright>
     
     <lastBuildDate>Thu, 08 Jan 2026 00:00:00 +0000</lastBuildDate>
     
@@ -28,12 +28,12 @@
       <author>13935468012@163.com (AKF)</author>
       <guid>https://example.org/post/golang/robfig-cron-guide/</guid>
       <description>
-        <![CDATA[<h1>Go 定时任务完全指南：robfig/cron 库详解</h1><p>作者：AKF（13935468012@163.com）</p>
+        <![CDATA[<h1>Go 定时任务完全指南：robfig/cron 库详解</h1><p>Author: AKF(13935468012@163.com)</p>
         
           <p>在后端开发中，定时任务是常见的需求：定期清理过期数据、发送定时通知、定时同步数据等。Go 的 <code>robfig/cron</code> 库提供了一个简洁而强大的解决方案。</p>
 <p>这篇文章通过实际例子，详细讲解如何使用 cron 库来实现各种定时任务。</p>
         
-        <hr><p>本文2026-01-08首发于<a href='https://example.org/'>鼠鼠的自我救赎</a>，最后修改于2026-01-08</p>]]>
+        <hr><p>Published on 2026-01-08 at <a href='https://example.org/'>鼠鼠的自我救赎</a>, last modified on 2026-01-08</p>]]>
       </description>
       
         <category>Golang后端踩坑</category>

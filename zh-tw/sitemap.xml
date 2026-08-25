@@ -5,8 +5,13 @@
     <loc>https://example.org/zh-tw/categories/</loc>
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-cn"
+                hreflang="en"
                 href="https://example.org/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/categories/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -18,16 +23,11 @@
                 hreflang="ja"
                 href="https://example.org/ja/categories/"
                 />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/categories/"
-                />
   </url><url>
     <loc>https://example.org/zh-tw/tags/</loc>
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-cn"
+                hreflang="en"
                 href="https://example.org/tags/"
                 />
     <xhtml:link
@@ -49,7 +49,7 @@
     <loc>https://example.org/zh-tw/</loc>
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-cn"
+                hreflang="en"
                 href="https://example.org/"
                 />
     <xhtml:link

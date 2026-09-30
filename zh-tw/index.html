@@ -127,9 +127,6 @@
       </a><a class="main-nav-link-wrap" href="/zh-tw/about">
         <div class='main-nav-icon icon rotate'>&#xe62b;</div>
         <span class="main-nav-link">關於</span>
-      </a><a class="main-nav-link-wrap" href="/zh-tw/friend">
-        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
-        <span class="main-nav-link">友鏈</span>
       </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
   </nav>
   <nav id="sub-nav" aria-label="Secondary navigation"><a id="nav-rss-link" class="nav-icon" href="/zh-tw/index.xml" title="RSS 訂閱" aria-label="RSS 訂閱" target="_blank"></a></nav><nav id="i18n-nav" aria-label="Language selection">
@@ -154,7 +151,7 @@
 
         selectOptions.forEach((item) => {
           item.addEventListener("click", () => {
-            const langMap = {};langMap['zh-cn'] = '\/';langMap['ja'] = '\/ja\/';langMap['en'] = '\/en\/';selectedLang.textContent = item.textContent;
+            const langMap = {};langMap['zh-cn'] = '\/';langMap['en'] = '\/en\/';langMap['ja'] = '\/ja\/';selectedLang.textContent = item.textContent;
             selectItems.classList.remove("show");
             selectOptions.forEach((option) => {
               option.classList.remove("selected");
@@ -252,14 +249,6 @@
       ></a>
       <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
       <div class="sidebar-menu-link">關於</div>
-    </div><div class="sidebar-menu-link-wrap">
-      <a
-        class="sidebar-menu-link-dummy"
-        href="/zh-tw/friend"
-        aria-label="友鏈"
-      ></a>
-      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
-      <div class="sidebar-menu-link">友鏈</div>
     </div></div>
 </div>
   </div><div class="sidebar-widget"><div class="widget-wrapper">
@@ -379,14 +368,6 @@
       ></a>
       <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
       <div class="sidebar-menu-link">關於</div>
-    </div><div class="sidebar-menu-link-wrap">
-      <a
-        class="sidebar-menu-link-dummy"
-        href="/zh-tw/friend"
-        aria-label="友鏈"
-      ></a>
-      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
-      <div class="sidebar-menu-link">友鏈</div>
     </div></div>
 </div></nav>
 </div><script

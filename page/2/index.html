@@ -50,8 +50,8 @@
     content="/"
   />
   <meta property="article:author" content="AKF" />
-  <meta property="article:published_time" content="2026-02-24T00:00:00&#43;00:00" />
-  <meta property="article:modified_time" content="2026-02-24T00:00:00&#43;00:00" /><meta name="twitter:card" content="summary" />
+  <meta property="article:published_time" content="2026-09-30T13:00:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-09-30T13:00:00&#43;08:00" /><meta name="twitter:card" content="summary" />
   <meta name="twitter:image" content="/" /><link rel="alternate" type="application/rss+xml" href="https://example.org/index.xml" title="鼠鼠的自我救赎">
 <link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
 <link
@@ -121,6 +121,9 @@ This article does not have a corresponding language version
       </a><a class="main-nav-link-wrap" href="/archives">
         <div class='main-nav-icon icon rotate'>&#xe62b;</div>
         <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
       </a><a class="main-nav-link-wrap" href="/about">
         <div class='main-nav-icon icon rotate'>&#xe62b;</div>
         <span class="main-nav-link">About</span>
@@ -151,7 +154,7 @@ This article does not have a corresponding language version
 
         selectOptions.forEach((item) => {
           item.addEventListener("click", () => {
-            const langMap = {};langMap['en'] = '\/en\/';langMap['ja'] = '\/ja\/';langMap['zh-tw'] = '\/zh-tw\/';selectedLang.textContent = item.textContent;
+            const langMap = {};langMap['zh-tw'] = '\/zh-tw\/';langMap['en'] = '\/en\/';langMap['ja'] = '\/ja\/';selectedLang.textContent = item.textContent;
             selectItems.classList.remove("show");
             selectOptions.forEach((option) => {
               option.classList.remove("selected");
@@ -213,7 +216,7 @@ This article does not have a corresponding language version
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>Tags</div>
-    <div class="sidebar-state-number">37</div>
+    <div class="sidebar-state-number">41</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -233,6 +236,14 @@ This article does not have a corresponding language version
       ></a>
       <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
       <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
     </div><div class="sidebar-menu-link-wrap">
       <a
         class="sidebar-menu-link-dummy"
@@ -317,6 +328,15 @@ This article does not have a corresponding language version
               </li><li class="tag-item">
                 <a
                   class="tag-link"
+                  href="/tags/codex/"
+                  aria-label="Tag: Codex"
+                  title="Codex"
+                >
+                  Codex
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
                   href="/tags/devops/"
                   aria-label="Tag: DevOps"
                   title="DevOps"
@@ -331,6 +351,15 @@ This article does not have a corresponding language version
                   title="Docker"
                 >
                   Docker
+                </a>
+              </li><li class="tag-item">
+                <a
+                  class="tag-link"
+                  href="/tags/dsh/"
+                  aria-label="Tag: Dsh"
+                  title="Dsh"
+                >
+                  Dsh
                 </a>
               </li><li class="tag-item">
                 <a
@@ -377,24 +406,6 @@ This article does not have a corresponding language version
                 >
                   Gvm
                 </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/helm/"
-                  aria-label="Tag: Helm"
-                  title="Helm"
-                >
-                  Helm
-                </a>
-              </li><li class="tag-item">
-                <a
-                  class="tag-link"
-                  href="/tags/hertz/"
-                  aria-label="Tag: Hertz"
-                  title="Hertz"
-                >
-                  Hertz
-                </a>
               </li></ul>
       </div>
     </div>
@@ -410,6 +421,11 @@ This article does not have a corresponding language version
             >AWS</a
           ><a
             style="font-size:10px"
+            href="/tags/codex/"
+            aria-label="Tag: Codex"
+            >Codex</a
+          ><a
+            style="font-size:10px"
             href="/tags/devops/"
             aria-label="Tag: DevOps"
             >DevOps</a
@@ -418,6 +434,11 @@ This article does not have a corresponding language version
             href="/tags/docker/"
             aria-label="Tag: Docker"
             >Docker</a
+          ><a
+            style="font-size:10px"
+            href="/tags/dsh/"
+            aria-label="Tag: Dsh"
+            >Dsh</a
           ><a
             style="font-size:10px"
             href="/tags/git/"
@@ -443,6 +464,11 @@ This article does not have a corresponding language version
             href="/tags/gvm/"
             aria-label="Tag: Gvm"
             >Gvm</a
+          ><a
+            style="font-size:10px"
+            href="/tags/harness/"
+            aria-label="Tag: Harness"
+            >Harness</a
           ><a
             style="font-size:10px"
             href="/tags/helm/"
@@ -485,24 +511,9 @@ This article does not have a corresponding language version
             >Nginx Ingress</a
           ><a
             style="font-size:10px"
-            href="/tags/proto/"
-            aria-label="Tag: Proto"
-            >Proto</a
-          ><a
-            style="font-size:10px"
-            href="/tags/tke/"
-            aria-label="Tag: TKE"
-            >TKE</a
-          ><a
-            style="font-size:10px"
-            href="/tags/wsl/"
-            aria-label="Tag: WSL"
-            >WSL</a
-          ><a
-            style="font-size:10px"
-            href="/tags/%E4%BB%BB%E5%8A%A1%E8%B0%83%E5%BA%A6/"
-            aria-label="Tag: 任务调度"
-            >任务调度</a
+            href="/tags/pi/"
+            aria-label="Tag: Pi"
+            >Pi</a
           ></div>
   </div>
 </div><div class="widget-wrapper">
@@ -543,7 +554,7 @@ This article does not have a corresponding language version
         post-cover left
       "
     ><img
-            data-src="/random/30.webp"
+            data-src="/random/8.webp"
             data-sizes="auto"
             alt="Git Cherry-Pick 图形化使用指南"
             class="lazyload"
@@ -585,7 +596,7 @@ This article does not have a corresponding language version
         post-cover right
       "
     ><img
-            data-src="/random/6.webp"
+            data-src="/random/1.webp"
             data-sizes="auto"
             alt="Git squash 使用指南"
             class="lazyload"
@@ -626,7 +637,7 @@ This article does not have a corresponding language version
         post-cover left
       "
     ><img
-            data-src="/random/25.webp"
+            data-src="/random/18.webp"
             data-sizes="auto"
             alt="Git squash 图形化使用指南"
             class="lazyload"
@@ -667,7 +678,7 @@ This article does not have a corresponding language version
         post-cover right
       "
     ><img
-            data-src="/random/30.webp"
+            data-src="/random/4.webp"
             data-sizes="auto"
             alt="Go 实现 Docker 镜像自动推送到 AWS ECR"
             class="lazyload"
@@ -709,7 +720,7 @@ This article does not have a corresponding language version
         post-cover left
       "
     ><img
-            data-src="/random/7.webp"
+            data-src="/random/3.webp"
             data-sizes="auto"
             alt="Go Build Tag：条件编译的正确姿势"
             class="lazyload"
@@ -751,7 +762,7 @@ This article does not have a corresponding language version
         post-cover right
       "
     ><img
-            data-src="/random/3.webp"
+            data-src="/random/2.webp"
             data-sizes="auto"
             alt="鉴权登录限制设置"
             class="lazyload"
@@ -851,7 +862,7 @@ This article does not have a corresponding language version
   </a>
   <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
     <div>Tags</div>
-    <div class="sidebar-state-number">37</div>
+    <div class="sidebar-state-number">41</div>
   </a>
 </div>
 <div class="sidebar-social"></div>
@@ -871,6 +882,14 @@ This article does not have a corresponding language version
       ></a>
       <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
       <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
     </div><div class="sidebar-menu-link-wrap">
       <a
         class="sidebar-menu-link-dummy"

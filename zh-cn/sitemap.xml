@@ -3,25 +3,50 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://example.org/harness/pi/</loc>
+    <lastmod>2026-10-01T10:00:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/harness/codex/</loc>
   </url><url>
     <loc>https://example.org/harness/dsh/</loc>
   </url><url>
-    <loc>https://example.org/harness/</loc>
-    <lastmod>2026-09-30T10:00:00+08:00</lastmod>
+    <loc>https://example.org/tags/harness/</loc>
+    <lastmod>2026-10-01T10:00:00+08:00</lastmod>
   </url><url>
-    <loc>https://example.org/</loc>
-    <lastmod>2026-09-30T10:00:00+08:00</lastmod>
+    <loc>https://example.org/tags/pi/</loc>
+    <lastmod>2026-10-01T10:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/harness/pi/01-overview/</loc>
+    <lastmod>2026-10-01T10:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/</loc>
+    <lastmod>2026-10-01T10:00:00+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="https://example.org/"
+                href="https://example.org/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/tags/"
                 />
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
-                href="https://example.org/en/"
+                href="https://example.org/en/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="ja"
+                href="https://example.org/ja/tags/"
+                />
+  </url><url>
+    <loc>https://example.org/</loc>
+    <lastmod>2026-10-01T10:00:00+08:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -33,6 +58,17 @@
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/"
                 />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/en/"
+                />
+  </url><url>
+    <loc>https://example.org/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</loc>
+    <lastmod>2026-10-01T10:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/harness/</loc>
+    <lastmod>2026-09-30T10:00:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/categories/</loc>
     <lastmod>2026-02-24T00:00:00+00:00</lastmod>
@@ -43,6 +79,11 @@
                 />
     <xhtml:link
                 rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
                 hreflang="en"
                 href="https://example.org/en/categories/"
                 />
@@ -50,11 +91,6 @@
                 rel="alternate"
                 hreflang="ja"
                 href="https://example.org/ja/categories/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/categories/"
                 />
   </url><url>
     <loc>https://example.org/tags/helm/</loc>
@@ -68,29 +104,6 @@
   </url><url>
     <loc>https://example.org/tags/nginx-ingress/</loc>
     <lastmod>2026-02-24T00:00:00+00:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/</loc>
-    <lastmod>2026-02-24T00:00:00+00:00</lastmod>
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="https://example.org/tags/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="ja"
-                href="https://example.org/ja/tags/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/tags/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="https://example.org/en/tags/"
-                />
   </url><url>
     <loc>https://example.org/tags/tke/</loc>
     <lastmod>2026-02-24T00:00:00+00:00</lastmod>

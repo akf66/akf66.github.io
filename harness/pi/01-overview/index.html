@@ -1,0 +1,1590 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架 | AKF
+</title>
+<meta name="description" content="基于 earendil-works/pi v0.99.2 重写的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及三个月来的架构演变。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架 | AKF" />
+  <meta
+    property="og:description"
+    content="基于 earendil-works/pi v0.99.2 重写的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及三个月来的架构演变。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/01-overview/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-01T10:00:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-01T10:00:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--一句话认识-pi">1 · 一句话认识 Pi</a></li>
+    <li><a href="#2--全景一张图看懂-pi-的分层">2 · 全景：一张图看懂 Pi 的分层</a>
+      <ul>
+        <li><a href="#21-主干四层堆栈">2.1 主干：四层堆栈</a></li>
+        <li><a href="#22-能力库零内部依赖可单独复用">2.2 能力库：零内部依赖、可单独复用</a></li>
+        <li><a href="#23-实验区pi-正在长出来的新方向">2.3 实验区：Pi 正在长出来的新方向</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--依赖规则为什么箭头只朝下">3 · 依赖规则：为什么箭头只朝下</a></li>
+    <li><a href="#4--主干三层逐层拆解">4 · 主干三层逐层拆解</a>
+      <ul>
+        <li><a href="#41-l1--pi-ai只管调模型">4.1 L1 · pi-ai：只管调模型</a></li>
+        <li><a href="#42-l2--pi-agent-core只管跑循环">4.2 L2 · pi-agent-core：只管跑循环</a></li>
+        <li><a href="#43-l3--pi-coding-agent把引擎装成产品">4.3 L3 · pi-coding-agent：把引擎装成产品</a></li>
+        <li><a href="#44-侧库--pi-tui与-agent-无关的终端-ui">4.4 侧库 · pi-tui：与 Agent 无关的终端 UI</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--把三层串起来一次-prompt-的旅程">5 · 把三层串起来：一次 prompt 的旅程</a></li>
+    <li><a href="#6--产品层工具内置扩展与运行模式">6 · 产品层：工具、内置扩展与运行模式</a>
+      <ul>
+        <li><a href="#61-内置工具8-个">6.1 内置工具（8 个）</a></li>
+        <li><a href="#62-内置扩展v0990-起">6.2 内置扩展（v0.99.0 起）</a></li>
+        <li><a href="#63-四种运行模式">6.3 四种运行模式</a></li>
+        <li><a href="#64-配置文件地图">6.4 配置文件地图</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--定制阶梯从用-pi到造自己的-agent">7 · 定制阶梯：从&quot;用 Pi&quot;到&quot;造自己的 Agent&quot;</a></li>
+    <li><a href="#8--减法哲学的演变pi-不做什么">8 · 减法哲学的演变：Pi 不做什么</a></li>
+    <li><a href="#9--三个月发生了什么">9 · 三个月发生了什么</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航与后续路线">11 · 源码导航与后续路线</a></li>
+    <li><a href="#附录--原博客第-1-章勘误清单对照-v0992">附录 · 原博客第 1 章勘误清单（对照 v0.99.2）</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.5a649b2b883a7cde404200bed5617b68af2cf75696f90f5354b3040a64d23031.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架</p>
+</div>
+      </div>
+    </article><article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-01 10:00:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-01</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-01</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v0.99.2（2026-09-30），commit <code>8ce69e9d2</code>。
+本章是对 <a href="https://www.dgzhuya.com/modules/ch01-overview">dgzhuya.com 第 1 章</a>（基于 v0.80.2）的重写。保留它&quot;工具 / 教材 / SDK&quot;三重视角的好框架，但所有架构、数字和代码都按最新源码重新核对。三个月里 Pi 从 4 个包长到了 14 个目录，第一章的&quot;骨架图&quot;已经需要重画。</p>
+</blockquote>
+<p>本章不深入实现细节，只回答三个问题：</p>
+<ol>
+<li><strong>Pi 是什么？</strong>——一句话定义与三重身份</li>
+<li><strong>Pi 的骨架长什么样？</strong>——分层、依赖规则、一次请求怎么穿过各层</li>
+<li><strong>和三个月前比，变了什么？</strong>——哪些结论仍成立，哪些已经过时</li>
+</ol>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>说明</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>源码位置</td>
+					<td>本文所有路径都相对于仓库根目录，如 <code>packages/agent/src/agent-loop.ts</code></td>
+			</tr>
+			<tr>
+					<td>行号</td>
+					<td>只在必要时给出；行号会随版本漂移，<strong>以符号名为主、行号为辅</strong></td>
+			</tr>
+			<tr>
+					<td>标记 <code>*</code></td>
+					<td>表示实验性包，README 明确写了&quot;API 随时变化&quot;</td>
+			</tr>
+			<tr>
+					<td>对照原博客</td>
+					<td>第 9 节给出了数字对照表，附录给出了勘误清单</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="1--一句话认识-pi">
+<a class="header-anchor" href="#1--%e4%b8%80%e5%8f%a5%e8%af%9d%e8%ae%a4%e8%af%86-pi"></a>
+1 · 一句话认识 Pi
+</h2><blockquote>
+<p><strong>Pi 是一个用 TypeScript 写的、极简且可扩展的终端编码 Agent，同时也是一套可以逐层拆开复用的 Agent SDK。</strong></p>
+</blockquote>
+<p>拆开来看，Pi 有三重身份。后面每一节都会落到其中一个身份上：</p>
+<table>
+	<thead>
+			<tr>
+					<th>身份</th>
+					<th>面向谁</th>
+					<th>你拿到的是什么</th>
+					<th>对应的层</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>编码工具</strong></td>
+					<td>想要一个透明、可控的日常 Agent 的开发者</td>
+					<td><code>pi</code> 命令：交互 TUI，外加 print / JSON / RPC 模式</td>
+					<td>L3 产品层</td>
+			</tr>
+			<tr>
+					<td><strong>学习教材</strong></td>
+					<td>想搞懂&quot;生产级 Agent 怎么做&quot;的人</td>
+					<td>一个能读完的核心：Agent Loop 的主体 <code>agent-loop.ts</code> 约 940 行</td>
+					<td>L2 引擎层</td>
+			</tr>
+			<tr>
+					<td><strong>开发 SDK</strong></td>
+					<td>要做垂直领域 Agent 的团队</td>
+					<td>三层可独立使用的 npm 包</td>
+					<td>L1 / L2 / L3</td>
+			</tr>
+	</tbody>
+</table>
+<p>三重身份能共存，靠的是同一个设计决定：<strong>按职责严格分层，每层只依赖下层</strong>。这就是本章的主线。</p>
+<hr>
+<h2 id="2--全景一张图看懂-pi-的分层">
+<a class="header-anchor" href="#2--%e5%85%a8%e6%99%af%e4%b8%80%e5%bc%a0%e5%9b%be%e7%9c%8b%e6%87%82-pi-%e7%9a%84%e5%88%86%e5%b1%82"></a>
+2 · 全景：一张图看懂 Pi 的分层
+</h2><p><img src="/images/harness/pi/ch01/fig1-overview.png" alt="图 1 · Pi 架构全景"></p>
+<p>Pi 的 14 个包目录（13 个可发布的 npm 包，外加私有的 <code>pi-evals</code>）可以归成三类：<strong>主干堆栈</strong>、<strong>能力库</strong>、<strong>实验区</strong>。</p>
+<h3 id="21-主干四层堆栈">
+<a class="header-anchor" href="#21-%e4%b8%bb%e5%b9%b2%e5%9b%9b%e5%b1%82%e5%a0%86%e6%a0%88"></a>
+2.1 主干：四层堆栈
+</h3><table>
+	<thead>
+			<tr>
+					<th>层</th>
+					<th>包</th>
+					<th>一句话职责</th>
+					<th>不知道什么</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>L3 产品层</strong></td>
+					<td><code>@earendil-works/pi-coding-agent</code></td>
+					<td>把引擎装成&quot;编码 Agent&quot;：内置工具、系统提示词、会话树、扩展、CLI</td>
+					<td>——</td>
+			</tr>
+			<tr>
+					<td><strong>L2 引擎层</strong></td>
+					<td><code>@earendil-works/pi-agent-core</code></td>
+					<td>通用 Agent 运行时：状态、消息队列、Agent Loop、工具执行与事件流</td>
+					<td>不知道&quot;read/bash&quot;是什么，也不知道有 CLI</td>
+			</tr>
+			<tr>
+					<td><strong>L1 模型层</strong></td>
+					<td><code>@earendil-works/pi-ai</code></td>
+					<td>统一的 LLM API：42 个供应商、10 种线协议、流式事件、token 与成本</td>
+					<td>不知道什么是 Agent</td>
+			</tr>
+			<tr>
+					<td><strong>L0 基础层</strong></td>
+					<td><code>pi-telemetry</code>、<code>chord</code></td>
+					<td>厂商中立的遥测契约；上下文与取消、服务、复制状态</td>
+					<td>不知道什么是 LLM</td>
+			</tr>
+	</tbody>
+</table>
+<blockquote>
+<p>💡 原博客说 Pi 是&quot;三层堆栈 + 一个 UI 库&quot;。这个说法<strong>对 L1–L3 仍然成立</strong>，只是现在下面多垫了一层基础设施（L0）。日常阅读源码时，L0 几乎可以忽略：agent-core 主要通过 <code>chord/context</code> 传递取消信号和遥测父 span。</p>
+</blockquote>
+<h3 id="22-能力库零内部依赖可单独复用">
+<a class="header-anchor" href="#22-%e8%83%bd%e5%8a%9b%e5%ba%93%e9%9b%b6%e5%86%85%e9%83%a8%e4%be%9d%e8%b5%96%e5%8f%af%e5%8d%95%e7%8b%ac%e5%a4%8d%e7%94%a8"></a>
+2.2 能力库：零内部依赖、可单独复用
+</h3><table>
+	<thead>
+			<tr>
+					<th>包</th>
+					<th>做什么</th>
+					<th>谁在用</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>pi-tui</code></td>
+					<td>差分渲染的终端 UI 框架：组件树、编辑器、Markdown、全屏模式。约 1.9 万行，只依赖 <code>get-east-asian-width</code> 和 <code>marked</code></td>
+					<td>coding-agent 的交互模式</td>
+			</tr>
+			<tr>
+					<td><code>pi-mcp</code></td>
+					<td>独立的 MCP 客户端，支持 stdio 和 Streamable HTTP，不依赖官方 SDK</td>
+					<td>coding-agent 的内置 <code>mcp</code> 扩展</td>
+			</tr>
+			<tr>
+					<td><code>pi-codemode</code></td>
+					<td>QuickJS/WASM 沙箱，执行模型写的 JS。脚本唯一的能力是调用注入进来的工具</td>
+					<td>coding-agent 的内置 <code>codemode</code> 扩展</td>
+			</tr>
+	</tbody>
+</table>
+<p>它们的共同点是 <code>package.json</code> 里没有任何 <code>@earendil-works/*</code> 依赖。这是 Pi 最容易&quot;拆下来就用&quot;的部分。</p>
+<h3 id="23-实验区pi-正在长出来的新方向">
+<a class="header-anchor" href="#23-%e5%ae%9e%e9%aa%8c%e5%8c%bapi-%e6%ad%a3%e5%9c%a8%e9%95%bf%e5%87%ba%e6%9d%a5%e7%9a%84%e6%96%b0%e6%96%b9%e5%90%91"></a>
+2.3 实验区：Pi 正在长出来的新方向
+</h3><table>
+	<thead>
+			<tr>
+					<th>包</th>
+					<th>方向</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>pi-durable</code> *</td>
+					<td>持久化 Agent 运行时：消息、工具调用和状态都先落盘再展示，进程崩溃后能接着跑；内置子 Agent 和子任务</td>
+			</tr>
+			<tr>
+					<td><code>pi-server</code> * / <code>pi-protocol</code> * / <code>pi-client</code> *</td>
+					<td>远程会话：CBOR 帧协议，把 Agent 跑在服务端，多个前端接入</td>
+			</tr>
+			<tr>
+					<td><code>pi-session-backend-sqlite-node</code></td>
+					<td>基于 <code>node:sqlite</code> 的会话存储后端</td>
+			</tr>
+			<tr>
+					<td><code>pi-evals</code>（私有）</td>
+					<td>用 vitest-evals 写的行为评测</td>
+			</tr>
+	</tbody>
+</table>
+<blockquote>
+<p>⚠️ coding-agent 里接入 server/protocol/client 的代码在 <code>src/experimental/</code> 下，<strong>不会随 npm 包发布</strong>（<code>package.json</code> 的 <code>files</code> 排除了 <code>dist/experimental</code>）。这三个包只是它的 devDependencies。所以对外的运行模式仍然是第 6 节列出的四种。</p>
+</blockquote>
+<hr>
+<h2 id="3--依赖规则为什么箭头只朝下">
+<a class="header-anchor" href="#3--%e4%be%9d%e8%b5%96%e8%a7%84%e5%88%99%e4%b8%ba%e4%bb%80%e4%b9%88%e7%ae%ad%e5%a4%b4%e5%8f%aa%e6%9c%9d%e4%b8%8b"></a>
+3 · 依赖规则：为什么箭头只朝下
+</h2><p><img src="/images/harness/pi/ch01/fig2-deps.png" alt="图 2 · 包依赖图"></p>
+<p>上图来自各包 <code>package.json</code> 里真实的 <code>dependencies</code>，可以总结出三条规则：</p>
+<p><strong>规则 1：单向依赖，底层不知道上层存在。</strong>
+<code>pi-ai</code> 不 import <code>pi-agent-core</code>，<code>pi-agent-core</code> 不 import <code>pi-coding-agent</code>。所以你可以只拿走下面任意几层，上面的全部丢掉。</p>
+<p><strong>规则 2：类型逐层&quot;加料&quot;，下层类型从不为上层修改。</strong></p>
+<ul>
+<li><code>pi-ai</code> 定义最基础的类型：<code>Message</code>、<code>Model</code>、<code>Tool</code>（只有 schema，没有 <code>execute</code>，因为 LLM 不需要知道工具怎么执行）。</li>
+<li><code>pi-agent-core</code> 在此基础上加入 <code>AgentTool</code>（带 <code>execute</code>）、<code>AgentMessage</code>（可以通过声明合并扩展自定义消息）。</li>
+<li><code>pi-coding-agent</code> 再加入 <code>ToolDefinition</code>（带 TUI 渲染）、<code>BashExecutionMessage</code>、<code>CompactionSummaryMessage</code> 等业务类型。</li>
+</ul>
+<p><strong>规则 3：叶子包零依赖。</strong>
+<code>chord</code>、<code>pi-telemetry</code>、<code>pi-tui</code>、<code>pi-mcp</code>、<code>pi-codemode</code> 都没有内部依赖。新能力（MCP、codemode）先做成独立的叶子包，再由 L3 以&quot;内置扩展&quot;的形式接进来，而不是直接写进引擎。</p>
+<blockquote>
+<p>🧠 <strong>思考题</strong>：为什么 MCP 不放进 <code>pi-agent-core</code>？
+因为对引擎来说，MCP 工具和 <code>read</code> 工具没有区别，都只是一个 <code>AgentTool</code>。把 MCP 放在 L3 的扩展里，引擎就能保持&quot;不知道工具从哪来&quot;。想用别的 MCP 实现，替换扩展就行，不用 fork 引擎。</p>
+</blockquote>
+<hr>
+<h2 id="4--主干三层逐层拆解">
+<a class="header-anchor" href="#4--%e4%b8%bb%e5%b9%b2%e4%b8%89%e5%b1%82%e9%80%90%e5%b1%82%e6%8b%86%e8%a7%a3"></a>
+4 · 主干三层逐层拆解
+</h2><h3 id="41-l1--pi-ai只管调模型">
+<a class="header-anchor" href="#41-l1--pi-ai%e5%8f%aa%e7%ae%a1%e8%b0%83%e6%a8%a1%e5%9e%8b"></a>
+4.1 L1 · pi-ai：只管调模型
+</h3><p><strong>职责</strong>：把几十家供应商的差异压平，成为一套 <code>stream / complete</code> 接口和一套统一的流式事件。</p>
+<table>
+	<thead>
+			<tr>
+					<th>概念</th>
+					<th>含义</th>
+					<th>位置</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>KnownApi</code>（10 种）</td>
+					<td><strong>线协议</strong>：<code>anthropic-messages</code>、<code>openai-completions</code>、<code>openai-responses</code>、<code>google-generative-ai</code>、<code>bedrock-converse-stream</code>、<code>mistral-conversations</code> 等</td>
+					<td><code>packages/ai/src/types.ts</code></td>
+			</tr>
+			<tr>
+					<td><code>KnownProvider</code>（42 个）</td>
+					<td><strong>供应商</strong>：anthropic、openai、google、deepseek、openrouter、zai、moonshotai、xiaomi…… 多个供应商可以共用一种协议</td>
+					<td>同上</td>
+			</tr>
+			<tr>
+					<td><code>Models</code> 集合</td>
+					<td>注册供应商、查模型、发请求的入口：<code>createModels()</code> / <code>builtinModels()</code></td>
+					<td><code>packages/ai/src/models.ts</code></td>
+			</tr>
+			<tr>
+					<td>模型类型</td>
+					<td>除了 <code>chat</code>，还有 <code>image</code>（生图）和 <code>classifier</code>（分类）</td>
+					<td><code>types.ts</code> 中的 <code>ModelTypeMap</code></td>
+			</tr>
+			<tr>
+					<td><code>/compat</code> 入口</td>
+					<td>旧的全局 API（<code>getModel</code> / <code>stream</code>），README 标注为&quot;临时兼容，未来移除&quot;</td>
+					<td><code>packages/ai/src/compat.ts</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>最小示例</strong>（摘自 <code>packages/ai/README.md</code>，当前推荐写法）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span> <span class="nx">Context</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">builtinModels</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/providers/all&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">models</span> <span class="o">=</span> <span class="nx">builtinModels</span><span class="p">();</span>                          <span class="c1">// 注册所有内置供应商
+</span></span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;openai&#34;</span><span class="p">,</span> <span class="s2">&#34;gpt-4o-mini&#34;</span><span class="p">)</span><span class="o">!</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">context</span>: <span class="kt">Context</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;You are helpful.&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">messages</span><span class="o">:</span> <span class="p">[{</span> <span class="nx">role</span><span class="o">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="nx">content</span><span class="o">:</span> <span class="s2">&#34;Hello!&#34;</span> <span class="p">}],</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">s</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">stream</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">context</span><span class="p">);</span>                 <span class="c1">// 认证由供应商解析（如 OPENAI_API_KEY）
+</span></span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="k">await</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">event</span> <span class="k">of</span> <span class="nx">s</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;text_delta&#34;</span><span class="p">)</span> <span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">delta</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">finalMessage</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">s</span><span class="p">.</span><span class="nx">result</span><span class="p">();</span>
+</span></span></code></pre></div><blockquote>
+<p>📌 和原博客的区别：原文从 <code>pi-ai/compat</code> 导入 <code>getModel</code>，那是旧 API。新代码请用 <code>Models</code> 集合。</p>
+</blockquote>
+<h3 id="42-l2--pi-agent-core只管跑循环">
+<a class="header-anchor" href="#42-l2--pi-agent-core%e5%8f%aa%e7%ae%a1%e8%b7%91%e5%be%aa%e7%8e%af"></a>
+4.2 L2 · pi-agent-core：只管跑循环
+</h3><p><strong>职责</strong>：实现&quot;模型思考 → 调工具 → 看结果 → 再思考&quot;这个循环。它对&quot;编码&quot;一无所知，可以拿来做客服 Agent、数据分析 Agent 等任何场景。</p>
+<table>
+	<thead>
+			<tr>
+					<th>组件</th>
+					<th>要点</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>Agent</code> 类（<code>agent.ts</code>）</td>
+					<td>持有状态（系统提示词、模型、消息、工具）。方法有 <code>prompt</code> / <code>continue</code> / <code>steer</code> / <code>followUp</code> / <code>abort</code> / <code>subscribe</code> / <code>waitForIdle</code></td>
+			</tr>
+			<tr>
+					<td><code>agentLoop</code>（<code>agent-loop.ts</code>，约 940 行）</td>
+					<td><strong>双层循环</strong>。内层：有工具调用或插队消息（steering）就继续下一轮。外层：内层结束后检查后续消息（follow-up），有就再来</td>
+			</tr>
+			<tr>
+					<td>钩子</td>
+					<td><code>beforeToolCall</code> / <code>afterToolCall</code> / <code>transformContext</code> / <code>convertToLlm</code> / <code>prepareRequest</code> / <code>finishTurn</code> 等，上层通过它们注入业务逻辑</td>
+			</tr>
+			<tr>
+					<td><code>AgentEvent</code>（10 种）</td>
+					<td><code>agent_start/end</code> · <code>turn_start/end</code> · <code>message_start/update/end</code> · <code>tool_execution_start/update/end</code></td>
+			</tr>
+			<tr>
+					<td><code>streamFn</code></td>
+					<td>唯一必填的选项。引擎不直接调 pi-ai，而是调你注入的函数，所以模型层可以替换</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>最小示例</strong>（摘自 <code>packages/agent/README.md</code>）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Agent</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-agent-core&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createModels</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">anthropicProvider</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/providers/anthropic&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">models</span> <span class="o">=</span> <span class="nx">createModels</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="nx">models</span><span class="p">.</span><span class="nx">setProvider</span><span class="p">(</span><span class="nx">anthropicProvider</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;anthropic&#34;</span><span class="p">,</span> <span class="s2">&#34;claude-sonnet-4-6&#34;</span><span class="p">)</span><span class="o">!</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">agent</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Agent</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">initialState</span><span class="o">:</span> <span class="p">{</span> <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;You are a helpful assistant.&#34;</span><span class="p">,</span> <span class="nx">model</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">streamFn</span>: <span class="kt">models.streamSimple.bind</span><span class="p">(</span><span class="nx">models</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="nx">agent</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">((</span><span class="nx">event</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;message_update&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">event</span><span class="p">.</span><span class="nx">assistantMessageEvent</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;text_delta&#34;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">assistantMessageEvent</span><span class="p">.</span><span class="nx">delta</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">agent</span><span class="p">.</span><span class="nx">prompt</span><span class="p">(</span><span class="s2">&#34;Hello!&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><blockquote>
+<p>📌 和原博客的区别：原文写&quot;model/tools/systemPrompt 在调用 prompt() 时传入&quot;。实际上它们放在构造参数 <code>initialState</code> 里（运行中也可以改 <code>agent.state</code>）。</p>
+</blockquote>
+<h3 id="43-l3--pi-coding-agent把引擎装成产品">
+<a class="header-anchor" href="#43-l3--pi-coding-agent%e6%8a%8a%e5%bc%95%e6%93%8e%e8%a3%85%e6%88%90%e4%ba%a7%e5%93%81"></a>
+4.3 L3 · pi-coding-agent：把引擎装成产品
+</h3><p><strong>职责</strong>：在 <code>Agent</code> 外面包一层 <code>AgentSession</code>。它负责组装系统提示词和上下文文件、注册内置工具、加载扩展和资源、把会话落盘成 JSONL 树、自动压缩与重试，并把事件扩展成 <code>AgentSessionEvent</code> 广播给各种前端。</p>
+<table>
+	<thead>
+			<tr>
+					<th>子系统</th>
+					<th>关键文件（<code>packages/coding-agent/src/core/</code>）</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>会话编排</td>
+					<td><code>agent-session.ts</code>（约 4300 行，L3 的心脏）</td>
+			</tr>
+			<tr>
+					<td>SDK 入口</td>
+					<td><code>sdk.ts</code> 的 <code>createAgentSession()</code>，内部 <code>new Agent({ streamFn, ... })</code></td>
+			</tr>
+			<tr>
+					<td>工具</td>
+					<td><code>tools/</code>：read / bash / edit / write / grep / find / ls / powershell</td>
+			</tr>
+			<tr>
+					<td>扩展</td>
+					<td><code>extensions/</code>（运行时、类型、事件派发）；内置扩展在 <code>src/extensions/</code></td>
+			</tr>
+			<tr>
+					<td>会话存储</td>
+					<td><code>session-manager.ts</code>（JSONL 树、分叉、分支摘要）</td>
+			</tr>
+			<tr>
+					<td>提示词</td>
+					<td><code>system-prompt.ts</code>、<code>resource-loader.ts</code>（AGENTS.md、SYSTEM.md、Skills、模板）</td>
+			</tr>
+			<tr>
+					<td>模型</td>
+					<td><code>model-runtime.ts</code>、<code>model-registry.ts</code>（内置目录 + <code>models.json</code> + 认证）</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>最小示例</strong>（摘自 <code>docs/sdk.md</code> 与 <code>examples/sdk/02-custom-model.ts</code>）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createAgentSession</span><span class="p">,</span> <span class="nx">ModelRuntime</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">modelRuntime</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">ModelRuntime</span><span class="p">.</span><span class="nx">create</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">modelRuntime</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;anthropic&#34;</span><span class="p">,</span> <span class="s2">&#34;claude-opus-4-5&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="p">{</span> <span class="nx">session</span> <span class="p">}</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">createAgentSession</span><span class="p">({</span> <span class="nx">model</span><span class="p">,</span> <span class="nx">thinkingLevel</span><span class="o">:</span> <span class="s2">&#34;medium&#34;</span><span class="p">,</span> <span class="nx">modelRuntime</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="k">try</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">session</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">((</span><span class="nx">e</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span> <span class="k">if</span> <span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;turn_end&#34;</span><span class="p">)</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&#34;一轮结束&#34;</span><span class="p">);</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">  <span class="k">await</span> <span class="nx">session</span><span class="p">.</span><span class="nx">prompt</span><span class="p">(</span><span class="s2">&#34;Read the codebase and explain the architecture.&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">session</span><span class="p">.</span><span class="nx">getLastAssistantText</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="k">finally</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">session</span><span class="p">.</span><span class="nx">dispose</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><blockquote>
+<p>📌 和原博客的区别有两点：</p>
+<ul>
+<li><code>createAgentSession()</code> 返回的是 <code>{ session, extensionsResult, ... }</code>，不是 session 本身。</li>
+<li>模型通过 <code>ModelRuntime</code> 获取。</li>
+</ul>
+<p>另外，<strong>SDK 会话不会自动加载内置扩展</strong>。要用 MCP，需要自己加 <code>createMcpExtension()</code>。</p>
+</blockquote>
+<h3 id="44-侧库--pi-tui与-agent-无关的终端-ui">
+<a class="header-anchor" href="#44-%e4%be%a7%e5%ba%93--pi-tui%e4%b8%8e-agent-%e6%97%a0%e5%85%b3%e7%9a%84%e7%bb%88%e7%ab%af-ui"></a>
+4.4 侧库 · pi-tui：与 Agent 无关的终端 UI
+</h3><p>pi-tui 不在堆栈链上。只有交互模式用它，它本身也不认识任何 <code>pi-*</code> 包，所以任何 Node.js 终端程序都能用。三个月里它从约 1.2 万行长到约 1.9 万行，新增的主要是：</p>
+<ul>
+<li>全屏（alt-screen）渲染器 <code>TuiAltScreen</code>，可以在常规模式和全屏模式之间切换</li>
+<li>终端里的 Mermaid 与 LaTeX 渲染</li>
+<li>鼠标滚轮加速、搜索、可拖拽的滚动条</li>
+</ul>
+<p>核心 <code>tui.ts</code> 反而从 1714 行瘦身到 1493 行，因为代码拆到了 <code>tui-main-screen.ts</code> 和 <code>tui-alt-screen.ts</code> 两个渲染器里。</p>
+<hr>
+<h2 id="5--把三层串起来一次-prompt-的旅程">
+<a class="header-anchor" href="#5--%e6%8a%8a%e4%b8%89%e5%b1%82%e4%b8%b2%e8%b5%b7%e6%9d%a5%e4%b8%80%e6%ac%a1-prompt-%e7%9a%84%e6%97%85%e7%a8%8b"></a>
+5 · 把三层串起来：一次 prompt 的旅程
+</h2><p><img src="/images/harness/pi/ch01/fig3-flow.png" alt="图 3 · 一次 prompt 的旅程"></p>
+<table>
+	<thead>
+			<tr>
+					<th>步骤</th>
+					<th>层</th>
+					<th>发生了什么</th>
+					<th>扩展能插手的点</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>① 输入</td>
+					<td>L3</td>
+					<td>四种前端最终都调用 <code>AgentSession.prompt()</code></td>
+					<td><code>input</code></td>
+			</tr>
+			<tr>
+					<td>② 准备</td>
+					<td>L3</td>
+					<td>展开模板和 Skill；组装系统提示词、AGENTS.md 和当前分支的消息</td>
+					<td><code>before_agent_start</code></td>
+			</tr>
+			<tr>
+					<td>③ 进入循环</td>
+					<td>L2</td>
+					<td><code>Agent.prompt()</code> → <code>runAgentLoop</code>；<code>turn_start</code></td>
+					<td><code>context</code></td>
+			</tr>
+			<tr>
+					<td>④ 调模型</td>
+					<td>L1</td>
+					<td><code>streamFn</code> → <code>Models.streamSimple()</code>，按 <code>model.api</code> 选择协议</td>
+					<td><code>before_provider_request</code> / <code>before_provider_headers</code></td>
+			</tr>
+			<tr>
+					<td>⑤ 网络</td>
+					<td>外部</td>
+					<td>HTTP / SSE</td>
+					<td><code>provider_stream_event</code>（只读观察）</td>
+			</tr>
+			<tr>
+					<td>⑥ 归一化</td>
+					<td>L1</td>
+					<td>各家原始流 → <code>AssistantMessageEvent</code>（text_delta、toolcall_* 等）</td>
+					<td>——</td>
+			</tr>
+			<tr>
+					<td>⑦ 执行工具</td>
+					<td>L2</td>
+					<td>发出 <code>message_*</code>；有 toolCall 就执行 <code>before → execute → after</code>，然后<strong>回到 ③</strong></td>
+					<td><code>tool_call</code>（可拦截）/ <code>tool_result</code></td>
+			</tr>
+			<tr>
+					<td>⑧ 落盘</td>
+					<td>L3</td>
+					<td>写 JSONL 会话树；超过阈值自动压缩；出错自动重试</td>
+					<td><code>turn_end</code>、<code>session_compact</code> 等</td>
+			</tr>
+			<tr>
+					<td>⑨ 呈现</td>
+					<td>L3</td>
+					<td><code>AgentSessionEvent</code> 广播给 TUI / JSON / RPC / SDK</td>
+					<td>——</td>
+			</tr>
+	</tbody>
+</table>
+<p>这张表是读懂后续章节的地图：</p>
+<ul>
+<li>第 3 章讲 ③⑦ 的循环</li>
+<li>第 4 章讲 ④⑥</li>
+<li>第 5 章讲 ⑦ 的工具执行</li>
+<li>第 6、8 章讲 ② 的上下文</li>
+<li>第 7 章讲 ⑨ 的事件</li>
+<li>第 9、10 章讲 ⑧</li>
+</ul>
+<hr>
+<h2 id="6--产品层工具内置扩展与运行模式">
+<a class="header-anchor" href="#6--%e4%ba%a7%e5%93%81%e5%b1%82%e5%b7%a5%e5%85%b7%e5%86%85%e7%bd%ae%e6%89%a9%e5%b1%95%e4%b8%8e%e8%bf%90%e8%a1%8c%e6%a8%a1%e5%bc%8f"></a>
+6 · 产品层：工具、内置扩展与运行模式
+</h2><h3 id="61-内置工具8-个">
+<a class="header-anchor" href="#61-%e5%86%85%e7%bd%ae%e5%b7%a5%e5%85%b78-%e4%b8%aa"></a>
+6.1 内置工具（8 个）
+</h3><table>
+	<thead>
+			<tr>
+					<th>工具</th>
+					<th>默认启用</th>
+					<th>说明</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>read</code> / <code>bash</code> / <code>edit</code> / <code>write</code></td>
+					<td>✅</td>
+					<td><code>DEFAULT_TOOL_NAMES</code>，见 <code>settings-manager.ts</code></td>
+			</tr>
+			<tr>
+					<td><code>grep</code> / <code>find</code> / <code>ls</code></td>
+					<td>❌</td>
+					<td>需要时通过 <code>--tools</code> 或 <code>defaultTools</code> 开启</td>
+			</tr>
+			<tr>
+					<td><code>powershell</code></td>
+					<td>❌</td>
+					<td>v0.80.2 之后新增，仅限原生 Windows，例如 <code>&quot;defaultTools&quot;: [&quot;-bash&quot;, &quot;+powershell&quot;]</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><code>defaultTools</code> 现在支持 <code>+name</code> / <code>-name</code> 增量写法，可以只增删个别工具，不用把默认列表整个重写一遍。</p>
+<h3 id="62-内置扩展v0990-起">
+<a class="header-anchor" href="#62-%e5%86%85%e7%bd%ae%e6%89%a9%e5%b1%95v0990-%e8%b5%b7"></a>
+6.2 内置扩展（v0.99.0 起）
+</h3><table>
+	<thead>
+			<tr>
+					<th>扩展</th>
+					<th>作用</th>
+					<th>默认状态</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>builtin:mcp</code></td>
+					<td>从 <code>mcp.json</code> 连接 MCP 服务器（stdio / HTTP / OAuth），提供 <code>/mcp</code> 和 <code>pi mcp add|list|login…</code></td>
+					<td>已加载，配置了服务器才生效</td>
+			</tr>
+			<tr>
+					<td><code>builtin:codemode</code></td>
+					<td><code>codemode</code> 工具：模型写 JS，在 QuickJS 沙箱里并行调用其他工具</td>
+					<td>已注册，默认不激活（MCP 工具默认通过它暴露）</td>
+			</tr>
+			<tr>
+					<td><code>builtin:tool-search</code></td>
+					<td><code>tool_search</code> 工具：按需把&quot;延迟声明&quot;的工具暴露给模型</td>
+					<td>已注册，默认不激活</td>
+			</tr>
+			<tr>
+					<td><code>builtin:llama.cpp</code></td>
+					<td>llama.cpp 供应商与 <code>/llama</code> 命令</td>
+					<td>已加载</td>
+			</tr>
+	</tbody>
+</table>
+<p>关闭方式：在 <code>pi config</code> 的 Built-in 区域关闭，或者在设置里写 <code>&quot;extensions&quot;: [&quot;-builtin:mcp&quot;]</code>。<code>--no-extensions</code> 会把它们一起关掉。前三个是 <code>replaceable</code>：如果某个第三方扩展注册了同名的工具或命令，就会<strong>替换</strong>内置版本，不会和它并存。</p>
+<h3 id="63-四种运行模式">
+<a class="header-anchor" href="#63-%e5%9b%9b%e7%a7%8d%e8%bf%90%e8%a1%8c%e6%a8%a1%e5%bc%8f"></a>
+6.3 四种运行模式
+</h3><table>
+	<thead>
+			<tr>
+					<th>模式</th>
+					<th>启动方式</th>
+					<th>用途</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>交互</td>
+					<td><code>pi</code>（可加 <code>--tui-mode fullscreen</code>）</td>
+					<td>日常编码</td>
+			</tr>
+			<tr>
+					<td>Print / JSON</td>
+					<td><code>pi -p &quot;...&quot;</code>、<code>--mode json</code></td>
+					<td>脚本、CI；JSON 模式逐行输出事件（v0.84 起 <code>message_update</code> 只发增量）</td>
+			</tr>
+			<tr>
+					<td>RPC</td>
+					<td><code>--mode rpc</code></td>
+					<td>通过 stdin/stdout 交换 JSONL，接入非 Node 程序</td>
+			</tr>
+			<tr>
+					<td>SDK</td>
+					<td><code>createAgentSession()</code></td>
+					<td>嵌入到你自己的 Node 应用</td>
+			</tr>
+	</tbody>
+</table>
+<p>官方文档 <code>docs/how-pi-works.md</code> 的原话是：&ldquo;All interfaces use the same agent and session mechanisms.&rdquo; 四种模式只是 L3 之上的四种呈现方式。</p>
+<h3 id="64-配置文件地图">
+<a class="header-anchor" href="#64-%e9%85%8d%e7%bd%ae%e6%96%87%e4%bb%b6%e5%9c%b0%e5%9b%be"></a>
+6.4 配置文件地图
+</h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">~/.pi/agent/                    # 用户级
+</span></span><span class="line"><span class="cl">├── settings.json               # 默认模型、defaultTools、extensions 开关…
+</span></span><span class="line"><span class="cl">├── models.json                 # 自定义供应商 / 模型（任意 OpenAI 兼容网关）
+</span></span><span class="line"><span class="cl">├── mcp.json                    # MCP 服务器
+</span></span><span class="line"><span class="cl">├── auth.json                   # /login 凭据
+</span></span><span class="line"><span class="cl">├── SYSTEM.md / APPEND_SYSTEM.md
+</span></span><span class="line"><span class="cl">├── extensions/ skills/ prompts/ themes/
+</span></span><span class="line"><span class="cl">└── sessions/                   # JSONL 会话，按工作目录分组
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;项目&gt;/.pi/                     # 项目级（需要先信任项目才会加载）
+</span></span><span class="line"><span class="cl">└── settings.json  mcp.json  SYSTEM.md  extensions/  skills/  prompts/  themes/
+</span></span></code></pre></div><p>上下文文件：每个目录只取下面几个中的第一个匹配项：<code>AGENTS.override.md</code> → <code>AGENTS.md</code> → <code>CLAUDE.md</code>。<code>AGENTS.override.md</code> 是 v0.84 新增的。</p>
+<hr>
+<h2 id="7--定制阶梯从用-pi到造自己的-agent">
+<a class="header-anchor" href="#7--%e5%ae%9a%e5%88%b6%e9%98%b6%e6%a2%af%e4%bb%8e%e7%94%a8-pi%e5%88%b0%e9%80%a0%e8%87%aa%e5%b7%b1%e7%9a%84-agent"></a>
+7 · 定制阶梯：从&quot;用 Pi&quot;到&quot;造自己的 Agent&quot;
+</h2><p><img src="/images/harness/pi/ch01/fig5-levers.png" alt="图 5 · 定制阶梯"></p>
+<p>原博客把定制手段总结为&quot;五根杠杆&quot;（扩展、技能、提示词模板、主题、Pi 包）。这里换一个角度，<strong>按定制深度排成阶梯</strong>，并把 SDK 也放进来：</p>
+<table>
+	<thead>
+			<tr>
+					<th>级</th>
+					<th>手段</th>
+					<th>你写的是</th>
+					<th>典型用途</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>①</td>
+					<td>设置</td>
+					<td>JSON</td>
+					<td>换默认模型、增删工具、接内网网关、挂 MCP</td>
+			</tr>
+			<tr>
+					<td>②</td>
+					<td>资源</td>
+					<td>Markdown</td>
+					<td>AGENTS.md 项目约定、SYSTEM.md 换人设、Skills 按需加载知识、提示词模板、主题</td>
+			</tr>
+			<tr>
+					<td>③</td>
+					<td>扩展</td>
+					<td>TypeScript</td>
+					<td><code>registerTool</code> / <code>registerCommand</code> / <code>registerShortcut</code> / <code>registerProvider</code> / <code>registerVirtualModel</code> / <code>registerMcpServer</code>、生命周期钩子、TUI 组件</td>
+			</tr>
+			<tr>
+					<td>④</td>
+					<td>Pi Packages</td>
+					<td>npm / git 包</td>
+					<td>把 ①–③ 打包：<code>pi install npm:@foo/bar</code></td>
+			</tr>
+			<tr>
+					<td>⑤</td>
+					<td>SDK</td>
+					<td>你的应用代码</td>
+					<td>按需选层：L3 <code>createAgentSession</code>、L2 <code>Agent</code>、L1 <code>createModels</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>两点需要更正：</p>
+<ul>
+<li><strong>热重载需要手动触发</strong>：改完扩展后执行 <code>/reload</code>，不用重启会话，但它不会监听文件自动生效。会自动监听文件变化的只有主题。</li>
+<li><strong>官方示例更多了</strong>：<code>examples/extensions/</code> 下现在有 70 个顶层示例和 9 个子目录，包括 <code>subagent/</code>、<code>plan-mode/</code>、<code>sandbox/</code>、<code>permission-gate.ts</code>、<code>todo.ts</code>、<code>ssh.ts</code>。</li>
+</ul>
+<hr>
+<h2 id="8--减法哲学的演变pi-不做什么">
+<a class="header-anchor" href="#8--%e5%87%8f%e6%b3%95%e5%93%b2%e5%ad%a6%e7%9a%84%e6%bc%94%e5%8f%98pi-%e4%b8%8d%e5%81%9a%e4%bb%80%e4%b9%88"></a>
+8 · 减法哲学的演变：Pi 不做什么
+</h2><p>原博客引用了官网的 &ldquo;What we didn&rsquo;t build&rdquo; 清单。三个月后，这张表需要加一列&quot;现状&quot;：</p>
+<table>
+	<thead>
+			<tr>
+					<th>原本不做的</th>
+					<th>当时的理由</th>
+					<th><strong>v0.99.2 现状</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>MCP 支持</td>
+					<td>MCP 会一次性把大量工具描述灌进上下文</td>
+					<td>⚠️ <strong>已内置</strong>（<code>builtin:mcp</code>），但用两个机制规避原问题：工具默认通过 <code>codemode</code> 暴露，或用 <code>tool_search</code> 延迟声明，不再一次性灌入上下文。可以关掉</td>
+			</tr>
+			<tr>
+					<td>子 Agent</td>
+					<td>增加复杂度，降低可观察性</td>
+					<td>核心仍然没有；有 <code>examples/extensions/subagent/</code>；实验性的 <code>pi-durable</code> 提供了子 Agent 和子任务</td>
+			</tr>
+			<tr>
+					<td>权限弹窗</td>
+					<td>弹窗疲劳，沦为&quot;安全表演&quot;</td>
+					<td>核心仍然默认 YOLO；有 <code>permission-gate.ts</code>、<code>sandbox/</code> 示例，还有项目信任机制（project trust）</td>
+			</tr>
+			<tr>
+					<td>计划模式</td>
+					<td>写到 plan.md 更持久</td>
+					<td>核心仍然没有；有 <code>examples/extensions/plan-mode/</code></td>
+			</tr>
+			<tr>
+					<td>后台 bash</td>
+					<td>tmux 已经解决了</td>
+					<td>不变</td>
+			</tr>
+			<tr>
+					<td>内置待办</td>
+					<td>TODO.md 更灵活</td>
+					<td>核心仍然没有；有 <code>examples/extensions/todo.ts</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>结论</strong>：&ldquo;减法&quot;没有被放弃，但做法从&quot;不做&quot;演进成了&rdquo;<strong>做成可关闭、可替换的内置扩展</strong>&quot;。</p>
+<ul>
+<li>引擎（L2）依然保持干净，MCP 只是 L3 的一个扩展。</li>
+<li>默认配置变得更&quot;开箱即用&quot;。</li>
+<li>判断 Pi 哲学的标准不再是&quot;有没有某功能&quot;，而是&quot;这个功能是不是焊死的&quot;。</li>
+</ul>
+<hr>
+<h2 id="9--三个月发生了什么">
+<a class="header-anchor" href="#9--%e4%b8%89%e4%b8%aa%e6%9c%88%e5%8f%91%e7%94%9f%e4%ba%86%e4%bb%80%e4%b9%88"></a>
+9 · 三个月发生了什么
+</h2><p><img src="/images/harness/pi/ch01/fig4-timeline.png" alt="图 4 · 版本时间线"></p>
+<table>
+	<thead>
+			<tr>
+					<th>指标</th>
+					<th>v0.80.2（原博客）</th>
+					<th><strong>v0.99.2（本文）</strong></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>包目录数</td>
+					<td>4</td>
+					<td><strong>14</strong>（13 个可发布 + 私有 evals）</td>
+			</tr>
+			<tr>
+					<td>默认工具</td>
+					<td>read · write · edit · bash</td>
+					<td>不变</td>
+			</tr>
+			<tr>
+					<td>全部内置工具</td>
+					<td>7</td>
+					<td><strong>8</strong>（+ powershell）</td>
+			</tr>
+			<tr>
+					<td>内置扩展</td>
+					<td>无</td>
+					<td><strong>4</strong>（mcp、codemode、tool-search、llama.cpp）</td>
+			</tr>
+			<tr>
+					<td><code>KnownProvider</code></td>
+					<td>35</td>
+					<td><strong>42</strong></td>
+			</tr>
+			<tr>
+					<td>线协议 <code>KnownApi</code></td>
+					<td>——</td>
+					<td>10</td>
+			</tr>
+			<tr>
+					<td>模型类型</td>
+					<td>chat</td>
+					<td><strong>chat · image · classifier</strong></td>
+			</tr>
+			<tr>
+					<td><code>agent-loop.ts</code></td>
+					<td>748 行</td>
+					<td>940 行</td>
+			</tr>
+			<tr>
+					<td>pi-tui 源码</td>
+					<td>约 12,100 行</td>
+					<td><strong>约 19,200 行</strong></td>
+			</tr>
+			<tr>
+					<td><code>system-prompt.ts</code></td>
+					<td>173 行</td>
+					<td>216 行；静态模板约 200 个英文词，原博客写的是 90 词</td>
+			</tr>
+			<tr>
+					<td>运行模式</td>
+					<td>4</td>
+					<td>4（远程 server 模式仍是实验性，不对外发布）</td>
+			</tr>
+			<tr>
+					<td><code>examples/extensions</code></td>
+					<td>77 项</td>
+					<td>80 项（70 个 <code>.ts</code> + 9 个目录 + README）</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="10--术语表">
+<a class="header-anchor" href="#10--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+10 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>定义</th>
+					<th>别和它混淆</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>线协议（Api）</strong></td>
+					<td>与 LLM 通信的请求/响应格式，如 <code>anthropic-messages</code></td>
+					<td>供应商：多个供应商可以共用一种协议</td>
+			</tr>
+			<tr>
+					<td><strong>供应商（Provider）</strong></td>
+					<td>提供模型和认证的一方，如 <code>deepseek</code>、<code>openrouter</code></td>
+					<td>——</td>
+			</tr>
+			<tr>
+					<td><strong>Models 集合</strong></td>
+					<td>pi-ai 中注册供应商、查找模型、发起请求的对象</td>
+					<td>旧的 <code>/compat</code> 全局函数</td>
+			</tr>
+			<tr>
+					<td><strong>ModelRuntime</strong></td>
+					<td>coding-agent 中的模型运行时：内置目录 + <code>models.json</code> + 凭据</td>
+					<td>pi-ai 的 <code>Models</code></td>
+			</tr>
+			<tr>
+					<td><strong>Agent</strong></td>
+					<td>L2 的通用 Agent 实例：状态 + 循环 + 事件</td>
+					<td>AgentSession</td>
+			</tr>
+			<tr>
+					<td><strong>AgentSession</strong></td>
+					<td>L3 对 Agent 的封装：提示词、工具、扩展、会话持久化</td>
+					<td>Agent</td>
+			</tr>
+			<tr>
+					<td><strong>Turn（轮）</strong></td>
+					<td>一次模型调用，加上它触发的工具执行</td>
+					<td>Run：一次 prompt 可能包含多轮</td>
+			</tr>
+			<tr>
+					<td><strong>Steering / Follow-up</strong></td>
+					<td>运行中插队的消息 / 运行结束后排队执行的消息</td>
+					<td>——</td>
+			</tr>
+			<tr>
+					<td><strong>扩展（Extension）</strong></td>
+					<td>加载到 L3 的 TypeScript 模块，可以注册工具、命令、钩子、UI</td>
+					<td>Skill：Skill 是 Markdown 知识，扩展是代码</td>
+			</tr>
+			<tr>
+					<td><strong>内置扩展（builtin:*）</strong></td>
+					<td>随 coding-agent 发布、可关闭和替换的扩展</td>
+					<td>核心功能</td>
+			</tr>
+			<tr>
+					<td><strong>Skill</strong></td>
+					<td>按需加载的指令包，平时只在提示词里放一段描述</td>
+					<td>提示词模板</td>
+			</tr>
+			<tr>
+					<td><strong>会话树</strong></td>
+					<td>JSONL 中的条目通过 parent 指针形成一棵树，当前分支提供上下文</td>
+					<td>线性聊天记录</td>
+			</tr>
+			<tr>
+					<td><strong>压缩（Compaction）</strong></td>
+					<td>用摘要条目替换旧消息，原始条目仍然保留在树里</td>
+					<td>删除历史</td>
+			</tr>
+			<tr>
+					<td><strong>codemode</strong></td>
+					<td>让模型写 JS、在沙箱里组合调用工具的执行方式</td>
+					<td>普通的逐个工具调用</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="11--源码导航与后续路线">
+<a class="header-anchor" href="#11--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa%e4%b8%8e%e5%90%8e%e7%bb%ad%e8%b7%af%e7%ba%bf"></a>
+11 · 源码导航与后续路线
+</h2><p><strong>按&quot;想搞懂什么&quot;找文件：</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Agent Loop 怎么转</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>runLoop</code></td>
+			</tr>
+			<tr>
+					<td>一个请求怎么发到模型</td>
+					<td><code>packages/ai/src/models.ts</code> → <code>streamSimple</code>；<code>packages/ai/src/api/</code></td>
+			</tr>
+			<tr>
+					<td>工具怎么定义和执行</td>
+					<td><code>packages/coding-agent/src/core/tools/</code>；<code>packages/agent/src/agent-loop.ts</code> → <code>executeToolCalls</code></td>
+			</tr>
+			<tr>
+					<td>系统提示词怎么拼</td>
+					<td><code>packages/coding-agent/src/core/system-prompt.ts</code></td>
+			</tr>
+			<tr>
+					<td>会话怎么存和分叉</td>
+					<td><code>packages/coding-agent/src/core/session-manager.ts</code>；<code>docs/session-format.md</code></td>
+			</tr>
+			<tr>
+					<td>扩展能做什么</td>
+					<td><code>packages/coding-agent/src/core/extensions/types.ts</code>；<code>docs/extensions.md</code></td>
+			</tr>
+			<tr>
+					<td>MCP 怎么接入</td>
+					<td><code>packages/coding-agent/src/extensions/mcp/</code>；<code>packages/mcp/</code></td>
+			</tr>
+			<tr>
+					<td>官方一页纸原理</td>
+					<td><code>packages/coding-agent/docs/how-pi-works.md</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>后续章节</strong>（沿用原博客的章节划分，内容按 v0.99.2 重写）：</p>
+<ol>
+<li>开篇总览（本章）</li>
+<li>三层架构与类型分层</li>
+<li>Agent Loop</li>
+<li>模型调用</li>
+<li>工具系统</li>
+<li>消息系统</li>
+<li>事件驱动</li>
+<li>上下文工程</li>
+<li>上下文压缩</li>
+<li>会话管理</li>
+</ol>
+<hr>
+<h2 id="附录--原博客第-1-章勘误清单对照-v0992">
+<a class="header-anchor" href="#%e9%99%84%e5%bd%95--%e5%8e%9f%e5%8d%9a%e5%ae%a2%e7%ac%ac-1-%e7%ab%a0%e5%8b%98%e8%af%af%e6%b8%85%e5%8d%95%e5%af%b9%e7%85%a7-v0992"></a>
+附录 · 原博客第 1 章勘误清单（对照 v0.99.2）
+</h2><table>
+	<thead>
+			<tr>
+					<th>#</th>
+					<th>原文</th>
+					<th>现状</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>1</td>
+					<td>&ldquo;四个核心包&rdquo;</td>
+					<td>主干仍是 ai / agent-core / coding-agent + tui，但仓库已有 14 个包目录，见第 2 节</td>
+			</tr>
+			<tr>
+					<td>2</td>
+					<td>&ldquo;刻意不构建 MCP&rdquo;</td>
+					<td>v0.99.0 起 MCP 是内置扩展（可关闭）</td>
+			</tr>
+			<tr>
+					<td>3</td>
+					<td>&ldquo;pi-tui 约 12000 行&rdquo;</td>
+					<td>约 19,200 行</td>
+			</tr>
+			<tr>
+					<td>4</td>
+					<td>&ldquo;35 个 KnownProvider&rdquo;</td>
+					<td>42 个</td>
+			</tr>
+			<tr>
+					<td>5</td>
+					<td>&ldquo;4 核心 + 3 辅助工具&rdquo;</td>
+					<td>4 个默认 + 4 个可选（新增 powershell）</td>
+			</tr>
+			<tr>
+					<td>6</td>
+					<td>&ldquo;静态系统提示词约 90 词&rdquo;</td>
+					<td>静态模板约 200 词</td>
+			</tr>
+			<tr>
+					<td>7</td>
+					<td>&ldquo;改扩展文件，会话立即生效&rdquo;</td>
+					<td>需要执行 <code>/reload</code>（无需重启）；只有主题会自动监听文件</td>
+			</tr>
+			<tr>
+					<td>8</td>
+					<td><code>getModel</code> 从 <code>pi-ai/compat</code> 导入</td>
+					<td>compat 是临时兼容入口；推荐用 <code>createModels()</code> / <code>builtinModels()</code>，L3 用 <code>ModelRuntime</code></td>
+			</tr>
+			<tr>
+					<td>9</td>
+					<td><code>const session = await createAgentSession(...)</code></td>
+					<td>返回 <code>{ session, ... }</code>，需要解构</td>
+			</tr>
+			<tr>
+					<td>10</td>
+					<td>&ldquo;model/tools 在 prompt() 时传入 Agent&rdquo;</td>
+					<td>放在构造参数 <code>initialState</code></td>
+			</tr>
+			<tr>
+					<td>11</td>
+					<td>&ldquo;pi-orchestrator（v0.80.x 新增）&rdquo;</td>
+					<td>v0.80.3 引入，v0.81.0 更名为 <code>pi-server</code>，仍是实验性</td>
+			</tr>
+			<tr>
+					<td>12</td>
+					<td>&ldquo;models.json schema 在 model-registry.ts:158-218&rdquo;</td>
+					<td><code>model-registry.ts</code> 现在只有 230 行，schema 相关逻辑见 <code>model-config.ts</code> 和 <code>docs/models.md</code></td>
+			</tr>
+	</tbody>
+</table></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--一句话认识-pi">1 · 一句话认识 Pi</a></li>
+    <li><a href="#2--全景一张图看懂-pi-的分层">2 · 全景：一张图看懂 Pi 的分层</a>
+      <ul>
+        <li><a href="#21-主干四层堆栈">2.1 主干：四层堆栈</a></li>
+        <li><a href="#22-能力库零内部依赖可单独复用">2.2 能力库：零内部依赖、可单独复用</a></li>
+        <li><a href="#23-实验区pi-正在长出来的新方向">2.3 实验区：Pi 正在长出来的新方向</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--依赖规则为什么箭头只朝下">3 · 依赖规则：为什么箭头只朝下</a></li>
+    <li><a href="#4--主干三层逐层拆解">4 · 主干三层逐层拆解</a>
+      <ul>
+        <li><a href="#41-l1--pi-ai只管调模型">4.1 L1 · pi-ai：只管调模型</a></li>
+        <li><a href="#42-l2--pi-agent-core只管跑循环">4.2 L2 · pi-agent-core：只管跑循环</a></li>
+        <li><a href="#43-l3--pi-coding-agent把引擎装成产品">4.3 L3 · pi-coding-agent：把引擎装成产品</a></li>
+        <li><a href="#44-侧库--pi-tui与-agent-无关的终端-ui">4.4 侧库 · pi-tui：与 Agent 无关的终端 UI</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--把三层串起来一次-prompt-的旅程">5 · 把三层串起来：一次 prompt 的旅程</a></li>
+    <li><a href="#6--产品层工具内置扩展与运行模式">6 · 产品层：工具、内置扩展与运行模式</a>
+      <ul>
+        <li><a href="#61-内置工具8-个">6.1 内置工具（8 个）</a></li>
+        <li><a href="#62-内置扩展v0990-起">6.2 内置扩展（v0.99.0 起）</a></li>
+        <li><a href="#63-四种运行模式">6.3 四种运行模式</a></li>
+        <li><a href="#64-配置文件地图">6.4 配置文件地图</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--定制阶梯从用-pi到造自己的-agent">7 · 定制阶梯：从&quot;用 Pi&quot;到&quot;造自己的 Agent&quot;</a></li>
+    <li><a href="#8--减法哲学的演变pi-不做什么">8 · 减法哲学的演变：Pi 不做什么</a></li>
+    <li><a href="#9--三个月发生了什么">9 · 三个月发生了什么</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航与后续路线">11 · 源码导航与后续路线</a></li>
+    <li><a href="#附录--原博客第-1-章勘误清单对照-v0992">附录 · 原博客第 1 章勘误清单（对照 v0.99.2）</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架",
+          url: "https:\/\/example.org\/harness\/pi\/01-overview\/",
+          description: "基于 earendil-works\/pi v0.99.2 重写的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及三个月来的架构演变。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

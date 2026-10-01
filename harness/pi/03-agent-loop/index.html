@@ -1,0 +1,1284 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的 | AKF
+</title>
+<meta name="description" content="接着第二章往下讲：当前发布的 pi-agent-core 引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的 | AKF" />
+  <meta
+    property="og:description"
+    content="接着第二章往下讲：当前发布的 pi-agent-core 引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/03-agent-loop/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-01T19:30:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-01T19:30:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--三个入口一个循环">1 · 三个入口，一个循环</a></li>
+    <li><a href="#2--双层循环">2 · 双层循环</a>
+      <ul>
+        <li><a href="#21-内层工具结果和插队消息">2.1 内层：工具结果和插队消息</a></li>
+        <li><a href="#22-外层后续消息">2.2 外层：后续消息</a></li>
+        <li><a href="#23-finishturn-的三种决定">2.3 finishTurn 的三种决定</a></li>
+        <li><a href="#24-两个出口之外的提前退出">2.4 两个出口之外的提前退出</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--一轮的生命周期">3 · 一轮的生命周期</a></li>
+    <li><a href="#4--工具执行">4 · 工具执行</a>
+      <ul>
+        <li><a href="#41-串行还是并行">4.1 串行还是并行</a></li>
+        <li><a href="#42-beforetoolcall-和-aftertoolcall">4.2 beforeToolCall 和 afterToolCall</a></li>
+        <li><a href="#43-每一种失败的去向">4.3 每一种失败的去向</a></li>
+        <li><a href="#44-提前结束terminate">4.4 提前结束：terminate</a></li>
+        <li><a href="#45-中止">4.5 中止</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--agent-类和直接调用-agentloop-的区别">5 · Agent 类和直接调用 agentLoop() 的区别</a></li>
+    <li><a href="#6--用法加一个钩子">6 · 用法：加一个钩子</a>
+      <ul>
+        <li><a href="#61-引擎层直接给-agent-挂钩子">6.1 引擎层：直接给 Agent 挂钩子</a></li>
+        <li><a href="#62-产品层通过-sdk-挂扩展钩子">6.2 产品层：通过 SDK 挂扩展钩子</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--三个可以带走的方法">7 · 三个可以带走的方法</a></li>
+    <li><a href="#8--关键数字">8 · 关键数字</a></li>
+    <li><a href="#9--术语表">9 · 术语表</a></li>
+    <li><a href="#10--源码导航">10 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.3cf30c7271bec63efd7f486bce6e5fb5d736af11ecc46b715600952e59d2bb1a.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的</p>
+</div>
+      </div>
+    </article><article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-01 19:30:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-01</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-01</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v0.99.2-29-g0f8740bb6</code>（2026-10-01），commit <code>0f8740bb6</code>。本章涉及的 <code>agent-loop.ts</code>、<code>agent.ts</code>、<code>types.ts</code> 与 npm 上发布的 <code>@earendil-works/pi-agent-core@0.99.2</code> 完全一致。文中所有行为、数字和代码均以该版本为准。</p>
+</blockquote>
+<p>第二章讲到，L3 在创建 <code>Agent</code> 时传入一批钩子，又在创建后改写了另一批。本章接着往下讲，打开 L2 当前发布的引擎，看这些钩子在一次运行里什么时候被调用，循环靠什么继续、什么时候停下。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>两层循环</strong>：内层在&quot;还有工具结果要交给模型&quot;或&quot;有插队消息&quot;时继续；外层在内层停下后检查后续消息。<code>finishTurn</code> 还能要求再跑一轮。</li>
+<li><strong>一轮有固定的顺序</strong>：先注入待处理的消息，再依次调用 <code>prepareRequest</code>、<code>transformContext</code>、<code>convertToLlm</code>、<code>streamFn</code>，然后执行工具，最后是 <code>finishTurn</code> 和 <code>turn_end</code>。</li>
+<li><strong>工具调用失败了，也会变成一条结果交回模型</strong>：找不到工具、参数不合法、被拦截、执行抛错，都变成一条 <code>isError: true</code> 的工具结果，循环照常往下走。</li>
+<li><strong><code>Agent</code> 和 <code>agentLoop()</code> 跑的是同一个循环</strong>，区别只在事件出口：<code>Agent</code> 会等订阅者处理完，<code>agentLoop()</code> 不等。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章只讲当前发布的引擎：<code>Agent</code> 类和 <code>agentLoop()</code> 系列函数。第二章提到的 <code>harness/</code> 和 <code>pi-durable</code> 两套新引擎不在本章范围内。</li>
+<li>文中的事件顺序都用一个探针脚本实际跑过。脚本用一个假的 <code>streamFn</code> 按剧本返回助手消息，订阅 <code>Agent</code> 的事件并记录钩子的调用时刻。本章引用的运行记录都来自这个脚本。</li>
+<li>后文说的&quot;一轮&quot;（turn），指一次模型请求加上这条回复里所有工具调用的执行，和 <code>turn_start</code> / <code>turn_end</code> 两个事件对应。</li>
+</ul>
+<hr>
+<h2 id="1--三个入口一个循环">
+<a class="header-anchor" href="#1--%e4%b8%89%e4%b8%aa%e5%85%a5%e5%8f%a3%e4%b8%80%e4%b8%aa%e5%be%aa%e7%8e%af"></a>
+1 · 三个入口，一个循环
+</h2><p>pi-agent-core 对外提供三种启动方式：</p>
+<ul>
+<li><code>Agent.prompt()</code> / <code>Agent.continue()</code>（有状态的引擎类：自己保存消息、管理队列，等订阅者处理完事件）</li>
+<li><code>agentLoop()</code>（给一组新消息，返回一个可以 <code>for await</code> 的事件流）</li>
+<li><code>agentLoopContinue()</code>（不加新消息，从已有上下文继续，常用于重试）</li>
+</ul>
+<p>它们最后都进入同一个内部函数 <code>runLoop</code>（双层循环的本体）。中间隔着一层 <code>runAgentLoop</code> / <code>runAgentLoopContinue</code>（发出 <code>agent_start</code> 和第一个 <code>turn_start</code>，把提示消息加进上下文），这两个函数也是导出的。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">export</span> <span class="kr">async</span> <span class="kd">function</span> <span class="nx">runAgentLoop</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">prompts</span>: <span class="kt">AgentMessage</span><span class="p">[],</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">context</span>: <span class="kt">AgentContext</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">config</span>: <span class="kt">AgentLoopConfig</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">emit</span>: <span class="kt">AgentEventSink</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">signal</span>: <span class="kt">AbortSignal</span> <span class="o">|</span> <span class="kc">undefined</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">streamFn</span>: <span class="kt">StreamFn</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span><span class="o">:</span> <span class="nx">Promise</span><span class="p">&lt;</span><span class="nt">AgentMessage</span><span class="err">[]</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// …
+</span></span></span><span class="line"><span class="cl">	<span class="k">await</span> <span class="nx">emit</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;agent_start&#34;</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">	<span class="k">await</span> <span class="nx">emit</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;turn_start&#34;</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">message</span> <span class="k">of</span> <span class="nx">initialMessages</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">await</span> <span class="nx">emit</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;message_start&#34;</span><span class="p">,</span> <span class="nx">message</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">		<span class="k">await</span> <span class="nx">emit</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;message_end&#34;</span><span class="p">,</span> <span class="nx">message</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">await</span> <span class="nx">runLoop</span><span class="p">(</span><span class="nx">currentContext</span><span class="p">,</span> <span class="nx">newMessages</span><span class="p">,</span> <span class="nx">config</span><span class="p">,</span> <span class="nx">signal</span><span class="p">,</span> <span class="nx">emit</span><span class="p">,</span> <span class="nx">streamFn</span> <span class="o">??</span> <span class="nx">getDefaultStreamFn</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">newMessages</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>循环拿到的所有输入都在 <code>AgentLoopConfig</code>（循环配置）里。除了模型和请求选项，主要是这几类函数：</p>
+<ul>
+<li><strong>请求前</strong>：<code>prepareRequest</code>（每次请求前替换上下文、模型、推理强度）、<code>transformContext</code>（改写引擎消息列表）、<code>convertToLlm</code>（把引擎消息转成模型能理解的消息，唯一必填的函数）、<code>getApiKey</code>（每次请求前取一次密钥，适合会过期的令牌）</li>
+<li><strong>工具</strong>：<code>toolExecution</code>（串行还是并行，默认并行）、<code>beforeToolCall</code>（执行前检查，可以拦截）、<code>afterToolCall</code>（执行后改写结果）</li>
+<li><strong>轮次边界</strong>：<code>finishTurn</code>（一轮结束时决定继续、结束还是照常）、<code>prepareNextTurn</code>（下一轮开始前换上下文、模型，或追加消息）</li>
+<li><strong>队列</strong>：<code>getSteeringMessages</code>（取插队消息）、<code>getFollowUpMessages</code>（取后续消息）</li>
+</ul>
+<p><code>streamFn</code>（模型调用函数）不在配置里，单独作为参数传入。</p>
+<hr>
+<h2 id="2--双层循环">
+<a class="header-anchor" href="#2--%e5%8f%8c%e5%b1%82%e5%be%aa%e7%8e%af"></a>
+2 · 双层循环
+</h2><p><img src="/images/harness/pi/ch03/fig1-two-loops.png" alt="图 1 · runLoop 的双层循环"></p>
+<p><code>runLoop</code> 的骨架如下（省略了每一步的细节）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="c1">// Check for steering messages at start (user may have typed while waiting)
+</span></span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">pendingMessages</span>: <span class="kt">AgentMessage</span><span class="p">[]</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="nx">config</span><span class="p">.</span><span class="nx">getSteeringMessages</span><span class="o">?</span><span class="p">.())</span> <span class="o">||</span> <span class="p">[];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Outer loop: continues when queued follow-up messages arrive after agent would stop
+</span></span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="p">(</span><span class="kc">true</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kd">let</span> <span class="nx">hasMoreToolCalls</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Inner loop: process tool calls and steering messages
+</span></span></span><span class="line"><span class="cl">	<span class="k">while</span> <span class="p">(</span><span class="nx">hasMoreToolCalls</span> <span class="o">||</span> <span class="nx">pendingMessages</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// …第二轮起：prepareNextTurn、turn_start…
+</span></span></span><span class="line"><span class="cl">		<span class="c1">// …注入 pendingMessages，prepareRequest，请求模型，执行工具…
+</span></span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">decision</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">config</span><span class="p">.</span><span class="nx">finishTurn</span><span class="o">?</span><span class="p">.(</span><span class="nx">lastCompletedTurn</span><span class="p">,</span> <span class="nx">signal</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="k">await</span> <span class="nx">emit</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;turn_end&#34;</span><span class="p">,</span> <span class="nx">message</span><span class="p">,</span> <span class="nx">toolResults</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="nx">decision</span><span class="o">?</span><span class="p">.</span><span class="nx">action</span> <span class="o">===</span> <span class="s2">&#34;end&#34;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">await</span> <span class="nx">emit</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;agent_end&#34;</span><span class="p">,</span> <span class="nx">messages</span>: <span class="kt">newMessages</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">explicitContinuation</span> <span class="o">=</span> <span class="nx">decision</span><span class="o">?</span><span class="p">.</span><span class="nx">action</span> <span class="o">===</span> <span class="s2">&#34;continue&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">pendingMessages</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="nx">config</span><span class="p">.</span><span class="nx">getSteeringMessages</span><span class="o">?</span><span class="p">.())</span> <span class="o">||</span> <span class="p">[];</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// …
+</span></span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Agent would stop here. Check for follow-up messages.
+</span></span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">followUpMessages</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="nx">config</span><span class="p">.</span><span class="nx">getFollowUpMessages</span><span class="o">?</span><span class="p">.())</span> <span class="o">||</span> <span class="p">[];</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">followUpMessages</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// Set as pending so inner loop processes them
+</span></span></span><span class="line"><span class="cl">		<span class="nx">explicitContinuation</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">pendingMessages</span> <span class="o">=</span> <span class="nx">followUpMessages</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">continue</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// No natural request was selected, so fulfill the continuation decision with one context-only turn.
+</span></span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">explicitContinuation</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">explicitContinuation</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">continue</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// No more messages, exit
+</span></span></span><span class="line"><span class="cl">	<span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">emit</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;agent_end&#34;</span><span class="p">,</span> <span class="nx">messages</span>: <span class="kt">newMessages</span> <span class="p">});</span>
+</span></span></code></pre></div><h3 id="21-内层工具结果和插队消息">
+<a class="header-anchor" href="#21-%e5%86%85%e5%b1%82%e5%b7%a5%e5%85%b7%e7%bb%93%e6%9e%9c%e5%92%8c%e6%8f%92%e9%98%9f%e6%b6%88%e6%81%af"></a>
+2.1 内层：工具结果和插队消息
+</h3><p>内层每转一圈就是一轮。继续的条件有两个：</p>
+<ul>
+<li><strong>还有工具调用</strong>：这条助手回复里有工具调用，执行完的结果要交回模型，所以必须再请求一次。只有一种情况例外：这一批工具结果全部带有 <code>terminate: true</code>（见 4.4 节）。</li>
+<li><strong>有插队消息</strong>：每轮结束后调用一次 <code>getSteeringMessages</code>。取到消息，就在下一次请求之前把它们加进上下文。</li>
+</ul>
+<p>插队消息（steering）是给&quot;运行中途改主意&quot;准备的。用户在 Agent 干活时输入&quot;停，换个做法&quot;，这条消息不会打断正在执行的工具，而是等这一轮的工具全部执行完、<code>turn_end</code> 发出之后才被取出，下一次请求时模型就能看到。</p>
+<h3 id="22-外层后续消息">
+<a class="header-anchor" href="#22-%e5%a4%96%e5%b1%82%e5%90%8e%e7%bb%ad%e6%b6%88%e6%81%af"></a>
+2.2 外层：后续消息
+</h3><p>内层停下，说明模型这次的回复没有工具调用，也没有人插队，Agent 本来要结束了。这时外层调用一次 <code>getFollowUpMessages</code>。取到后续消息（follow-up），就把它们当作待处理消息，再进入内层。</p>
+<p>两种队列的区别在于什么时候被取出：</p>
+<table>
+	<thead>
+			<tr>
+					<th>队列</th>
+					<th>什么时候取</th>
+					<th>适合</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>插队消息</td>
+					<td>每轮结束后</td>
+					<td>中途纠偏</td>
+			</tr>
+			<tr>
+					<td>后续消息</td>
+					<td>Agent 本来要停时</td>
+					<td>做完再说的事</td>
+			</tr>
+	</tbody>
+</table>
+<p>探针里，在第一个工具开始执行时同时排进一条插队消息和一条后续消息。运行记录显示：插队消息在工具批次之后的第二次请求前进入上下文，后续消息要等第二次请求的回复结束、内层停下之后，才在第三次请求前进入。</p>
+<h3 id="23-finishturn-的三种决定">
+<a class="header-anchor" href="#23-finishturn-%e7%9a%84%e4%b8%89%e7%a7%8d%e5%86%b3%e5%ae%9a"></a>
+2.3 finishTurn 的三种决定
+</h3><p><code>finishTurn</code>（一轮结束时调用，在 <code>turn_end</code> 之前）返回 <code>AgentTurnDecision</code>（这一轮之后怎么走）：</p>
+<ul>
+<li><code>undefined</code>（照常：按工具结果和队列决定是否继续）</li>
+<li><code>{ action: &quot;end&quot; }</code>（立刻结束：发出 <code>turn_end</code> 和 <code>agent_end</code>，不再取插队和后续消息）</li>
+<li><code>{ action: &quot;continue&quot; }</code>（保证至少还有一次请求）</li>
+</ul>
+<p><code>continue</code> 的含义是&quot;至少再请求一次&quot;，不会额外多发请求。如果工具结果、插队消息或后续消息本来就会触发下一次请求，这个决定就算兑现了。只有在都没有的时候，外层才会用当前上下文再跑一轮，也就是图 1 里 06 那条路径。</p>
+<blockquote>
+<p>⚠️ <code>finishTurn</code> 每轮都会被调用。每次都返回 <code>continue</code> 就会无限循环，必须带上停止条件。</p>
+</blockquote>
+<h3 id="24-两个出口之外的提前退出">
+<a class="header-anchor" href="#24-%e4%b8%a4%e4%b8%aa%e5%87%ba%e5%8f%a3%e4%b9%8b%e5%a4%96%e7%9a%84%e6%8f%90%e5%89%8d%e9%80%80%e5%87%ba"></a>
+2.4 两个出口之外的提前退出
+</h3><p>除了正常结束，循环还有两个提前出口：</p>
+<ul>
+<li><strong>助手消息的 <code>stopReason</code> 是 <code>error</code> 或 <code>aborted</code></strong>：不执行这条消息里的工具调用。<code>finishTurn</code> 照常调用，但返回的决定会被忽略，随后直接发出 <code>turn_end</code> 和 <code>agent_end</code>。</li>
+<li><strong><code>finishTurn</code> 返回 <code>end</code></strong>：见上一小节。</li>
+</ul>
+<blockquote>
+<p>📌 <code>Agent</code> 的两个队列默认都是 <code>one-at-a-time</code>（每次只取最早的一条），另一种模式是 <code>all</code>（一次取完）。按默认设置，连续排进三条插队消息，会分三轮依次注入，每轮一条。</p>
+</blockquote>
+<hr>
+<h2 id="3--一轮的生命周期">
+<a class="header-anchor" href="#3--%e4%b8%80%e8%bd%ae%e7%9a%84%e7%94%9f%e5%91%bd%e5%91%a8%e6%9c%9f"></a>
+3 · 一轮的生命周期
+</h2><p><img src="/images/harness/pi/ch03/fig2-turn-order.png" alt="图 2 · 一轮里钩子和事件的先后顺序"></p>
+<p>一轮里各个钩子的调用和事件的发出，严格按下面的顺序进行：</p>
+<ol>
+<li><strong>准备下一轮</strong>（第二轮起）：调用 <code>prepareNextTurn</code>，它可以替换上下文、模型、推理强度，或者返回要追加的消息。如果此时手里还没有待处理的消息，就再取一次插队消息，因为准备工作可能很慢（例如压缩），期间用户可能又输入了内容。然后发出 <code>turn_start</code>。</li>
+<li><strong>注入待处理消息</strong>：先是 <code>prepareNextTurn</code> 追加的消息，再是这次取到的队列消息（插队消息或后续消息，同一轮里只会有其中一种）。每条都发出 <code>message_start</code> 和 <code>message_end</code>，然后加进上下文。如果可执行的工具和对话里已经声明的工具不一致，这里还会插入一条 system 消息（放在第一条非 system 消息之前），向模型宣告新增和移除的工具。</li>
+<li><strong><code>prepareRequest</code></strong>：这时待处理消息已经入列。它返回的上下文、模型、推理强度，会替换这一次和之后的请求所用的值。它不会去取队列。</li>
+<li><strong><code>transformContext</code> → <code>convertToLlm</code></strong>：先在引擎消息层面改写（裁剪历史、注入外部上下文），再转成模型能理解的消息。</li>
+<li><strong><code>streamFn</code></strong>：取到密钥后发出请求。流式返回的过程中，依次发出 <code>message_start</code>、若干 <code>message_update</code>、<code>message_end</code>。</li>
+<li><strong>执行工具</strong>：见第 4 节。每个调用都有 <code>tool_execution_start</code> / <code>tool_execution_update</code> / <code>tool_execution_end</code>，最后每条工具结果都发出 <code>message_start</code> / <code>message_end</code>。</li>
+<li><strong><code>finishTurn</code></strong>：这时助手消息和所有工具结果都已经入列。</li>
+<li><strong><code>turn_end</code></strong>：带上这条助手消息和本轮的工具结果。</li>
+<li><strong>取插队消息</strong>：调用 <code>getSteeringMessages</code>，结合工具结果决定内层是否继续。</li>
+</ol>
+<p>第一轮和后面的轮次有一点不同：第一轮的 <code>turn_start</code> 和提示消息的事件，是在进入 <code>runLoop</code> 之前由 <code>runAgentLoop</code> 发出的，所以第一轮没有第 1 步。</p>
+<p>探针里第一轮和第二轮的记录如下（<code>ev</code> 开头的是订阅者收到的事件，其余是钩子被调用的时刻）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">  ev agent_start
+</span></span><span class="line"><span class="cl">  ev turn_start
+</span></span><span class="line"><span class="cl">  ev message_start(user)
+</span></span><span class="line"><span class="cl">  ev message_end(user)
+</span></span><span class="line"><span class="cl">prepareRequest
+</span></span><span class="line"><span class="cl">transformContext
+</span></span><span class="line"><span class="cl">convertToLlm
+</span></span><span class="line"><span class="cl">streamFn#0
+</span></span><span class="line"><span class="cl">  ev message_start(assistant)
+</span></span><span class="line"><span class="cl">  ev message_end(assistant)
+</span></span><span class="line"><span class="cl">  ev tool_execution_start(slow)
+</span></span><span class="line"><span class="cl">beforeToolCall(slow)
+</span></span><span class="line"><span class="cl">…（工具执行，见第 4 节）
+</span></span><span class="line"><span class="cl">finishTurn#1
+</span></span><span class="line"><span class="cl">  ev turn_end
+</span></span><span class="line"><span class="cl">prepareNextTurn
+</span></span><span class="line"><span class="cl">  ev turn_start
+</span></span><span class="line"><span class="cl">  ev message_start(user)        ← 插队消息
+</span></span><span class="line"><span class="cl">  ev message_end(user)
+</span></span><span class="line"><span class="cl">prepareRequest
+</span></span><span class="line"><span class="cl">transformContext
+</span></span><span class="line"><span class="cl">convertToLlm
+</span></span><span class="line"><span class="cl">streamFn#1
+</span></span></code></pre></div><blockquote>
+<p>💡 <code>prepareRequest</code> 和 <code>transformContext</code> 都能改上下文，作用范围不同：<code>prepareRequest</code> 返回的上下文会替换循环里保存的那一份，影响之后的所有请求；<code>transformContext</code> 的结果只用于这一次请求，循环里保存的上下文不变。第二章讲过 coding-agent 怎么用它们：前者从会话树重新算出上下文，后者交给扩展的 <code>context</code> 事件。</p>
+</blockquote>
+<blockquote>
+<p>📌 <code>convertToLlm</code> 要保留 <code>system</code> 消息。提示词和工具声明都放在 system 消息里，<code>Agent</code> 默认的转换函数会保留 <code>system</code>、<code>user</code>、<code>assistant</code>、<code>toolResult</code> 四种角色。自己写转换函数时，如果把 <code>system</code> 也过滤掉，模型就看不到提示词和工具声明了。</p>
+</blockquote>
+<hr>
+<h2 id="4--工具执行">
+<a class="header-anchor" href="#4--%e5%b7%a5%e5%85%b7%e6%89%a7%e8%a1%8c"></a>
+4 · 工具执行
+</h2><h3 id="41-串行还是并行">
+<a class="header-anchor" href="#41-%e4%b8%b2%e8%a1%8c%e8%bf%98%e6%98%af%e5%b9%b6%e8%a1%8c"></a>
+4.1 串行还是并行
+</h3><p><img src="/images/harness/pi/ch03/fig3-sequential-parallel.png" alt="图 3 · 同一批三个工具调用：串行与并行"></p>
+<p>选择逻辑只有几行：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">toolCalls</span> <span class="o">=</span> <span class="nx">assistantMessage</span><span class="p">.</span><span class="nx">content</span><span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">c</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">c</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;toolCall&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">hasSequentialToolCall</span> <span class="o">=</span> <span class="nx">toolCalls</span><span class="p">.</span><span class="nx">some</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="p">(</span><span class="nx">tc</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">currentContext</span><span class="p">.</span><span class="nx">tools</span><span class="o">?</span><span class="p">.</span><span class="nx">find</span><span class="p">((</span><span class="nx">t</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">t</span><span class="p">.</span><span class="nx">name</span> <span class="o">===</span> <span class="nx">tc</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span><span class="o">?</span><span class="p">.</span><span class="nx">executionMode</span> <span class="o">===</span> <span class="s2">&#34;sequential&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">toolExecution</span> <span class="o">===</span> <span class="s2">&#34;sequential&#34;</span> <span class="o">||</span> <span class="nx">hasSequentialToolCall</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">executeToolCallsSequential</span><span class="p">(</span><span class="nx">currentContext</span><span class="p">,</span> <span class="nx">assistantMessage</span><span class="p">,</span> <span class="nx">toolCalls</span><span class="p">,</span> <span class="nx">config</span><span class="p">,</span> <span class="nx">signal</span><span class="p">,</span> <span class="nx">emit</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">return</span> <span class="nx">executeToolCallsParallel</span><span class="p">(</span><span class="nx">currentContext</span><span class="p">,</span> <span class="nx">assistantMessage</span><span class="p">,</span> <span class="nx">toolCalls</span><span class="p">,</span> <span class="nx">config</span><span class="p">,</span> <span class="nx">signal</span><span class="p">,</span> <span class="nx">emit</span><span class="p">);</span>
+</span></span></code></pre></div><ul>
+<li>默认是并行。</li>
+<li>全局配置 <code>toolExecution: &quot;sequential&quot;</code>，或者这一批里只要有一个工具声明了 <code>executionMode: &quot;sequential&quot;</code>（必须单独执行），<strong>整批</strong>都改为串行。</li>
+</ul>
+<p>两种模式的执行过程：</p>
+<ul>
+<li><strong>串行</strong>：每个调用依次经过准备、执行、收尾，结果消息发出之后，下一个调用才开始。</li>
+<li><strong>并行</strong>：先按顺序逐个准备（查找、校验、<code>beforeToolCall</code>），全部准备完之后，再同时执行所有通过的调用。每个调用执行完就立刻发出自己的 <code>tool_execution_end</code>，所以 end 事件按<strong>完成顺序</strong>发出；工具结果消息要等全部执行完，再按助手消息里的<strong>原顺序</strong>发出。</li>
+</ul>
+<p>探针里，一条助手消息带了 6 个工具调用：<code>slow</code>（30ms）、<code>fast</code>（5ms）、一个不存在的工具、一个参数不合法的调用、一个会被拦截的调用、一个等 5ms 后抛错的调用。并行模式下，前三个失败的调用在准备阶段就发出了 end；真正执行的三个，end 的记录如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">  …
+</span></span><span class="line"><span class="cl">  ev tool_execution_end(fast: rewritten)
+</span></span><span class="line"><span class="cl">  ev tool_execution_end(thr!: negative!)
+</span></span><span class="line"><span class="cl">  ev tool_execution_end(slow: slow ok)
+</span></span><span class="line"><span class="cl">  ev message_start(toolResult:slow)
+</span></span><span class="line"><span class="cl">  ev message_start(toolResult:fast)
+</span></span><span class="line"><span class="cl">  ev message_start(toolResult:nope!)
+</span></span><span class="line"><span class="cl">  …
+</span></span></code></pre></div><p><code>slow</code> 最慢，最后发出 end，但结果消息仍然从 <code>slow</code> 开始排。这样，模型下一次看到的结果顺序和它发出调用的顺序一致，和工具的快慢无关。</p>
+<h3 id="42-beforetoolcall-和-aftertoolcall">
+<a class="header-anchor" href="#42-beforetoolcall-%e5%92%8c-aftertoolcall"></a>
+4.2 beforeToolCall 和 afterToolCall
+</h3><p><strong><code>beforeToolCall</code></strong>（执行前检查）在参数校验通过之后调用，收到 <code>BeforeToolCallContext</code>：</p>
+<ul>
+<li><code>assistantMessage</code>（发出这个调用的助手消息）</li>
+<li><code>toolCall</code>（原始的工具调用块）</li>
+<li><code>args</code>（校验过的参数）</li>
+<li><code>context</code>（当前的引擎上下文）</li>
+</ul>
+<p>它返回 <code>BeforeToolCallResult</code>：</p>
+<ul>
+<li><code>block</code>（为 true 时不执行这个工具）</li>
+<li><code>reason</code>（拦截原因，会作为错误结果的文本交给模型；不填时是 <code>Tool execution was blocked</code>）</li>
+<li><code>terminate</code>（拦截后建议本批结束就停，见 4.4 节）</li>
+</ul>
+<p>它还能改参数：<code>args</code> 和之后传给 <code>execute</code> 的是同一个对象，在钩子里原地修改，工具拿到的就是修改后的值，而且<strong>不会再校验一次</strong>。仓库里有一个测试专门固定这个行为（&ldquo;should execute mutated beforeToolCall args without revalidation&rdquo;）。</p>
+<p><strong><code>afterToolCall</code></strong>（执行后改写结果）在工具执行完、发出 <code>tool_execution_end</code> 之前调用。它比 <code>beforeToolCall</code> 多收到 <code>result</code>（执行结果，任何改写之前的原样）和 <code>isError</code>（当前是否算作失败）。返回的 <code>AfterToolCallResult</code> 按字段覆盖：</p>
+<ul>
+<li><code>content</code>（整个替换发给模型的内容）</li>
+<li><code>details</code>（整个替换给界面和日志用的数据）</li>
+<li><code>isError</code>（替换失败标记）</li>
+<li><code>usage</code>（替换工具自身的用量统计）</li>
+<li><code>terminate</code>（替换提前结束的标记）</li>
+<li><code>structuredContent</code>（替换结构化结果）</li>
+</ul>
+<p>没返回的字段保持原值，也没有深合并。有一个例外：只替换了 <code>content</code> 而没给 <code>structuredContent</code> 时，原来的结构化结果会被丢掉，因为它可能已经和新内容对不上了。</p>
+<p>两个钩子都会收到中止信号，是否响应由钩子自己负责。</p>
+<h3 id="43-每一种失败的去向">
+<a class="header-anchor" href="#43-%e6%af%8f%e4%b8%80%e7%a7%8d%e5%a4%b1%e8%b4%a5%e7%9a%84%e5%8e%bb%e5%90%91"></a>
+4.3 每一种失败的去向
+</h3><p><img src="/images/harness/pi/ch03/fig4-tool-outcomes.png" alt="图 4 · 一个工具调用经过的关卡，以及每一关失败时的结果"></p>
+<p>一个工具调用依次经过 6 道关卡（<code>beforeToolCall</code> 这一关，拦截和抛错都算失败）。无论在哪一关失败，结果都是一条 <code>isError: true</code> 的工具结果消息，模型在下一次请求时能看到失败原因并自行调整：</p>
+<table>
+	<thead>
+			<tr>
+					<th>关卡</th>
+					<th>失败时交给模型的文本</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>找不到工具</td>
+					<td><code>Tool &lt;name&gt; not found</code></td>
+			</tr>
+			<tr>
+					<td>参数修补或校验失败</td>
+					<td>校验错误的原文</td>
+			</tr>
+			<tr>
+					<td><code>beforeToolCall</code> 拦截</td>
+					<td><code>reason</code>，或默认文本</td>
+			</tr>
+			<tr>
+					<td><code>beforeToolCall</code> 抛错</td>
+					<td>错误信息</td>
+			</tr>
+			<tr>
+					<td>准备完时已中止</td>
+					<td><code>Operation aborted</code></td>
+			</tr>
+			<tr>
+					<td><code>execute</code> 抛错</td>
+					<td>错误信息</td>
+			</tr>
+			<tr>
+					<td><code>afterToolCall</code> 抛错</td>
+					<td>错误信息</td>
+			</tr>
+	</tbody>
+</table>
+<p>补充几点：</p>
+<ul>
+<li>前 4 关没通过时，工具不会执行，<code>afterToolCall</code> 也不会被调用。事件仍然完整：<code>tool_execution_start</code> 和 <code>tool_execution_end</code> 都会发出。在准备阶段失败的调用，end 紧跟在 start 之后；并行模式下，准备完才发现已中止的调用，要到执行阶段才发出 end，中间可能夹着其他调用的 start。</li>
+<li>工具也可以不抛错，而是返回 <code>isError: true</code>。这时 <code>content</code> 作为错误交给模型，<code>details</code> 和 <code>structuredContent</code> 保留给界面和程序调用方。<code>AgentTool</code> 的注释要求失败时必须二选一，不要只在 <code>content</code> 里描述失败。</li>
+<li>工具执行完之后再调用进度回调 <code>onUpdate</code>，引擎会直接忽略。</li>
+<li>助手消息的 <code>stopReason</code> 是 <code>length</code>（输出达到 token 上限被截断）时，这一批工具调用<strong>全部不执行</strong>。截断的参数可能刚好能解析、能通过校验，但内容不完整，所以每个调用都会得到一条错误结果，提示模型用完整的参数重新调用。循环照常继续。</li>
+</ul>
+<h3 id="44-提前结束terminate">
+<a class="header-anchor" href="#44-%e6%8f%90%e5%89%8d%e7%bb%93%e6%9d%9fterminate"></a>
+4.4 提前结束：terminate
+</h3><p>工具结果、<code>beforeToolCall</code> 的拦截结果、<code>afterToolCall</code> 的改写，都可以带上 <code>terminate: true</code>，意思是&quot;这批工具执行完就别再请求模型了&quot;。判断规则在 <code>shouldTerminateToolBatch</code>（判断这一批是否提前结束）里：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">shouldTerminateToolBatch</span><span class="p">(</span><span class="nx">finalizedCalls</span>: <span class="kt">FinalizedToolCallOutcome</span><span class="p">[])</span><span class="o">:</span> <span class="kr">boolean</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">finalizedCalls</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">&amp;&amp;</span> <span class="nx">finalizedCalls</span><span class="p">.</span><span class="nx">every</span><span class="p">((</span><span class="nx">finalized</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">finalized</span><span class="p">.</span><span class="nx">result</span><span class="p">.</span><span class="nx">terminate</span> <span class="o">===</span> <span class="kc">true</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>必须这一批的<strong>每一个</strong>结果都带上 <code>terminate</code>，内层才不会因为工具结果而继续。只要有一个没带，就照常把结果交回模型。即使整批都带了 <code>terminate</code>，后面仍然会照常取插队和后续消息，有消息排着就继续跑。</p>
+<blockquote>
+<p>📌 拦截一个工具调用，并不会结束整次运行。被拦截的调用会变成一条错误结果交回模型，模型通常会换一种做法再试。要让运行停下，可以在拦截时带上 <code>terminate: true</code>（整批都这样才生效），或者在 <code>finishTurn</code> 里返回 <code>{ action: &quot;end&quot; }</code>。</p>
+</blockquote>
+<h3 id="45-中止">
+<a class="header-anchor" href="#45-%e4%b8%ad%e6%ad%a2"></a>
+4.5 中止
+</h3><p>调用 <code>Agent.abort()</code>（或者中止你传给 <code>agentLoop()</code> 的 signal）后，按中止发生的时机分几种情况：</p>
+<ul>
+<li><strong>请求模型时</strong>：按 <code>StreamFn</code> 的约定，被中止的请求不抛错，而是返回一条 <code>stopReason: &quot;aborted&quot;</code> 的助手消息，循环从 2.4 节的提前出口退出。</li>
+<li><strong>准备工具时</strong>：<code>beforeToolCall</code> 之后、执行之前各检查一次，已中止就返回 <code>Operation aborted</code>。并行模式下，后面还没准备的调用直接丢弃。</li>
+<li><strong>工具执行中</strong>：signal 会传给 <code>execute</code>，工具要自己响应中止。
+<ul>
+<li>串行模式下，当前调用结束后发现已中止，剩下的调用就不再执行，<strong>也不会生成结果</strong>。</li>
+<li>并行模式（默认）下，所有调用在执行前都已经准备好，同时启动；已中止的调用各自得到 <code>Operation aborted</code>，每个调用都有结果。</li>
+</ul>
+</li>
+</ul>
+<p>工具批次结束后，循环并不会马上退出，而是照常调用 <code>finishTurn</code>、发出 <code>turn_end</code>，进入下一轮。下一次请求带着已中止的 signal，<code>streamFn</code> 返回 <code>aborted</code>，循环这才结束。探针用串行模式，中止发生在第一个工具执行期间，记录是这样的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">tool_execution_start(a) → tool_execution_end(a!: cancelled) → message_start/end(toolResult:a!)
+</span></span><span class="line"><span class="cl">→ turn_end → turn_start → streamFn#1 → message_start/end(assistant, aborted) → turn_end → agent_end
+</span></span></code></pre></div><p>第二个调用 <code>b</code> 没有任何事件和结果。同样的场景换成并行模式，<code>b</code> 会得到一条 <code>Operation aborted</code> 的结果。串行模式下留下的这种调用，之后再把这段对话发给模型时，pi-ai 的消息转换会给这种没有结果的调用补一条 <code>No result provided</code> 的错误结果，让请求符合供应商的格式要求。</p>
+<hr>
+<h2 id="5--agent-类和直接调用-agentloop-的区别">
+<a class="header-anchor" href="#5--agent-%e7%b1%bb%e5%92%8c%e7%9b%b4%e6%8e%a5%e8%b0%83%e7%94%a8-agentloop-%e7%9a%84%e5%8c%ba%e5%88%ab"></a>
+5 · Agent 类和直接调用 agentLoop() 的区别
+</h2><p><img src="/images/harness/pi/ch03/fig5-agent-vs-loop.png" alt="图 5 · 同一个循环，两种事件出口"></p>
+<p>循环里每个事件都是 <code>await emit(event)</code> 发出的。区别在于传进来的 <code>emit</code> 函数是什么。</p>
+<p><code>agentLoop()</code> 传的是一个只往事件流里推的函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">stream</span> <span class="o">=</span> <span class="nx">createAgentStream</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">void</span> <span class="nx">runAgentLoop</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">prompts</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">context</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">config</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">async</span> <span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">stream</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">event</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">signal</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">streamFn</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">).</span><span class="nx">then</span><span class="p">((</span><span class="nx">messages</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">stream</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">messages</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">return</span> <span class="nx">stream</span><span class="p">;</span>
+</span></span></code></pre></div><p><code>stream.push</code> 是同步的：把事件交给正在等待的消费者，或者先放进队列，然后立刻返回。所以循环不会等你的 <code>for await</code> 处理完一个事件再继续。</p>
+<p><code>Agent</code> 传的是自己的 <code>processEvents</code>（先更新状态，再逐个等待订阅者）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">listener</span> <span class="k">of</span> <span class="k">this</span><span class="p">.</span><span class="nx">listeners</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">await</span> <span class="nx">listener</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">signal</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>订阅者按注册顺序依次执行，每一个都被等待。探针里，订阅者在助手消息的 <code>message_end</code> 上等待 50ms，再看工具什么时候开始执行：</p>
+<ul>
+<li><code>Agent</code>：订阅者开始 → 订阅者结束 → <code>execute</code></li>
+<li><code>agentLoop()</code>：<code>execute</code> → 订阅者开始 → 订阅者结束</li>
+</ul>
+<p>这正是 README 里说的：用 <code>Agent</code> 时，助手消息的 <code>message_end</code> 处理完，才会开始准备工具，所以 <code>beforeToolCall</code> 看到的状态里已经有了这条助手消息。</p>
+<p>除了等不等订阅者，两者还有这些区别：</p>
+<table>
+	<thead>
+			<tr>
+					<th>方面</th>
+					<th><code>Agent</code></th>
+					<th><code>agentLoop()</code></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>事件处理</td>
+					<td>逐个等待订阅者</td>
+					<td>推进事件流，不等待</td>
+			</tr>
+			<tr>
+					<td>消息与状态</td>
+					<td>自动维护 <code>state</code></td>
+					<td>调用方自己保存</td>
+			</tr>
+			<tr>
+					<td>插队与后续</td>
+					<td>内置两个队列</td>
+					<td>自己传两个取消息的函数</td>
+			</tr>
+			<tr>
+					<td>中止</td>
+					<td><code>abort()</code></td>
+					<td>自己传 signal</td>
+			</tr>
+			<tr>
+					<td>注入的函数抛错</td>
+					<td>合成一条错误消息</td>
+					<td>未处理的拒绝</td>
+			</tr>
+			<tr>
+					<td>运行中再次调用</td>
+					<td><code>prompt()</code> 抛错</td>
+					<td>不限制</td>
+			</tr>
+	</tbody>
+</table>
+<p>其中几项展开说明：</p>
+<ul>
+<li><strong>状态</strong>：<code>Agent</code> 在 <code>message_end</code> 时把消息追加到 <code>state.messages</code>，在工具开始和结束时维护 <code>state.pendingToolCalls</code>（正在执行的工具调用 id），在 <code>turn_end</code> 时把助手消息的错误记到 <code>state.errorMessage</code>。<code>state.isStreaming</code>（是否在运行）要等 <code>agent_end</code> 的订阅者全部处理完才变回 false，<code>waitForIdle()</code>（等这次运行完全结束）也是到这时才返回。</li>
+<li><strong>抛错</strong>：<code>convertToLlm</code>、<code>transformContext</code>、<code>getApiKey</code>、取消息的函数，按约定都不能抛错。真的抛了，<code>Agent</code> 会合成一条 <code>stopReason</code> 为 <code>error</code>（或 <code>aborted</code>）的助手消息，补发 <code>message_start</code>、<code>message_end</code>、<code>turn_end</code>、<code>agent_end</code>，<code>prompt()</code> 本身正常返回，错误放在 <code>state.errorMessage</code> 里。（订阅者自己抛错时不一样：补发事件时它会再抛一次，<code>prompt()</code> 会被拒绝。）<code>agentLoop()</code> 没有这层保护：内部的 Promise 被拒绝后没有人处理。在 Node 的默认设置下，这是一次未处理的拒绝，进程直接退出；如果宿主注册了 <code>unhandledRejection</code> 处理器，或者运行在浏览器里，<code>stream.end()</code> 永远不会被调用，<code>for await</code> 会一直等下去。</li>
+<li><strong>再次调用</strong>：运行中调用 <code>prompt()</code> 会抛错，提示改用 <code>steer()</code>（排一条插队消息）或 <code>followUp()</code>（排一条后续消息）。<code>continue()</code>（从当前对话继续）要求最后一条消息不是助手消息；如果是，它会先尝试取一批插队消息，没有再取一批后续消息，都没有才抛错。</li>
+<li><strong><code>prepareNextTurn</code> 的签名</strong>：循环配置里的 <code>prepareNextTurn</code> 收到上一轮的完整信息。<code>Agent</code> 上有两个版本：<code>prepareNextTurn</code>（只收到 signal）和 <code>prepareNextTurnWithContext</code>（收到上一轮的信息和 signal）。两个都设置时用后者。</li>
+</ul>
+<p>所以：需要状态、队列，或者需要事件处理完成后循环才往下走时，用 <code>Agent</code>；只想观察事件、自己管理一切时，可以直接用 <code>agentLoop()</code>，但要保证注入的函数不抛错。</p>
+<hr>
+<h2 id="6--用法加一个钩子">
+<a class="header-anchor" href="#6--%e7%94%a8%e6%b3%95%e5%8a%a0%e4%b8%80%e4%b8%aa%e9%92%a9%e5%ad%90"></a>
+6 · 用法：加一个钩子
+</h2><h3 id="61-引擎层直接给-agent-挂钩子">
+<a class="header-anchor" href="#61-%e5%bc%95%e6%93%8e%e5%b1%82%e7%9b%b4%e6%8e%a5%e7%bb%99-agent-%e6%8c%82%e9%92%a9%e5%ad%90"></a>
+6.1 引擎层：直接给 Agent 挂钩子
+</h3><p>下面的例子做两件事：拦截 <code>rm -rf</code>；模型没有回复 <code>DONE</code> 时自动续跑，最多续跑 3 次。<code>Agent</code> 的钩子都是公开字段，创建后直接赋值即可，下一次运行就会生效。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Agent</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-agent-core&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createModels</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">anthropicProvider</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/providers/anthropic&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">models</span> <span class="o">=</span> <span class="nx">createModels</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="nx">models</span><span class="p">.</span><span class="nx">setProvider</span><span class="p">(</span><span class="nx">anthropicProvider</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;anthropic&#34;</span><span class="p">,</span> <span class="s2">&#34;claude-sonnet-4-6&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">model</span><span class="p">)</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&#34;Model not found&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">agent</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Agent</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">initialState</span><span class="o">:</span> <span class="p">{</span> <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;You are a careful build assistant.&#34;</span><span class="p">,</span> <span class="nx">model</span><span class="p">,</span> <span class="nx">tools</span><span class="o">:</span> <span class="p">[</span><span class="nx">bashTool</span><span class="p">]</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">streamFn</span>: <span class="kt">models.streamSimple.bind</span><span class="p">(</span><span class="nx">models</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 1. 拦截：参数已经校验过，可以放心读取 args
+</span></span></span><span class="line"><span class="cl"><span class="nx">agent</span><span class="p">.</span><span class="nx">beforeToolCall</span> <span class="o">=</span> <span class="kr">async</span> <span class="p">({</span> <span class="nx">toolCall</span><span class="p">,</span> <span class="nx">args</span> <span class="p">})</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">toolCall</span><span class="p">.</span><span class="nx">name</span> <span class="o">===</span> <span class="s2">&#34;bash&#34;</span> <span class="o">&amp;&amp;</span> <span class="sr">/\brm\s+-rf\b/</span><span class="p">.</span><span class="nx">test</span><span class="p">((</span><span class="nx">args</span> <span class="kr">as</span> <span class="p">{</span> <span class="nx">command</span>: <span class="kt">string</span> <span class="p">}).</span><span class="nx">command</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="p">{</span> <span class="nx">block</span>: <span class="kt">true</span><span class="p">,</span> <span class="nx">reason</span><span class="o">:</span> <span class="s2">&#34;rm -rf 被策略禁止，请换一种做法&#34;</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// 2. 自动续跑：只在正常结束、没有工具调用的轮次判断
+</span></span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">nudges</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="nx">agent</span><span class="p">.</span><span class="nx">finishTurn</span> <span class="o">=</span> <span class="kr">async</span> <span class="p">({</span> <span class="nx">message</span><span class="p">,</span> <span class="nx">toolResults</span> <span class="p">})</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">message</span><span class="p">.</span><span class="nx">stopReason</span> <span class="o">!==</span> <span class="s2">&#34;stop&#34;</span> <span class="o">||</span> <span class="nx">toolResults</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">text</span> <span class="o">=</span> <span class="nx">message</span><span class="p">.</span><span class="nx">content</span><span class="p">.</span><span class="nx">flatMap</span><span class="p">((</span><span class="nx">c</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">(</span><span class="nx">c</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;text&#34;</span> <span class="o">?</span> <span class="p">[</span><span class="nx">c</span><span class="p">.</span><span class="nx">text</span><span class="p">]</span> <span class="o">:</span> <span class="p">[])).</span><span class="nx">join</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">text</span><span class="p">.</span><span class="nx">includes</span><span class="p">(</span><span class="s2">&#34;DONE&#34;</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="nx">nudges</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">nudges</span><span class="o">++</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">agent</span><span class="p">.</span><span class="nx">followUp</span><span class="p">({</span> <span class="nx">role</span><span class="o">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="nx">content</span><span class="o">:</span> <span class="s2">&#34;还没完成，请继续。全部完成后回复 DONE。&#34;</span><span class="p">,</span> <span class="nx">timestamp</span>: <span class="kt">Date.now</span><span class="p">()</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">agent</span><span class="p">.</span><span class="nx">prompt</span><span class="p">(</span><span class="s2">&#34;清理构建目录，然后重新构建&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>其中 <code>bashTool</code> 是你自己定义的 <code>AgentTool</code>。这段代码里的几个选择：</p>
+<ul>
+<li><strong>拦截不会结束运行</strong>：被拦截的调用变成一条错误结果，<code>reason</code> 原样交给模型，模型通常会换一种做法。</li>
+<li><strong>续跑用 <code>followUp</code> 而不是 <code>{ action: &quot;continue&quot; }</code></strong>：这一轮的上下文以助手消息结尾，只返回 <code>continue</code> 会让循环用这份上下文再请求一次，模型收不到任何新的输入。在 <code>finishTurn</code> 里排一条后续消息，内层停下后外层会取到它，再跑一轮。</li>
+<li><strong>先排除 <code>error</code> 和 <code>aborted</code></strong>：这两种情况下 <code>finishTurn</code> 仍会被调用，但循环一定会退出，在这里排进的后续消息会留到下一次运行。</li>
+<li><strong>计数器是停止条件</strong>：没有它，模型一直不回复 <code>DONE</code>，就会一直续跑下去。</li>
+</ul>
+<p>用假的 <code>streamFn</code> 跑这段逻辑：第一次请求的 <code>rm -rf</code> 被拦截，模型收到的是拦截原因；后面两次回复没有 <code>DONE</code>，各续跑一次；第四次回复了 <code>DONE</code>，运行结束。一共 4 次请求，续跑 2 次。</p>
+<h3 id="62-产品层通过-sdk-挂扩展钩子">
+<a class="header-anchor" href="#62-%e4%ba%a7%e5%93%81%e5%b1%82%e9%80%9a%e8%bf%87-sdk-%e6%8c%82%e6%89%a9%e5%b1%95%e9%92%a9%e5%ad%90"></a>
+6.2 产品层：通过 SDK 挂扩展钩子
+</h3><p>用 coding-agent 的 SDK 时，<code>Agent</code> 的钩子已经被 <code>AgentSession</code> 接管（见第二章第 4 节），应该通过扩展事件来插手。<code>DefaultResourceLoader</code> 的 <code>extensionFactories</code>（内联扩展）可以在代码里直接写一个扩展：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">createAgentSession</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">DefaultResourceLoader</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">getAgentDir</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">isToolCallEventType</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">SessionManager</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">resourceLoader</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">DefaultResourceLoader</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">cwd</span>: <span class="kt">process.cwd</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">agentDir</span>: <span class="kt">getAgentDir</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">extensionFactories</span><span class="o">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">		<span class="p">(</span><span class="nx">pi</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;tool_call&#34;</span><span class="p">,</span> <span class="kr">async</span> <span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">if</span> <span class="p">(</span><span class="nx">isToolCallEventType</span><span class="p">(</span><span class="s2">&#34;bash&#34;</span><span class="p">,</span> <span class="nx">event</span><span class="p">)</span> <span class="o">&amp;&amp;</span> <span class="sr">/\brm\s+-rf\b/</span><span class="p">.</span><span class="nx">test</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">input</span><span class="p">.</span><span class="nx">command</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">					<span class="k">return</span> <span class="p">{</span> <span class="nx">block</span>: <span class="kt">true</span><span class="p">,</span> <span class="nx">reason</span><span class="o">:</span> <span class="s2">&#34;rm -rf 被策略禁止，请换一种做法&#34;</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">				<span class="p">}</span>
+</span></span><span class="line"><span class="cl">				<span class="k">return</span> <span class="kc">undefined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="p">});</span>
+</span></span><span class="line"><span class="cl">		<span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="p">],</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">resourceLoader</span><span class="p">.</span><span class="nx">reload</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="p">{</span> <span class="nx">session</span> <span class="p">}</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">createAgentSession</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">resourceLoader</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sessionManager</span>: <span class="kt">SessionManager.inMemory</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">session</span><span class="p">.</span><span class="nx">prompt</span><span class="p">(</span><span class="s2">&#34;清理构建目录，然后重新构建&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>运行时，循环调用 <code>AgentSession</code> 装上的 <code>beforeToolCall</code>，它再把 <code>tool_call</code> 事件派发给扩展；扩展返回的结果原路带回，走的就是本章 4.2 节的拦截逻辑。几点说明：</p>
+<ul>
+<li><code>isToolCallEventType</code>（按工具名收窄事件类型，<code>event.input</code> 随之有了准确的类型）。直接比较 <code>event.toolName === &quot;bash&quot;</code> 收窄不了，因为自定义工具的 <code>toolName</code> 是 <code>string</code>。</li>
+<li>返回值 <code>{ block, reason, terminate }</code> 和引擎层的 <code>BeforeToolCallResult</code> 一一对应。要改参数，就原地修改 <code>event.input</code>。</li>
+<li>扩展的 <code>turn_end</code> 事件对应引擎的 <code>finishTurn</code>，但写法不同：处理函数返回 <code>{ continue: true }</code>，而且 <code>AgentSession</code> 会先检查上下文能不能继续，例如对话以助手消息结尾、又没有排队的消息时，这个请求会被拒绝并报错。想自动续跑，也可以照 6.1 节的思路，在扩展里调用 <code>pi.sendUserMessage(text, { deliverAs: &quot;followUp&quot; })</code>（以后续消息的方式发一条用户消息）。运行中调用时，它经 <code>Agent.followUp</code> 排进后续队列。</li>
+</ul>
+<hr>
+<h2 id="7--三个可以带走的方法">
+<a class="header-anchor" href="#7--%e4%b8%89%e4%b8%aa%e5%8f%af%e4%bb%a5%e5%b8%a6%e8%b5%b0%e7%9a%84%e6%96%b9%e6%b3%95"></a>
+7 · 三个可以带走的方法
+</h2><ol>
+<li><strong>把调度决定集中在轮次边界上。</strong> 除了模型出错或被中止时立即退出，循环继续还是停下，都在每轮结束时判断：工具结果、插队消息、后续消息、<code>finishTurn</code> 的决定，都在这里汇总。用户插话、工具出错不会打断正在执行的步骤，只会影响下一轮。</li>
+<li><strong>让失败变成数据。</strong> 工具的每一种失败都转成一条错误结果交回模型，模型请求的失败和中止也通过 <code>stopReason</code> 表达，而不是抛异常。大多数失败因此都走正常的事件序列，订阅者照常处理即可；抛异常只留给违反约定的情况。</li>
+<li><strong>同一个循环，换一个事件出口。</strong> <code>Agent</code> 和 <code>agentLoop()</code> 没有各写一套循环，只是传入的 <code>emit</code> 不同。要不要等订阅者，由调用方选择。</li>
+</ol>
+<hr>
+<h2 id="8--关键数字">
+<a class="header-anchor" href="#8--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+8 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>指标</th>
+					<th>数值</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>agent-loop.ts</code> / <code>agent.ts</code> / <code>types.ts</code></td>
+					<td>940 / 613 / 529 行</td>
+			</tr>
+			<tr>
+					<td>循环的入口</td>
+					<td>3 种，共用一个 <code>runLoop</code></td>
+			</tr>
+			<tr>
+					<td><code>AgentEvent</code> 种类</td>
+					<td>10 种</td>
+			</tr>
+			<tr>
+					<td>工具调用的关卡</td>
+					<td>6 道，失败都变成错误结果</td>
+			</tr>
+			<tr>
+					<td><code>finishTurn</code> 的决定</td>
+					<td>3 种：照常、continue、end</td>
+			</tr>
+			<tr>
+					<td>队列模式</td>
+					<td>2 种，默认每次取一条</td>
+			</tr>
+			<tr>
+					<td>默认工具执行模式</td>
+					<td>并行</td>
+			</tr>
+			<tr>
+					<td><code>agent-loop.ts</code> 的提交（2026-08-01 至 2026-10-01）</td>
+					<td>9 次</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="9--术语表">
+<a class="header-anchor" href="#9--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+9 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>含义</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>轮（turn）</strong></td>
+					<td>一次模型请求，加上这条回复里所有工具调用的执行</td>
+			</tr>
+			<tr>
+					<td><strong>插队消息（steering）</strong></td>
+					<td>运行中排进的消息，每轮结束后取出，下一次请求前注入</td>
+			</tr>
+			<tr>
+					<td><strong>后续消息（follow-up）</strong></td>
+					<td>运行中排进的消息，等 Agent 本来要停时才取出</td>
+			</tr>
+			<tr>
+					<td><strong><code>finishTurn</code></strong></td>
+					<td>每轮结束时调用，返回照常、continue 或 end</td>
+			</tr>
+			<tr>
+					<td><strong><code>terminate</code></strong></td>
+					<td>工具结果上的标记；整批都带上时，不再因工具结果请求模型</td>
+			</tr>
+			<tr>
+					<td><strong><code>runLoop</code></strong></td>
+					<td>双层循环的本体，<code>Agent</code> 和 <code>agentLoop()</code> 共用</td>
+			</tr>
+			<tr>
+					<td><strong><code>emit</code></strong></td>
+					<td>循环发出事件的函数；<code>Agent</code> 的会等订阅者，<code>agentLoop()</code> 的不等</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="10--源码导航">
+<a class="header-anchor" href="#10--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+10 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>双层循环</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>runLoop</code></td>
+			</tr>
+			<tr>
+					<td>一次请求的组装</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>streamAssistantResponse</code></td>
+			</tr>
+			<tr>
+					<td>串行与并行</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>executeToolCalls</code>、<code>executeToolCallsSequential</code>、<code>executeToolCallsParallel</code></td>
+			</tr>
+			<tr>
+					<td>工具调用的关卡</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>prepareToolCall</code>、<code>executePreparedToolCall</code>、<code>finalizeExecutedToolCall</code></td>
+			</tr>
+			<tr>
+					<td>钩子的类型与约定</td>
+					<td><code>packages/agent/src/types.ts</code> → <code>AgentLoopConfig</code>、<code>BeforeToolCallResult</code>、<code>AfterToolCallResult</code>、<code>FinishTurn</code></td>
+			</tr>
+			<tr>
+					<td>Agent 类</td>
+					<td><code>packages/agent/src/agent.ts</code> → <code>processEvents</code>、<code>createLoopConfig</code>、<code>runWithLifecycle</code></td>
+			</tr>
+			<tr>
+					<td>官方说明</td>
+					<td><code>packages/agent/README.md</code> 的 Event Flow、With Tool Calls、Request preparation and turn finalization</td>
+			</tr>
+			<tr>
+					<td>行为测试</td>
+					<td><code>packages/agent/test/agent-loop.test.ts</code>、<code>packages/agent/test/agent.test.ts</code></td>
+			</tr>
+			<tr>
+					<td>扩展事件怎么映射到钩子</td>
+					<td><code>packages/coding-agent/src/core/agent-session.ts</code> → <code>_installAgentToolHooks</code>、<code>_installAgentBoundaryHooks</code></td>
+			</tr>
+			<tr>
+					<td>拦截示例</td>
+					<td><code>packages/coding-agent/examples/extensions/protected-paths.ts</code>、<code>permission-gate.ts</code></td>
+			</tr>
+			<tr>
+					<td>孤立工具调用的补全</td>
+					<td><code>packages/ai/src/api/transform-messages.ts</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>下一章</strong>：模型调用。看 <code>streamFn</code> 背后的 pi-ai 怎么把几十家供应商压成一套流式事件。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/24.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 02 · 三层架构：层与层之间怎么接"
+              class="lazyload"
+            /><a
+          href="/harness/pi/02-three-layers/"
+          aria-label="Prev:Pi 源码分析 02 · 三层架构：层与层之间怎么接"
+          title="Prev:Pi 源码分析 02 · 三层架构：层与层之间怎么接"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 02 · 三层架构：层与层之间怎么接</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--三个入口一个循环">1 · 三个入口，一个循环</a></li>
+    <li><a href="#2--双层循环">2 · 双层循环</a>
+      <ul>
+        <li><a href="#21-内层工具结果和插队消息">2.1 内层：工具结果和插队消息</a></li>
+        <li><a href="#22-外层后续消息">2.2 外层：后续消息</a></li>
+        <li><a href="#23-finishturn-的三种决定">2.3 finishTurn 的三种决定</a></li>
+        <li><a href="#24-两个出口之外的提前退出">2.4 两个出口之外的提前退出</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--一轮的生命周期">3 · 一轮的生命周期</a></li>
+    <li><a href="#4--工具执行">4 · 工具执行</a>
+      <ul>
+        <li><a href="#41-串行还是并行">4.1 串行还是并行</a></li>
+        <li><a href="#42-beforetoolcall-和-aftertoolcall">4.2 beforeToolCall 和 afterToolCall</a></li>
+        <li><a href="#43-每一种失败的去向">4.3 每一种失败的去向</a></li>
+        <li><a href="#44-提前结束terminate">4.4 提前结束：terminate</a></li>
+        <li><a href="#45-中止">4.5 中止</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--agent-类和直接调用-agentloop-的区别">5 · Agent 类和直接调用 agentLoop() 的区别</a></li>
+    <li><a href="#6--用法加一个钩子">6 · 用法：加一个钩子</a>
+      <ul>
+        <li><a href="#61-引擎层直接给-agent-挂钩子">6.1 引擎层：直接给 Agent 挂钩子</a></li>
+        <li><a href="#62-产品层通过-sdk-挂扩展钩子">6.2 产品层：通过 SDK 挂扩展钩子</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--三个可以带走的方法">7 · 三个可以带走的方法</a></li>
+    <li><a href="#8--关键数字">8 · 关键数字</a></li>
+    <li><a href="#9--术语表">9 · 术语表</a></li>
+    <li><a href="#10--源码导航">10 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的",
+          url: "https:\/\/example.org\/harness\/pi\/03-agent-loop\/",
+          description: "接着第二章往下讲：当前发布的 pi-agent-core 引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

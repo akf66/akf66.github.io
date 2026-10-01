@@ -1,0 +1,1340 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么 | AKF
+</title>
+<meta name="description" content="接着第三章往下讲：Agent 调用的 streamFn 背后，pi-ai 怎么先找供应商、再选线协议，请求在进入供应商之前做了哪些转换，各家的原始流怎么归一成 12 种事件，失败、中止、重试和凭据刷新怎么落进流里，以及协议实现怎么做到按需加载。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么 | AKF" />
+  <meta
+    property="og:description"
+    content="接着第三章往下讲：Agent 调用的 streamFn 背后，pi-ai 怎么先找供应商、再选线协议，请求在进入供应商之前做了哪些转换，各家的原始流怎么归一成 12 种事件，失败、中止、重试和凭据刷新怎么落进流里，以及协议实现怎么做到按需加载。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/04-model-call/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-01T20:30:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-01T20:30:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--从-streamfn-到-models">1 · 从 streamFn 到 Models</a></li>
+    <li><a href="#2--供应商和线协议两级分派">2 · 供应商和线协议：两级分派</a></li>
+    <li><a href="#3--一次请求的路径">3 · 一次请求的路径</a>
+      <ul>
+        <li><a href="#31-models-这一段同步返回异步准备">3.1 Models 这一段：同步返回，异步准备</a></li>
+        <li><a href="#32-协议实现这一段换算选项拼请求体">3.2 协议实现这一段：换算选项，拼请求体</a></li>
+        <li><a href="#33-transformmessages把历史整理成这家能接受的样子">3.3 transformMessages：把历史整理成这家能接受的样子</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--流式归一化">4 · 流式归一化</a>
+      <ul>
+        <li><a href="#41-12-种事件">4.1 12 种事件</a></li>
+        <li><a href="#42-partial-是一个活对象">4.2 partial 是一个活对象</a></li>
+        <li><a href="#43-最终消息的三个字段">4.3 最终消息的三个字段</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--失败与中止">5 · 失败与中止</a>
+      <ul>
+        <li><a href="#51-失败怎么进到流里">5.1 失败怎么进到流里</a></li>
+        <li><a href="#52-中止">5.2 中止</a></li>
+        <li><a href="#53-重试">5.3 重试</a></li>
+        <li><a href="#54-oauth-令牌刷新">5.4 OAuth 令牌刷新</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--按需加载与入口体积">6 · 按需加载与入口体积</a></li>
+    <li><a href="#7--用法">7 · 用法</a>
+      <ul>
+        <li><a href="#71-单独用-pi-ai-发一次请求">7.1 单独用 pi-ai 发一次请求</a></li>
+        <li><a href="#72-自定义-streamfn包一层再交给-agent">7.2 自定义 streamFn：包一层再交给 Agent</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--关键数字">8 · 关键数字</a></li>
+    <li><a href="#9--术语表">9 · 术语表</a></li>
+    <li><a href="#10--源码导航">10 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.3cf30c7271bec63efd7f486bce6e5fb5d736af11ecc46b715600952e59d2bb1a.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么</p>
+</div>
+      </div>
+    </article><article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-01 20:30:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-01</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-01</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v0.99.2-32-gf29ea3deb</code>（2026-10-01），commit <code>f29ea3deb</code>。从第三章的基线 <code>0f8740bb6</code> 到这里只有 3 个提交，都在 coding-agent 里，<code>packages/ai</code> 没有变化。文中所有行为、数字和代码均以该版本为准。</p>
+</blockquote>
+<p>第三章讲到，<code>runLoop</code> 每一轮把消息交给 <code>streamFn</code>，然后消费它返回的事件流。本章接着往下讲，打开 L1 的 pi-ai，从 <code>streamFn</code> 被调用开始，一直讲到供应商的原始流变成统一的事件。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>两级分派</strong>：<code>Models</code> 先按 <code>model.provider</code> 找到供应商，供应商再按 <code>model.api</code> 选出协议实现。协议实现是 10 种线协议的共享模块，42 个供应商复用它们。</li>
+<li><strong>转换在协议实现内部完成</strong>：每个协议实现在拼请求体时先调用 <code>transformMessages</code>，丢掉出错或中止的助手消息，给没有结果的工具调用补一条错误结果，把别家模型的思考块降成普通文本。</li>
+<li><strong>12 种事件，一个活对象</strong>：各家的流都被归一成同一套事件：开头一个 <code>start</code>，文本、思考、工具调用各一组 <code>*_start / *_delta / *_end</code>，最后以 <code>done</code> 或 <code>error</code> 结束。事件里的 <code>partial</code> 始终指向同一个正在累积的消息，最后交出的也是这个对象。</li>
+<li><strong>失败都在流里</strong>：经过 <code>Models</code> 的调用，从找不到供应商到 HTTP 500，再到模型拒答，都以一个 <code>error</code> 事件结束，不会抛到调用方。主要几种协议的请求级重试默认关闭，要显式打开。</li>
+<li><strong>协议实现按需加载</strong>：只导入供应商不会加载任何 SDK，第一次请求时才 <code>import</code> 对应的协议实现和它的 SDK。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章只讲已发布的 pi-ai（<code>@earendil-works/pi-ai</code>），而且只讲对话模型的流式请求。图像生成、分类模型、延迟返回（deferred）这几条支线只在需要时提一句。</li>
+<li>文中的事件顺序、错误信息和计数都用探针脚本实际跑过。探针在本地起一个假的 HTTP 服务，按 Anthropic 和 OpenAI 的格式返回 SSE 流，再把模型的 <code>baseUrl</code> 指向它，不需要真实的 API key。脚本用的是 npm 上的 <code>@earendil-works/pi-ai@0.99.2</code>，它和基线的 <code>packages/ai</code> 只差一个与流式请求无关的提交（Anthropic OAuth 的登录方式）。</li>
+<li>本章的术语：
+<ul>
+<li><strong>供应商</strong>（provider）：一个运行时单元，带着自己的 id、凭据规则、模型目录和请求方法，例如 <code>anthropic</code>、<code>deepseek</code>。</li>
+<li><strong>线协议</strong>（api）：和模型服务通信的请求、响应格式，例如 <code>anthropic-messages</code>、<code>openai-completions</code>。</li>
+<li><strong>协议实现</strong>：<code>src/api/</code> 下实现某种线协议的模块，对外只有 <code>stream</code> 和 <code>streamSimple</code> 两个函数。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1--从-streamfn-到-models">
+<a class="header-anchor" href="#1--%e4%bb%8e-streamfn-%e5%88%b0-models"></a>
+1 · 从 streamFn 到 Models
+</h2><p>先看接缝的两端。agent-core 里 <code>StreamFn</code> 的类型如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">export</span> <span class="kr">type</span> <span class="nx">StreamFn</span> <span class="o">=</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">model</span>: <span class="kt">Model</span><span class="p">&lt;</span><span class="nt">Api</span><span class="p">&gt;,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">context</span>: <span class="kt">TranscriptContext</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">options?</span>: <span class="kt">SimpleStreamOptions</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">AssistantMessageEventStream</span> <span class="o">|</span> <span class="nx">Promise</span><span class="p">&lt;</span><span class="nt">AssistantMessageEventStream</span><span class="p">&gt;;</span>
+</span></span></code></pre></div><p>它上面的注释写明了约定：请求、模型、运行时的失败都不能抛错，也不能返回被拒绝的 Promise，必须编码进返回的流里，最终消息的 <code>stopReason</code> 为 <code>&quot;error&quot;</code> 或 <code>&quot;aborted&quot;</code>，并带上 <code>errorMessage</code>。第 3 节到第 5 节会看到 pi-ai 怎么兑现这个约定。</p>
+<p>第三章 6.1 节的例子里，交给 <code>Agent</code> 的是 <code>models.streamSimple.bind(models)</code>。<code>models</code> 是 <code>createModels()</code>（创建一个空的模型集合）返回的对象，类型是 <code>MutableModels</code>。和请求相关的方法有这些：</p>
+<ul>
+<li><code>setProvider(provider)</code>（按 id 注册或替换一个供应商）</li>
+<li><code>getModel(provider, id)</code>（在已注册供应商的目录里同步查找一个对话模型，找不到返回 <code>undefined</code>）</li>
+<li><code>stream(model, context, options)</code>（发请求，返回事件流；<code>options</code> 是这个线协议专属的选项）</li>
+<li><code>streamSimple(model, context, options)</code>（发请求，返回事件流；<code>options</code> 是跨协议统一的选项，多了 <code>reasoning</code> 等字段）</li>
+<li><code>complete(...)</code> / <code>completeSimple(...)</code>（分别等于 <code>stream(...).result()</code> 和 <code>streamSimple(...).result()</code>，只返回最终消息）</li>
+</ul>
+<p><code>stream</code> 和 <code>streamSimple</code> 的区别在选项：</p>
+<table>
+	<thead>
+			<tr>
+					<th></th>
+					<th><code>stream</code></th>
+					<th><code>streamSimple</code></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>选项类型</td>
+					<td>按线协议区分</td>
+					<td>统一的 <code>SimpleStreamOptions</code></td>
+			</tr>
+			<tr>
+					<td>思考强度</td>
+					<td>协议自己的字段</td>
+					<td><code>reasoning</code> 一个字段</td>
+			</tr>
+			<tr>
+					<td>典型用户</td>
+					<td>要用某家独有参数的调用方</td>
+					<td><code>Agent</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><code>reasoning</code> 取 <code>minimal</code> 到 <code>max</code> 六档，<code>streamSimple</code> 会把它换算成每种协议自己的参数（3.2 节）。例如 Anthropic 协议的选项里没有 <code>reasoning</code>，只有 <code>thinkingEnabled</code>（是否开启思考）、<code>thinkingBudgetTokens</code>（思考的 token 预算）和 <code>effort</code>（自适应思考的强度档位）。</p>
+<blockquote>
+<p>📌 coding-agent 交给 <code>Agent</code> 的不是 pi-ai 的 <code>Models</code>，而是自己的 <code>ModelRuntime</code>（coding-agent 的模型运行时，实现了同一个 <code>Models</code> 接口）。它的 <code>streamSimple</code> 走的是同一套步骤（3.1 节）：规整上下文、先返回流、解析凭据，然后交给供应商。区别是多了虚拟模型的路由，以及 <code>models.json</code> 和远程目录的叠加。本章讲 pi-ai 自己的 <code>Models</code>。</p>
+</blockquote>
+<hr>
+<h2 id="2--供应商和线协议两级分派">
+<a class="header-anchor" href="#2--%e4%be%9b%e5%ba%94%e5%95%86%e5%92%8c%e7%ba%bf%e5%8d%8f%e8%ae%ae%e4%b8%a4%e7%ba%a7%e5%88%86%e6%b4%be"></a>
+2 · 供应商和线协议：两级分派
+</h2><p><img src="/images/harness/pi/ch04/fig1-dispatch.png" alt="图 1 · 两级分派：先找供应商，再选线协议"></p>
+<p><code>model</code> 上有两个字段决定请求去哪：<code>provider</code> 和 <code>api</code>。分派分两级完成：</p>
+<ol>
+<li><strong><code>Models</code> 按 <code>model.provider</code> 找供应商</strong>：<code>Models</code> 内部是一个 <code>Map&lt;id, Provider&gt;</code>，这里没有按 <code>api</code> 注册实现的全局表。</li>
+<li><strong>供应商按 <code>model.api</code> 选协议实现</strong>：每个供应商在创建时就带上了自己的协议实现。</li>
+</ol>
+<p>内置供应商都由 <code>createProvider</code>（把 id、凭据、模型目录和协议实现组装成一个供应商）创建。Anthropic 的工厂函数是这样的（凭据部分省略）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">export</span> <span class="kd">function</span> <span class="nx">anthropicProvider</span><span class="p">()</span><span class="o">:</span> <span class="nx">Provider</span><span class="o">&lt;</span><span class="s2">&#34;anthropic-messages&#34;</span><span class="o">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">createProvider</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">id</span><span class="o">:</span> <span class="s2">&#34;anthropic&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">name</span><span class="o">:</span> <span class="s2">&#34;Anthropic&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">baseUrl</span><span class="o">:</span> <span class="s2">&#34;https://api.anthropic.com&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">auth</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">apiKey</span>: <span class="kt">anthropicApiKeyAuth</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">oauth</span>: <span class="kt">lazyOAuth</span><span class="p">({</span> <span class="cm">/* … */</span> <span class="p">}),</span>
+</span></span><span class="line"><span class="cl">		<span class="p">},</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">models</span>: <span class="kt">Object.values</span><span class="p">(</span><span class="nx">ANTHROPIC_MODELS</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">api</span>: <span class="kt">anthropicMessagesApi</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p><code>api</code> 有两种写法：</p>
+<ul>
+<li><strong>只给一个实现</strong>：所有模型都走它。42 个内置供应商里大多数是这样，比如 <code>deepseek</code>、<code>groq</code> 都直接用 <code>openAICompletionsApi()</code>。</li>
+<li><strong>给一张按 <code>model.api</code> 索引的表</strong>：同一个供应商下不同模型走不同协议。<code>github-copilot</code>、<code>openrouter</code>、<code>opencode</code> 等 6 个供应商是这样。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="nx">api</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="s2">&#34;anthropic-messages&#34;</span><span class="o">:</span> <span class="nx">anthropicMessagesApi</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">	<span class="s2">&#34;openai-completions&#34;</span><span class="o">:</span> <span class="nx">openAICompletionsApi</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl">	<span class="s2">&#34;openai-responses&#34;</span><span class="o">:</span> <span class="nx">openAIResponsesApi</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl"><span class="p">},</span>
+</span></span></code></pre></div><p>所以供应商不只是一份元数据，它自己就有 <code>stream</code> 和 <code>streamSimple</code>，<code>Models</code> 只负责解析凭据并转交。一些供应商还会在协议实现外面再包一层，例如给请求加上会话头。</p>
+<p>两级里任何一级查不到，结果都一样：返回的流里只有一个 <code>error</code> 事件。探针的三个例子：</p>
+<ul>
+<li>未注册的供应商：<code>Unknown provider: nope</code></li>
+<li>供应商没有这个 <code>api</code> 的实现：<code>Provider mixed has no API implementation for &quot;carrier-pigeon&quot;</code></li>
+<li>找到了供应商但没有凭据：<code>Provider is not configured: anthropic</code></li>
+</ul>
+<blockquote>
+<p>💡 自定义供应商也走 <code>createProvider</code>。比如本地的 vLLM 服务，给出 <code>id</code>、一个 <code>auth.apiKey.resolve</code>（返回请求用的凭据）、几个 <code>api: &quot;openai-completions&quot;</code> 的模型，再把 <code>api</code> 设为 <code>openAICompletionsApi()</code>（从 <code>@earendil-works/pi-ai/api/openai-completions.lazy</code> 导入），<code>setProvider</code> 之后就和内置供应商一样使用。按 <code>api</code> 注册实现的全局表另有一套，在 <code>@earendil-works/pi-ai/compat</code> 里（全局的 <code>stream()</code>、<code>registerApiProvider()</code> 等），文件头注释写明这是临时兼容入口，新代码用 <code>createModels()</code>。</p>
+</blockquote>
+<hr>
+<h2 id="3--一次请求的路径">
+<a class="header-anchor" href="#3--%e4%b8%80%e6%ac%a1%e8%af%b7%e6%b1%82%e7%9a%84%e8%b7%af%e5%be%84"></a>
+3 · 一次请求的路径
+</h2><p><img src="/images/harness/pi/ch04/fig2-request-path.png" alt="图 2 · 一次 streamSimple 请求的路径"></p>
+<h3 id="31-models-这一段同步返回异步准备">
+<a class="header-anchor" href="#31-models-%e8%bf%99%e4%b8%80%e6%ae%b5%e5%90%8c%e6%ad%a5%e8%bf%94%e5%9b%9e%e5%bc%82%e6%ad%a5%e5%87%86%e5%a4%87"></a>
+3.1 Models 这一段：同步返回，异步准备
+</h3><p><code>Models.streamSimple</code> 的全部代码：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="nx">streamSimple</span><span class="p">(</span><span class="nx">model</span>: <span class="kt">Model</span><span class="p">&lt;</span><span class="nt">Api</span><span class="p">&gt;,</span> <span class="nx">context</span>: <span class="kt">Context</span><span class="p">,</span> <span class="nx">options?</span>: <span class="kt">ModelsSimpleStreamOptions</span><span class="p">)</span><span class="o">:</span> <span class="nx">AssistantMessageEventStream</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">transcript</span> <span class="o">=</span> <span class="nx">normalizeContext</span><span class="p">(</span><span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">lazyStream</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="kr">async</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">provider</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">requireChatProvider</span><span class="p">(</span><span class="nx">model</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="p">{</span> <span class="nx">requestModel</span><span class="p">,</span> <span class="nx">requestOptions</span> <span class="p">}</span> <span class="o">=</span> <span class="k">await</span> <span class="k">this</span><span class="p">.</span><span class="nx">applyAuth</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">options</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">provider</span><span class="p">.</span><span class="nx">streamSimple</span><span class="p">(</span><span class="nx">requestModel</span><span class="p">,</span> <span class="nx">transcript</span><span class="p">,</span> <span class="nx">requestOptions</span> <span class="kr">as</span> <span class="nx">SimpleStreamOptions</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li><code>normalizeContext</code>（把 <code>systemPrompt</code> 和 <code>tools</code> 折叠成开头的一条 system 消息）是这一段唯一同步执行的一步。它的返回类型 <code>TranscriptContext</code> 带一个类型标记，供应商和协议实现只接受这种类型，原始的 <code>Context</code> 传不进去。agent-core 在调用 <code>streamFn</code> 之前已经做过一次，这里再做一次没有影响，因为上下文里已经没有 <code>systemPrompt</code> 和 <code>tools</code> 了。</li>
+<li><code>lazyStream</code>（先同步返回一个流，再在背后执行异步的准备工作）把后面所有可能失败的步骤包了起来。准备阶段一旦抛错，它就推入一个 <code>error</code> 事件并结束这个流：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">export</span> <span class="kd">function</span> <span class="nx">lazyStream</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">model</span>: <span class="kt">Model</span><span class="p">&lt;</span><span class="nt">Api</span><span class="p">&gt;,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">setup</span><span class="o">:</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="nx">Promise</span><span class="p">&lt;</span><span class="nt">AsyncIterable</span><span class="p">&lt;</span><span class="nt">AssistantMessageEvent</span><span class="p">&gt;&gt;,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span><span class="o">:</span> <span class="nx">AssistantMessageEventStream</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">outer</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">AssistantMessageEventStream</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">setup</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">		<span class="p">.</span><span class="nx">then</span><span class="p">((</span><span class="nx">inner</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">forwardStream</span><span class="p">(</span><span class="nx">outer</span><span class="p">,</span> <span class="nx">inner</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">		<span class="p">.</span><span class="k">catch</span><span class="p">((</span><span class="nx">error</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="kr">const</span> <span class="nx">message</span> <span class="o">=</span> <span class="nx">createSetupErrorMessage</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">error</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">outer</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;error&#34;</span><span class="p">,</span> <span class="nx">reason</span><span class="o">:</span> <span class="s2">&#34;error&#34;</span><span class="p">,</span> <span class="nx">error</span>: <span class="kt">message</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">outer</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">message</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">outer</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li><code>requireChatProvider</code>（确认是对话模型，并按 <code>model.provider</code> 取出供应商）</li>
+<li><code>applyAuth</code>（解析这次请求的凭据，再合并请求头、环境变量和 <code>baseUrl</code>）</li>
+</ul>
+<p>凭据按这个顺序解析：</p>
+<ol>
+<li>请求选项里的 <code>apiKey</code>（供应商支持 API key 时生效）</li>
+<li>凭据仓库（<code>CredentialStore</code>，按供应商 id 存放 API key 或 OAuth 令牌）里存的凭据。只要仓库里存了这个供应商的凭据，就只用它：类型对不上或刷新失败，都不会再退回到环境变量</li>
+<li>环境变量这类环境凭据。Anthropic 依次查 <code>ANTHROPIC_AUTH_TOKEN</code>（作为 Bearer 请求头发送）、<code>ANTHROPIC_OAUTH_TOKEN</code>（订阅账号的 OAuth 令牌）、<code>ANTHROPIC_API_KEY</code>（普通 API key），最后是工作负载身份联合</li>
+</ol>
+<p>存的是 OAuth 令牌、并且 5 分钟内就要过期时，会在这一步先刷新（5.4 节）。之后选项里显式给的请求头逐个字段覆盖默认值，最后执行只有 <code>Models</code> 才有的 <code>transformHeaders</code>（发出前改写完整的请求头）。</p>
+<blockquote>
+<p>📌 agent-core 的 <code>getApiKey</code> 钩子不属于 pi-ai。它在 agent-core 里、调用 <code>streamFn</code> 之前执行，结果作为 <code>options.apiKey</code> 传进来，也就是上面顺序里的第一项。</p>
+</blockquote>
+<h3 id="32-协议实现这一段换算选项拼请求体">
+<a class="header-anchor" href="#32-%e5%8d%8f%e8%ae%ae%e5%ae%9e%e7%8e%b0%e8%bf%99%e4%b8%80%e6%ae%b5%e6%8d%a2%e7%ae%97%e9%80%89%e9%a1%b9%e6%8b%bc%e8%af%b7%e6%b1%82%e4%bd%93"></a>
+3.2 协议实现这一段：换算选项，拼请求体
+</h3><p>供应商把请求交给协议实现。如果这是第一次请求这种线协议，会先加载协议实现的模块（第 6 节）。以 <code>anthropic-messages</code> 为例，<code>streamSimple</code> 先换算选项：</p>
+<ul>
+<li><code>buildBaseOptions</code>（复制通用选项，并把 <code>maxTokens</code> 夹紧到上下文窗口减去估算的输入 token、再留 4096 的余量）</li>
+<li>没有 <code>reasoning</code>：<code>thinkingEnabled: false</code></li>
+<li>模型声明了自适应思考：<code>reasoning</code> 映射成 <code>effort</code>（<code>minimal</code> 和 <code>low</code> 都映射成 <code>low</code>）</li>
+<li>其他模型：按默认预算表取思考 token 数（<code>minimal</code> 1024、<code>low</code> 2048、<code>medium</code> 8192、<code>high</code> 16384），给回答至少留 1024 个 token</li>
+</ul>
+<p>然后调用同一模块的 <code>stream</code>。<code>stream</code> 先同步做两件事：创建一个 <code>AssistantMessageEventStream</code>（事件流对象），并调用 <code>resolveTranscript</code>（模型不接受对话中途的 system 消息时，把所有 system 消息合成开头的一条）。然后返回这个流，真正的请求在一个异步函数里进行，顺序是：</p>
+<ol>
+<li>创建 SDK 客户端（检查凭据、组装请求头）</li>
+<li><code>buildParams</code>（拼出供应商格式的请求体），其中消息部分先经过 <code>transformMessages</code>（3.3 节）</li>
+<li><code>onPayload</code>（查看或替换请求体；返回 <code>undefined</code> 表示不改）</li>
+<li><code>retryProviderRequest</code>（发 HTTP 请求，可重试的失败按需重试，5.3 节）</li>
+<li><code>onResponse</code>（拿到状态码和响应头，还没开始读响应体）</li>
+<li>推入 <code>start</code>，然后逐个读取供应商事件。每个事件先交给 <code>onProviderStreamEvent</code>（在归一化之前查看解析好的供应商事件），再转换成统一事件</li>
+</ol>
+<p>探针把三个钩子和 HTTP 请求的先后打印出来，顺序和上面一致：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">onPayload keys=model,messages,max_tokens,stream,betas,system,thinking thinking={&#34;type&#34;:&#34;enabled&#34;,&#34;budget_tokens&#34;:8192,&#34;display&#34;:&#34;summarized&#34;} max_tokens=64000
+</span></span><span class="line"><span class="cl">HTTP POST /v1/messages?beta=true (model=claude-haiku-4-5, stream=true, msgs=1, …)
+</span></span><span class="line"><span class="cl">onResponse status=200 request-id=req_mock
+</span></span><span class="line"><span class="cl">  raw message_start
+</span></span><span class="line"><span class="cl">event start
+</span></span><span class="line"><span class="cl">  raw content_block_start
+</span></span><span class="line"><span class="cl">  …
+</span></span></code></pre></div><p>几个细节：</p>
+<ul>
+<li><code>onPayload</code> 返回的新请求体会整体替换原来的。Anthropic 协议会再把 <code>stream: true</code> 补回去，保证仍是流式请求。</li>
+<li>在 Anthropic 和 OpenAI 系的协议里，<code>onResponse</code> 只在最终成功的那次响应上调用一次，重试中失败的响应不会触发它，全部失败时一次也不触发。<code>mistral-conversations</code>、<code>pi-messages</code> 和 <code>openai-codex-responses</code> 不同，每拿到一次响应就调用一次，包括 4xx 和 5xx。</li>
+<li><code>onProviderStreamEvent</code> 收到的是解析之后的事件对象，不是原始字节。三个钩子都会被 <code>await</code>，回调慢了会拖慢整个流，回调抛错会让这次请求失败。</li>
+<li><code>onPayload</code> 和 <code>onProviderStreamEvent</code> 10 种对话线协议都支持；<code>onResponse</code> 有 8 种支持，两种 Google 协议不调用它。</li>
+</ul>
+<h3 id="33-transformmessages把历史整理成这家能接受的样子">
+<a class="header-anchor" href="#33-transformmessages%e6%8a%8a%e5%8e%86%e5%8f%b2%e6%95%b4%e7%90%86%e6%88%90%e8%bf%99%e5%ae%b6%e8%83%bd%e6%8e%a5%e5%8f%97%e7%9a%84%e6%a0%b7%e5%ad%90"></a>
+3.3 transformMessages：把历史整理成这家能接受的样子
+</h3><p>对话历史里可能有别家模型的回复、半截的回复、没有结果的工具调用。<code>transformMessages</code>（把历史消息整理成目标模型能接受的形式）在 9 种线协议的请求体构建里被调用，只有 <code>pi-messages</code> 不用它。它分两遍处理。</p>
+<p>第一遍逐条改写消息：</p>
+<ul>
+<li><code>content</code> 为 <code>null</code> 的消息补成空数组（兼容手写的历史和旧的会话文件）</li>
+<li>模型不支持图片时，用户消息和工具结果里的图片换成一句占位文本</li>
+<li>助手消息先判断是不是<strong>同一个模型</strong>发的：<code>provider</code>、<code>api</code>、模型 id 三者都相同才算。不是同一个模型时：
+<ul>
+<li>加密的思考块（<code>redacted</code>）直接丢掉</li>
+<li>普通思考块转成纯文本，空的思考块丢掉</li>
+<li>文本块去掉签名</li>
+<li>工具调用去掉 Google 的 <code>thoughtSignature</code>（Gemini 用来复用思考上下文的签名），id 交给协议自己的规则改写，对应工具结果的 <code>toolCallId</code> 也一起改</li>
+</ul>
+</li>
+</ul>
+<p>第二遍处理消息之间的关系：</p>
+<ul>
+<li><code>stopReason</code> 为 <code>error</code> 或 <code>aborted</code> 的助手消息整条跳过。注释给出的理由：这些是没完成的轮次，可能只有推理没有正文，或者工具调用不完整，重放会让供应商报错，应该让模型从上一个有效状态重来。</li>
+<li>一条助手消息的工具调用，在下一条助手消息或用户消息出现之前还没有结果，就补一条错误结果，内容是 <code>No result provided</code>。对话以这种调用结尾时也一样补上。</li>
+<li>夹在工具调用和它的结果之间的 system 消息，挪到结果之后。</li>
+</ul>
+<p>探针构造了一段有问题的历史，交给 Anthropic 协议，再用 <code>onPayload</code> 抓出实际发送的 <code>messages</code>：</p>
+<table>
+	<thead>
+			<tr>
+					<th>#</th>
+					<th>历史里的消息</th>
+					<th>实际发送的</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>1</td>
+					<td>用户 <code>q1</code></td>
+					<td>原样</td>
+			</tr>
+			<tr>
+					<td>2</td>
+					<td>GPT 的回复：思考 + 文本 + 工具调用 <code>call_abc|fc_…</code></td>
+					<td>思考变成文本；id 里的 <code>|</code> 换成 <code>_</code></td>
+			</tr>
+			<tr>
+					<td>3</td>
+					<td>这个调用的结果</td>
+					<td>id 跟着改</td>
+			</tr>
+			<tr>
+					<td>4</td>
+					<td>中止的回复：<code>half an ans</code></td>
+					<td>不发送</td>
+			</tr>
+			<tr>
+					<td>5</td>
+					<td>用户 <code>q2</code></td>
+					<td>原样</td>
+			</tr>
+			<tr>
+					<td>6</td>
+					<td>本模型的回复：带签名的思考 + 工具调用</td>
+					<td>思考和签名保留</td>
+			</tr>
+			<tr>
+					<td>7</td>
+					<td>—</td>
+					<td>补一条 <code>No result provided</code>，<code>is_error: true</code></td>
+			</tr>
+			<tr>
+					<td>8</td>
+					<td>用户 <code>q3</code></td>
+					<td>原样</td>
+			</tr>
+	</tbody>
+</table>
+<blockquote>
+<p>⚠️ 第 2 行的思考内容会以普通文本的身份发给新模型。跨模型切换时，旧模型的推理过程对新模型是可见的，而且不带任何标记。</p>
+</blockquote>
+<hr>
+<h2 id="4--流式归一化">
+<a class="header-anchor" href="#4--%e6%b5%81%e5%bc%8f%e5%bd%92%e4%b8%80%e5%8c%96"></a>
+4 · 流式归一化
+</h2><h3 id="41-12-种事件">
+<a class="header-anchor" href="#41-12-%e7%a7%8d%e4%ba%8b%e4%bb%b6"></a>
+4.1 12 种事件
+</h3><p>所有协议实现输出同一种事件，<code>AssistantMessageEvent</code> 一共 12 种：</p>
+<ul>
+<li><code>start</code>（流开始，<code>partial</code> 是一条空的助手消息）</li>
+<li><code>text_start</code> / <code>text_delta</code> / <code>text_end</code>（一个文本块开始、追加一段文字、结束并给出完整文本）</li>
+<li><code>thinking_start</code> / <code>thinking_delta</code> / <code>thinking_end</code>（一个思考块开始、追加、结束）</li>
+<li><code>toolcall_start</code> / <code>toolcall_delta</code> / <code>toolcall_end</code>（一个工具调用开始、追加一段参数 JSON、结束并给出解析好的 <code>toolCall</code>）</li>
+<li><code>done</code>（正常结束，<code>reason</code> 为 <code>stop</code>、<code>length</code>、<code>toolUse</code> 或 <code>deferred</code>）</li>
+<li><code>error</code>（失败结束，<code>reason</code> 为 <code>error</code> 或 <code>aborted</code>）</li>
+</ul>
+<p>中间九种都带 <code>contentIndex</code>（这个块在 <code>content</code> 数组里的位置）。</p>
+<p><img src="/images/harness/pi/ch04/fig3-normalize.png" alt="图 3 · anthropic-messages：供应商事件怎么变成统一事件"></p>
+<p>图 3 是探针里 Anthropic 协议的完整映射。供应商的流里有一个思考块、一个文本块和一个工具调用，pi-ai 发出 13 个统一事件，覆盖了除 <code>error</code> 以外的 11 种。几处值得注意的地方：</p>
+<ul>
+<li><code>start</code> 在拿到 HTTP 响应后就推入，不等 <code>message_start</code>。</li>
+<li>有的供应商事件不产生统一事件。<code>message_start</code> 只记下 <code>responseId</code> 和初始 usage；<code>signature_delta</code> 只把签名累加到思考块上；<code>message_delta</code> 只更新停止原因和 usage。</li>
+<li>工具参数是流式的 JSON 片段。每来一段，<code>parseStreamingJson</code>（容错地解析不完整的 JSON，总能返回一个对象）就把累计的字符串重新解析一遍，所以 <code>toolcall_delta</code> 时就能读到部分参数。<code>toolcall_end</code> 时再完整解析一次，并删掉暂存的 JSON 字符串。</li>
+</ul>
+<p>各协议只保证这几条顺序：<code>start</code> 在最前，<code>done</code> 或 <code>error</code> 在最后，同一个块的 <code>*_start</code> 在 <code>*_delta</code> 之前、<code>*_delta</code> 在 <code>*_end</code> 之前。块和块之间怎么交错由协议决定。<code>openai-completions</code> 就不一样：它的 <code>*_end</code> 全部等流读完才一起发出。探针的记录：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">start → thinking_start[0] → thinking_delta[0] → thinking_delta[0] → text_start[1] → text_delta[1] → text_delta[1]
+</span></span><span class="line"><span class="cl">→ toolcall_start[2] → toolcall_delta[2] → toolcall_delta[2] → thinking_end[0] → text_end[1] → toolcall_end[2] → done
+</span></span></code></pre></div><h3 id="42-partial-是一个活对象">
+<a class="header-anchor" href="#42-partial-%e6%98%af%e4%b8%80%e4%b8%aa%e6%b4%bb%e5%af%b9%e8%b1%a1"></a>
+4.2 partial 是一个活对象
+</h3><p>事件里的 <code>partial</code> 不是那一刻的快照，而是同一个正在累积的 <code>AssistantMessage</code>。协议实现一开始创建一个 <code>output</code> 对象，所有事件都带着它，最后 <code>done</code> 交出的 <code>message</code> 也是它。探针验证了两点：</p>
+<ul>
+<li>第一个事件的 <code>partial</code> 和 <code>result()</code> 返回的最终消息是同一个对象（<code>===</code> 为真）</li>
+<li>消费方读到第一个 <code>toolcall_delta</code> 时，<code>partial</code> 里的参数已经是完整的 <code>{&quot;path&quot;:&quot;/tmp/a.txt&quot;}</code>，因为生产者已经处理完后面的片段</li>
+</ul>
+<blockquote>
+<p>📌 要保存中间状态，就自己深复制一份，或者只用事件里的 <code>delta</code>。agent-core 在 <code>start</code> 时把这个 <code>partial</code> 直接放进上下文；它发给订阅者的 <code>message_update</code> 里，<code>message</code> 只是浅复制，<code>content</code> 数组仍和 <code>partial</code> 共享。</p>
+</blockquote>
+<blockquote>
+<p>📌 一个流只能有一个消费者。<code>EventStream</code>（<code>AssistantMessageEventStream</code> 的基类）内部是一个队列，事件被取走就没了。探针让两个 <code>for await</code> 同时读同一个流，结果一个拿到 7 个事件，一个拿到 6 个。要分发给多处，自己读一遍再转发。<code>result()</code> 可以多处调用，它只是一个 Promise。</p>
+</blockquote>
+<h3 id="43-最终消息的三个字段">
+<a class="header-anchor" href="#43-%e6%9c%80%e7%bb%88%e6%b6%88%e6%81%af%e7%9a%84%e4%b8%89%e4%b8%aa%e5%ad%97%e6%ae%b5"></a>
+4.3 最终消息的三个字段
+</h3><p><strong><code>stopReason</code></strong> 一共 7 个值：<code>pending</code>（流还没结束时的初始值）、<code>stop</code>（正常说完）、<code>length</code>（达到输出上限）、<code>toolUse</code>（要调用工具）、<code>error</code>（失败）、<code>aborted</code>（被中止）、<code>deferred</code>（交给了延迟返回）。每种协议有自己的映射函数。Anthropic 的映射：</p>
+<ul>
+<li><code>end_turn</code>（说完了）、<code>pause_turn</code>（服务端暂停，可以重新提交）、<code>stop_sequence</code>（遇到停止序列）→ <code>stop</code></li>
+<li><code>max_tokens</code>（达到输出上限）→ <code>length</code></li>
+<li><code>tool_use</code>（要调用工具）→ <code>toolUse</code></li>
+<li><code>refusal</code>（模型拒答）→ <code>error</code>，<code>errorMessage</code> 取 <code>stop_details.explanation</code>，没有时用一句默认文本</li>
+<li><code>sensitive</code>（被安全过滤拦下）→ <code>error</code></li>
+<li>不认识的值 → 抛错，最后也变成 <code>error</code>：<code>Unhandled stop reason: …</code></li>
+</ul>
+<p>其他协议有各自的规则：<code>openai-completions</code> 不认识的 <code>finish_reason</code> 直接映射成 <code>error</code>；<code>openai-responses</code> 只要回复里有工具调用，就把 <code>stop</code> 改成 <code>toolUse</code>。另外，供应商原始的停止原因保存在 <code>rawStopReason</code> 里。</p>
+<p><strong><code>usage</code></strong> 来自供应商的报告。Anthropic 协议在 <code>message_start</code> 记下初值，在 <code>message_delta</code> 更新，每次都重新计算 <code>totalTokens</code> 并调用 <code>calculateCost</code>（按模型目录里的单价算出费用；输入超过阈值时换用分档价格，1 小时缓存写入按 2 倍输入价计）。探针里 input 100、output 42、cacheRead 20，<code>totalTokens</code> 是 162，<code>cost.total</code> 是 0.000312 美元。</p>
+<p><strong><code>errorMessage</code></strong> 只在失败时出现，内容由协议实现决定：Anthropic 直接用异常本身的消息；<code>openai-completions</code>、<code>openai-responses</code>、Google 等协议先经过一个共用的整理函数，SDK 的错误消息里没带响应体时补上&quot;状态码 + 响应体&quot;，响应体最多保留 4000 个字符。</p>
+<hr>
+<h2 id="5--失败与中止">
+<a class="header-anchor" href="#5--%e5%a4%b1%e8%b4%a5%e4%b8%8e%e4%b8%ad%e6%ad%a2"></a>
+5 · 失败与中止
+</h2><h3 id="51-失败怎么进到流里">
+<a class="header-anchor" href="#51-%e5%a4%b1%e8%b4%a5%e6%80%8e%e4%b9%88%e8%bf%9b%e5%88%b0%e6%b5%81%e9%87%8c"></a>
+5.1 失败怎么进到流里
+</h3><p>协议实现都用同一个结构：同步返回流，在一个异步函数里 <code>try</code> 整个请求，<code>catch</code> 时把失败写进同一个 <code>output</code> 对象。Anthropic 协议的 <code>catch</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="p">}</span> <span class="k">catch</span> <span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">block</span> <span class="k">of</span> <span class="nx">output</span><span class="p">.</span><span class="nx">content</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">delete</span> <span class="p">(</span><span class="nx">block</span> <span class="kr">as</span> <span class="p">{</span> <span class="nx">index?</span>: <span class="kt">number</span> <span class="p">}).</span><span class="nx">index</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// partialJson is only a streaming scratch buffer; never persist it.
+</span></span></span><span class="line"><span class="cl">		<span class="k">delete</span> <span class="p">(</span><span class="nx">block</span> <span class="kr">as</span> <span class="p">{</span> <span class="nx">partialJson?</span>: <span class="kt">string</span> <span class="p">}).</span><span class="nx">partialJson</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">output</span><span class="p">.</span><span class="nx">stopReason</span> <span class="o">=</span> <span class="nx">options</span><span class="o">?</span><span class="p">.</span><span class="nx">signal</span><span class="o">?</span><span class="p">.</span><span class="nx">aborted</span> <span class="o">?</span> <span class="s2">&#34;aborted&#34;</span> <span class="o">:</span> <span class="s2">&#34;error&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">output</span><span class="p">.</span><span class="nx">errorMessage</span> <span class="o">=</span> <span class="nx">error</span> <span class="k">instanceof</span> <span class="nb">Error</span> <span class="o">?</span> <span class="nx">error.message</span> : <span class="kt">JSON.stringify</span><span class="p">(</span><span class="nx">error</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">stream</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;error&#34;</span><span class="p">,</span> <span class="nx">reason</span>: <span class="kt">output.stopReason</span><span class="p">,</span> <span class="nx">error</span>: <span class="kt">output</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">stream</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>两个设计：</p>
+<ul>
+<li><strong>已收到的内容不丢</strong>：<code>error</code> 事件交出的还是那个 <code>output</code>，里面有失败前累积的文本、思考和 usage。</li>
+<li><strong>&ldquo;不正常的结束&quot;也算失败</strong>：读完流之后还有三道检查。signal 已中止、<code>stopReason</code> 还是 <code>pending</code>（流没给出停止原因）、映射出的 <code>stopReason</code> 是 <code>error</code>（例如拒答），这三种都会主动抛错，走进同一个 <code>catch</code>。</li>
+</ul>
+<p><img src="/images/harness/pi/ch04/fig4-failures.png" alt="图 4 · 每一种失败最后都变成一个 error 事件"></p>
+<p>探针逐个触发了图 4 里的失败。经过 <code>Models</code> 调用时，没有一种会同步抛出，<code>result()</code> 也都正常 resolve，拿到的是带 <code>errorMessage</code> 的消息。按发生的阶段分：</p>
+<ul>
+<li><strong>准备阶段</strong>：只有一个 <code>error</code> 事件，前面没有 <code>start</code>，<code>content</code> 为空，没有发出 HTTP 请求。</li>
+<li><strong>HTTP 阶段</strong>：同样只有 <code>error</code>。</li>
+<li><strong>流式阶段</strong>：先有 <code>start</code> 和已经收到的那些事件，最后是 <code>error</code>。拒答的例子里，三个块都完整收到了，结果仍然是 <code>error</code>。</li>
+</ul>
+<p>唯一的例外在 <code>Models</code> 之外。直接 <code>import</code> 协议模块（如 <code>@earendil-works/pi-ai/api/anthropic-messages</code>）调用它的 <code>streamSimple</code>，缺少凭据时会同步抛出 <code>No API key for provider: anthropic</code>；同一模块的 <code>stream</code> 则仍然返回一个只有 <code>error</code> 的流。<code>StreamFunction</code> 类型上的注释也写明了这一点。</p>
+<h3 id="52-中止">
+<a class="header-anchor" href="#52-%e4%b8%ad%e6%ad%a2"></a>
+5.2 中止
+</h3><p><code>signal</code> 一路传到 HTTP 请求和读流的循环里，协议实现在 <code>catch</code> 时看 <code>signal.aborted</code>，决定 <code>reason</code> 是 <code>aborted</code> 还是 <code>error</code>。探针里有两种中止：</p>
+<ul>
+<li><strong>流式过程中中止</strong>：mock 服务每 40 毫秒发一个事件，在第一个 <code>text_delta</code> 后调用 <code>abort()</code>，事件停在 <code>text_delta</code>，接着是 <code>error</code>（<code>reason: &quot;aborted&quot;</code>）。<code>content</code> 里保留着已经收到的思考块和文本 <code>&quot;Hello&quot;</code>。在第一个 <code>toolcall_delta</code> 后中止，工具调用的参数停在解析到一半的 <code>{&quot;path&quot;:&quot;/tm&quot;}</code>。中止只是不再往下读，已经进了队列的事件仍会交给消费者。服务端一次性发完时，中止后还能读到后面的全部事件，最后才是 <code>error</code>，<code>errorMessage</code> 也换成了 <code>Request was aborted</code>。</li>
+<li><strong>请求开始前 signal 就已中止</strong>：凭据解析的第一步会检查 signal，抛出的异常由 <code>lazyStream</code> 接住。<code>lazyStream</code> 生成的错误消息一律是 <code>stopReason: &quot;error&quot;</code>，所以结果是 <code>error</code>，<code>errorMessage</code> 为 <code>This operation was aborted</code>。</li>
+</ul>
+<p>第二种情况在 Agent 里真实存在。第三章 4.5 节讲过：串行执行工具时中止，循环会照常结束这一轮，下一次请求带着已中止的 signal 发出。探针用 <code>Models.streamSimple</code> 作为 <code>streamFn</code> 重现了这个场景，最后一条助手消息是 <code>stopReason: &quot;error&quot;</code>、<code>errorMessage: &quot;This operation was aborted&quot;</code>，没有发出第二次 HTTP 请求。循环对 <code>error</code> 和 <code>aborted</code> 的处理相同，都从提前出口退出，所以运行照样结束。</p>
+<blockquote>
+<p>⚠️ 要判断&quot;是不是用户取消的&rdquo;，不要只看 <code>stopReason === &quot;aborted&quot;</code>，还要看你自己的 <code>signal.aborted</code>。</p>
+</blockquote>
+<h3 id="53-重试">
+<a class="header-anchor" href="#53-%e9%87%8d%e8%af%95"></a>
+5.3 重试
+</h3><p>重试分三层，各管一件事：</p>
+<ul>
+<li><strong>请求级</strong>：pi-ai 的 <code>retryProviderRequest</code>（重新实现 OpenAI 和 Anthropic SDK 的重试策略，让等待可以被中止）</li>
+<li><strong>消息级</strong>：pi-ai 导出的 <code>retryAssistantCall</code>（拿到 <code>stopReason: &quot;error&quot;</code> 的消息后，按错误信息判断要不要整次重来）</li>
+<li><strong>产品级</strong>：coding-agent 的自动重试（发出 <code>auto_retry_start</code> / <code>auto_retry_end</code> 事件，用户可以看到并取消）</li>
+</ul>
+<p>请求级这一层的几条规则：</p>
+<ul>
+<li>SDK 自带的重试被关掉了：调用 SDK 时固定传 <code>maxRetries: 0</code>，因为 SDK 重试等待的计时器不理会 <code>signal</code>。</li>
+<li><strong><code>maxRetries</code> 默认是 0</strong>。选项类型的注释提到&quot;SDK 默认重试 2 次&quot;，那说的是 SDK 本身；经过 pi-ai 的 Anthropic、OpenAI 系和 Google 协议时，不传就不重试。探针里 HTTP 500 默认只发 1 次请求；设成 2 发了 3 次，用时约 1.35 秒。</li>
+<li>哪些失败可重试：响应头 <code>x-should-retry</code>（服务端直接说要不要重试）优先，其次是连接错误、408、409、429 和 5xx。</li>
+<li>等多久：先看 <code>retry-after-ms</code>（毫秒），再看 <code>retry-after</code>（秒数或 HTTP 日期），都没有就指数退避，从 0.5 秒起翻倍，最多 8 秒，再减去最多 25% 的随机抖动。</li>
+<li><strong><code>maxRetryDelayMs</code> 是一道闸，不是上限</strong>：服务器要求的等待超过它（默认 60 秒），就不再等待，立刻失败，并把要求的时长写进错误里。探针里 429 带 <code>retry-after: 120</code>，结果是只发 1 次请求，错误为 <code>Server requested 120s retry delay (max: 60s). 429 …</code>。这条错误信息能被消息级的判断识别为可重试，交给上层去等，上层的等待用户看得见，也能中止。</li>
+</ul>
+<blockquote>
+<p>📌 并非所有协议都直接走 <code>retryProviderRequest</code>。Google 协议在它外面包了一层，<code>openai-codex-responses</code> 有自己的重试循环（默认也是 0 次）。<code>mistral-conversations</code> 和 <code>pi-messages</code> 直接用 <code>fetch</code>，没有请求级重试。Bedrock 不读 <code>maxRetries</code>，由 AWS SDK 按自己的默认策略重试。</p>
+</blockquote>
+<h3 id="54-oauth-令牌刷新">
+<a class="header-anchor" href="#54-oauth-%e4%bb%a4%e7%89%8c%e5%88%b7%e6%96%b0"></a>
+5.4 OAuth 令牌刷新
+</h3><p>刷新发生在 3.1 节的 <code>applyAuth</code> 里，每次请求都会检查一次：</p>
+<ul>
+<li>剩余有效期不足 5 分钟就刷新</li>
+<li>刷新在凭据仓库的锁里进行，拿到锁后再检查一次有没有过期，所以并发的多个请求只会刷新一次</li>
+<li>刷新本身有 15 秒超时，也会响应请求的 <code>signal</code></li>
+<li>刷新得到的新令牌先写回凭据仓库，再用于本次请求</li>
+</ul>
+<p>探针用一个自定义的 OAuth 供应商验证：令牌还有 60 秒过期时同时发 3 个请求，<code>refresh</code> 只被调用 1 次，3 个请求带的都是新令牌；第 4 个请求不再刷新。让 <code>refresh</code> 抛出 <code>invalid_grant</code>，请求的结果是流里的 <code>error</code>：<code>OAuth refresh failed for acme: invalid_grant</code>。凭据仓库里的旧凭据不会被删掉，重新登录就能恢复。</p>
+<hr>
+<h2 id="6--按需加载与入口体积">
+<a class="header-anchor" href="#6--%e6%8c%89%e9%9c%80%e5%8a%a0%e8%bd%bd%e4%b8%8e%e5%85%a5%e5%8f%a3%e4%bd%93%e7%a7%af"></a>
+6 · 按需加载与入口体积
+</h2><p>10 个协议实现里有 7 个在模块顶部静态 <code>import</code> 了自己的 SDK（<code>@anthropic-ai/sdk</code>、<code>openai</code>、<code>@google/genai</code>、AWS SDK），这些 SDK 都不小。供应商的工厂函数不直接引用协议实现，而是引用一个 <code>.lazy.ts</code> 包装，除去 import，它只有一行：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">export</span> <span class="kr">const</span> <span class="nx">anthropicMessagesApi</span> <span class="o">=</span> <span class="p">()</span><span class="o">:</span> <span class="nx">ProviderStreams</span> <span class="o">=&gt;</span> <span class="nx">lazyApi</span><span class="p">(()</span> <span class="o">=&gt;</span> <span class="kr">import</span><span class="p">(</span><span class="s2">&#34;./anthropic-messages.ts&#34;</span><span class="p">));</span>
+</span></span></code></pre></div><p><code>lazyApi</code>（返回一个代理对象，第一次调用 <code>stream</code> 或 <code>streamSimple</code> 时才动态加载真正的模块）把加载也包进 <code>lazyStream</code>，加载失败同样变成一个 <code>error</code> 事件。之后的加载由运行时的模块缓存去重。Bedrock 更进一步：它用变量拼出 <code>import</code> 的路径，打包工具追踪不到，Node 专用的 AWS SDK 就不会被打进浏览器包。</p>
+<p><img src="/images/harness/pi/ch04/fig5-lazy.png" alt="图 5 · 代码什么时候被加载"></p>
+<p>探针在 Node 里挂了一个模块解析钩子，记下每一步之后加载过的模块：</p>
+<table>
+	<thead>
+			<tr>
+					<th>步骤</th>
+					<th>pi-ai 文件</th>
+					<th>Anthropic SDK 文件</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>导入根入口</td>
+					<td>26</td>
+					<td>0</td>
+			</tr>
+			<tr>
+					<td>导入 <code>providers/anthropic</code></td>
+					<td>34</td>
+					<td>0</td>
+			</tr>
+			<tr>
+					<td>第一次 <code>streamSimple</code></td>
+					<td>44</td>
+					<td>121</td>
+			</tr>
+			<tr>
+					<td>导入 <code>providers/all</code></td>
+					<td>186</td>
+					<td>121</td>
+			</tr>
+	</tbody>
+</table>
+<p>导入 <code>providers/all</code>（全部 42 个供应商的工厂和目录）之后，OpenAI SDK 的文件数仍然是 0。只要还没有请求过那种线协议，它的实现就不会被加载。这也是 README 推荐按供应商子路径导入的原因：每个 <code>providers/&lt;id&gt;</code> 只带这一个供应商的目录和它用到的一个或几个 <code>.lazy</code> 包装，不会牵连其他供应商。</p>
+<p>根入口 <code>@earendil-works/pi-ai</code> 的文件头注释写着&quot;side-effect free&quot;：没有生成的模型目录、没有真实的供应商工厂（只带了测试用的 <code>fauxProvider</code>）、没有全局注册表、没有 OAuth 实现。供应商在 <code>providers/*</code> 下，协议实现在 <code>api/*</code> 下，旧的全局 API 在 <code>compat</code> 里。<code>package.json</code> 的 <code>sideEffects</code> 一共只列了三个文件：<code>compat</code> 和两个图像相关的文件。要让 SDK 真正留在单独的分块里，打包时还需要开启代码分割；不打包直接在 Node 里运行时，靠的就是上面这种动态 <code>import</code>。</p>
+<p>第二章提到的 entry-graphs 检查，守的就是这一层的入口：</p>
+<ul>
+<li>它数的是一个入口沿着静态值导入能走到的<strong>工作区源文件</strong>数，不数 npm 依赖，也不跟踪动态 <code>import()</code>，所以 <code>.lazy.ts</code> 背后的协议实现和 SDK 不算在内。</li>
+<li>pi-ai 只有两个入口设了预算：
+<ul>
+<li><code>./models</code>：最多 15 个文件，实际 13 个；不能走到 <code>providers/</code>、生成的目录、根入口，以及依赖 TypeBox 的校验工具</li>
+<li><code>./utils/*</code>：最多 3 个；不能走到 <code>providers/</code>、<code>api/</code> 和根入口</li>
+</ul>
+</li>
+<li>根入口和 <code>providers/*</code> 没有设预算。用同样的方法数，根入口 26 个，<code>providers/anthropic</code> 21 个，<code>providers/all</code> 121 个，<code>compat</code> 139 个。</li>
+</ul>
+<hr>
+<h2 id="7--用法">
+<a class="header-anchor" href="#7--%e7%94%a8%e6%b3%95"></a>
+7 · 用法
+</h2><h3 id="71-单独用-pi-ai-发一次请求">
+<a class="header-anchor" href="#71-%e5%8d%95%e7%8b%ac%e7%94%a8-pi-ai-%e5%8f%91%e4%b8%80%e6%ac%a1%e8%af%b7%e6%b1%82"></a>
+7.1 单独用 pi-ai 发一次请求
+</h3><p>不需要 agent-core，pi-ai 自己就能发请求。下面按 README 的写法，只注册 Anthropic 一个供应商：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createModels</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">anthropicProvider</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/providers/anthropic&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">models</span> <span class="o">=</span> <span class="nx">createModels</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="nx">models</span><span class="p">.</span><span class="nx">setProvider</span><span class="p">(</span><span class="nx">anthropicProvider</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;anthropic&#34;</span><span class="p">,</span> <span class="s2">&#34;claude-sonnet-4-6&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">model</span><span class="p">)</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&#34;Model not found&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">s</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">streamSimple</span><span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">model</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="p">{</span> <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;Answer in one sentence.&#34;</span><span class="p">,</span> <span class="nx">messages</span><span class="o">:</span> <span class="p">[{</span> <span class="nx">role</span><span class="o">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="nx">content</span><span class="o">:</span> <span class="s2">&#34;What is SSE?&#34;</span><span class="p">,</span> <span class="nx">timestamp</span>: <span class="kt">Date.now</span><span class="p">()</span> <span class="p">}]</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="p">{</span> <span class="nx">reasoning</span><span class="o">:</span> <span class="s2">&#34;low&#34;</span><span class="p">,</span> <span class="nx">maxRetries</span>: <span class="kt">2</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">for</span> <span class="k">await</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">event</span> <span class="k">of</span> <span class="nx">s</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;text_delta&#34;</span><span class="p">)</span> <span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">delta</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;error&#34;</span><span class="p">)</span> <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="sb">`</span><span class="err">\</span><span class="sb">n</span><span class="si">${</span><span class="nx">event</span><span class="p">.</span><span class="nx">reason</span><span class="si">}</span><span class="sb">: </span><span class="si">${</span><span class="nx">event</span><span class="p">.</span><span class="nx">error</span><span class="p">.</span><span class="nx">errorMessage</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">message</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">s</span><span class="p">.</span><span class="nx">result</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`</span><span class="err">\</span><span class="sb">n</span><span class="si">${</span><span class="nx">message</span><span class="p">.</span><span class="nx">stopReason</span><span class="si">}</span><span class="sb">, </span><span class="si">${</span><span class="nx">message</span><span class="p">.</span><span class="nx">usage</span><span class="p">.</span><span class="nx">totalTokens</span><span class="si">}</span><span class="sb"> tokens, $</span><span class="si">${</span><span class="nx">message</span><span class="p">.</span><span class="nx">usage</span><span class="p">.</span><span class="nx">cost</span><span class="p">.</span><span class="nx">total</span><span class="p">.</span><span class="nx">toFixed</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span></code></pre></div><ul>
+<li>凭据按 3.1 节的顺序解析，这里会读取 <code>ANTHROPIC_API_KEY</code> 等环境变量。</li>
+<li><code>maxRetries: 2</code> 要显式写上，不写就不重试。</li>
+<li>不需要 <code>try</code> / <code>catch</code>：失败会以 <code>error</code> 事件出现，<code>result()</code> 拿到的是带 <code>errorMessage</code> 的消息。</li>
+</ul>
+<h3 id="72-自定义-streamfn包一层再交给-agent">
+<a class="header-anchor" href="#72-%e8%87%aa%e5%ae%9a%e4%b9%89-streamfn%e5%8c%85%e4%b8%80%e5%b1%82%e5%86%8d%e4%ba%a4%e7%bb%99-agent"></a>
+7.2 自定义 streamFn：包一层再交给 Agent
+</h3><p><code>StreamFn</code> 只是一个函数，可以在 <code>models.streamSimple</code> 外面包一层，在请求前改选项、在流经过时做记录。下面这个包装做两件事：</p>
+<ul>
+<li>默认把 <code>cacheRetention</code> 设成 <code>&quot;long&quot;</code>，让支持的供应商用更长的提示缓存</li>
+<li>每次请求结束后打印首个增量的耗时、停止原因和 token 数</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Agent</span><span class="p">,</span> <span class="kr">type</span> <span class="nx">StreamFn</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-agent-core&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createAssistantMessageEventStream</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">withLogging</span><span class="p">(</span><span class="nx">inner</span>: <span class="kt">StreamFn</span><span class="p">)</span><span class="o">:</span> <span class="nx">StreamFn</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="kr">async</span> <span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">context</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">started</span> <span class="o">=</span> <span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">source</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">inner</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">context</span><span class="p">,</span> <span class="p">{</span> <span class="nx">cacheRetention</span><span class="o">:</span> <span class="s2">&#34;long&#34;</span><span class="p">,</span> <span class="p">...</span><span class="nx">options</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">out</span> <span class="o">=</span> <span class="nx">createAssistantMessageEventStream</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">		<span class="p">(</span><span class="kr">async</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="kd">let</span> <span class="nx">firstDelta</span>: <span class="kt">number</span> <span class="o">|</span> <span class="kc">undefined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="k">for</span> <span class="k">await</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">event</span> <span class="k">of</span> <span class="nx">source</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="k">if</span> <span class="p">(</span><span class="nx">firstDelta</span> <span class="o">===</span> <span class="kc">undefined</span> <span class="o">&amp;&amp;</span> <span class="nx">event</span><span class="p">.</span><span class="kr">type</span><span class="p">.</span><span class="nx">endsWith</span><span class="p">(</span><span class="s2">&#34;_delta&#34;</span><span class="p">))</span> <span class="nx">firstDelta</span> <span class="o">=</span> <span class="nb">Date</span><span class="p">.</span><span class="nx">now</span><span class="p">()</span> <span class="o">-</span> <span class="nx">started</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">out</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">event</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="kr">const</span> <span class="nx">message</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">source</span><span class="p">.</span><span class="nx">result</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`[llm] </span><span class="si">${</span><span class="nx">model</span><span class="p">.</span><span class="nx">provider</span><span class="si">}</span><span class="sb">/</span><span class="si">${</span><span class="nx">model</span><span class="p">.</span><span class="nx">id</span><span class="si">}</span><span class="sb"> msgs=</span><span class="si">${</span><span class="nx">context</span><span class="p">.</span><span class="nx">messages</span><span class="p">.</span><span class="nx">length</span><span class="si">}</span><span class="sb"> stop=</span><span class="si">${</span><span class="nx">message</span><span class="p">.</span><span class="nx">stopReason</span><span class="si">}</span><span class="sb"> firstDelta=</span><span class="si">${</span><span class="nx">firstDelta</span><span class="si">}</span><span class="sb">ms in=</span><span class="si">${</span><span class="nx">message</span><span class="p">.</span><span class="nx">usage</span><span class="p">.</span><span class="nx">input</span><span class="si">}</span><span class="sb"> out=</span><span class="si">${</span><span class="nx">message</span><span class="p">.</span><span class="nx">usage</span><span class="p">.</span><span class="nx">output</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">out</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">message</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="p">})();</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">out</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">agent</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Agent</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">initialState</span><span class="o">:</span> <span class="p">{</span> <span class="nx">model</span><span class="p">,</span> <span class="nx">tools</span><span class="o">:</span> <span class="p">[</span><span class="nx">readTool</span><span class="p">],</span> <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;be terse&#34;</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">streamFn</span>: <span class="kt">withLogging</span><span class="p">(</span><span class="nx">models</span><span class="p">.</span><span class="nx">streamSimple</span><span class="p">.</span><span class="nx">bind</span><span class="p">(</span><span class="nx">models</span><span class="p">)),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span></code></pre></div><p><code>readTool</code> 是你自己定义的 <code>AgentTool</code>。这段代码里的几个选择：</p>
+<ul>
+<li><strong>转发而不是共享</strong>：一个流只能有一个消费者（4.2 节），所以包装层自己读完源流，再把事件逐个推进一个新的流。<code>Agent</code> 读的是新流。</li>
+<li><strong>事件原样转发</strong>：<code>partial</code> 仍是源流里的同一个对象，<code>Agent</code> 看到的事件和不包装时完全一样。</li>
+<li><strong>不在包装层 <code>try</code> / <code>catch</code></strong>：<code>inner</code> 是 <code>Models.streamSimple</code>，失败已经在流里了。如果要包装的是会抛错的函数（例如直接调用协议模块），就要在这里接住异常，自己推一个 <code>error</code> 事件，才能守住 <code>StreamFn</code> 的约定。</li>
+<li><strong><code>out.end(message)</code> 兜底</strong>：转发 <code>done</code> 或 <code>error</code> 事件时，<code>result()</code> 就已经确定了，<code>end(message)</code> 只是防备源流没有发出结束事件就结束的情况。<code>Agent</code> 靠 <code>result()</code> 拿最终消息。</li>
+<li><strong>用工厂函数创建流</strong>：<code>createAssistantMessageEventStream()</code>（创建一个空的事件流）。根入口的类型声明把 <code>AssistantMessageEventStream</code> 导出成了纯类型，在 TypeScript 里直接 <code>new</code> 它会报错。</li>
+</ul>
+<p>探针用这个包装跑了一次带工具调用的运行，<code>Agent</code> 正常完成了两次请求，日志如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">[llm] anthropic/claude-fable-5 msgs=2 stop=toolUse firstDelta=54ms in=100 out=9
+</span></span><span class="line"><span class="cl">[llm] anthropic/claude-fable-5 msgs=4 stop=stop firstDelta=3ms in=120 out=5
+</span></span></code></pre></div><hr>
+<h2 id="8--关键数字">
+<a class="header-anchor" href="#8--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+8 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>数量</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>内置供应商</td>
+					<td>42 个</td>
+			</tr>
+			<tr>
+					<td>对话线协议</td>
+					<td>10 种</td>
+			</tr>
+			<tr>
+					<td>按 <code>model.api</code> 再分派的供应商</td>
+					<td>6 个</td>
+			</tr>
+			<tr>
+					<td><code>AssistantMessageEvent</code> 种类</td>
+					<td>12 种</td>
+			</tr>
+			<tr>
+					<td><code>StopReason</code> 取值</td>
+					<td>7 个</td>
+			</tr>
+			<tr>
+					<td>请求级重试的默认次数</td>
+					<td>0</td>
+			</tr>
+			<tr>
+					<td><code>maxRetryDelayMs</code> 默认值</td>
+					<td>60 秒</td>
+			</tr>
+			<tr>
+					<td>OAuth 提前刷新窗口</td>
+					<td>5 分钟</td>
+			</tr>
+			<tr>
+					<td><code>src/api/</code></td>
+					<td>39 个文件，12,835 行</td>
+			</tr>
+			<tr>
+					<td><code>packages/ai</code> 的提交（北京时间 2026-08-01 至 2026-10-01，含合并提交）</td>
+					<td>261 次，其中 <code>src/api/</code> 87 次</td>
+			</tr>
+	</tbody>
+</table>
+<p>图像生成另有 1 种线协议，分类模型另有 3 种，不算在 10 种里。</p>
+<hr>
+<h2 id="9--术语表">
+<a class="header-anchor" href="#9--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+9 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>含义</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>供应商（Provider）</strong></td>
+					<td>带 id、凭据、模型目录和请求方法的运行时单元</td>
+			</tr>
+			<tr>
+					<td><strong>线协议（api）</strong></td>
+					<td>请求与响应的格式，多个供应商共用</td>
+			</tr>
+			<tr>
+					<td><strong>协议实现</strong></td>
+					<td><code>src/api/</code> 下实现一种线协议的模块</td>
+			</tr>
+			<tr>
+					<td><strong><code>Models</code></strong></td>
+					<td>注册供应商、查模型、发请求的集合</td>
+			</tr>
+			<tr>
+					<td><strong><code>TranscriptContext</code></strong></td>
+					<td><code>normalizeContext</code> 产出的上下文，供应商只收这种</td>
+			</tr>
+			<tr>
+					<td><strong><code>partial</code></strong></td>
+					<td>事件里正在累积的助手消息，始终是同一个对象</td>
+			</tr>
+			<tr>
+					<td><strong><code>lazyStream</code></strong></td>
+					<td>先返回流、再在背后准备，准备失败变成 <code>error</code> 事件</td>
+			</tr>
+			<tr>
+					<td><strong><code>.lazy.ts</code></strong></td>
+					<td>首次请求时才加载协议实现的一行包装</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="10--源码导航">
+<a class="header-anchor" href="#10--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+10 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>Models</code> 和两级分派</td>
+					<td><code>packages/ai/src/models.ts</code> → <code>ModelsImpl</code>、<code>createProvider</code>、<code>applyAuth</code></td>
+			</tr>
+			<tr>
+					<td>先返回流再准备</td>
+					<td><code>packages/ai/src/api/lazy.ts</code> → <code>lazyStream</code>、<code>lazyApi</code></td>
+			</tr>
+			<tr>
+					<td>上下文规整</td>
+					<td><code>packages/ai/src/utils/transcript.ts</code> → <code>normalizeContext</code>、<code>resolveTranscript</code></td>
+			</tr>
+			<tr>
+					<td>历史消息整理</td>
+					<td><code>packages/ai/src/api/transform-messages.ts</code> → <code>transformMessages</code></td>
+			</tr>
+			<tr>
+					<td>一个完整的协议实现</td>
+					<td><code>packages/ai/src/api/anthropic-messages.ts</code> → <code>stream</code>、<code>streamSimple</code>、<code>mapStopReason</code></td>
+			</tr>
+			<tr>
+					<td>另一种事件顺序</td>
+					<td><code>packages/ai/src/api/openai-completions.ts</code> → <code>stream</code></td>
+			</tr>
+			<tr>
+					<td>统一选项的换算</td>
+					<td><code>packages/ai/src/api/simple-options.ts</code></td>
+			</tr>
+			<tr>
+					<td>事件和消息类型</td>
+					<td><code>packages/ai/src/types.ts</code> → <code>AssistantMessageEvent</code>、<code>StreamOptions</code>、<code>StreamFunction</code></td>
+			</tr>
+			<tr>
+					<td>事件流</td>
+					<td><code>packages/ai/src/utils/event-stream.ts</code> → <code>EventStream</code></td>
+			</tr>
+			<tr>
+					<td>请求级重试</td>
+					<td><code>packages/ai/src/utils/provider-retry.ts</code> → <code>retryProviderRequest</code></td>
+			</tr>
+			<tr>
+					<td>消息级重试</td>
+					<td><code>packages/ai/src/utils/retry.ts</code> → <code>retryAssistantCall</code>、<code>isRetryableAssistantError</code></td>
+			</tr>
+			<tr>
+					<td>凭据解析和 OAuth 刷新</td>
+					<td><code>packages/ai/src/auth/resolve.ts</code> → <code>resolveProviderAuth</code>、<code>resolveStoredOAuth</code></td>
+			</tr>
+			<tr>
+					<td>供应商工厂</td>
+					<td><code>packages/ai/src/providers/anthropic.ts</code>、<code>github-copilot.ts</code>、<code>all.ts</code></td>
+			</tr>
+			<tr>
+					<td>测试用的假供应商</td>
+					<td><code>packages/ai/src/providers/faux.ts</code> → <code>fauxProvider</code></td>
+			</tr>
+			<tr>
+					<td>旧的全局 API</td>
+					<td><code>packages/ai/src/compat.ts</code></td>
+			</tr>
+			<tr>
+					<td>入口预算</td>
+					<td><code>scripts/check-entry-graphs.mjs</code></td>
+			</tr>
+			<tr>
+					<td>官方说明</td>
+					<td><code>packages/ai/README.md</code></td>
+			</tr>
+			<tr>
+					<td>coding-agent 的模型运行时</td>
+					<td><code>packages/coding-agent/src/core/model-runtime.ts</code> → <code>ModelRuntime</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>下一章</strong>：工具。看 <code>AgentTool</code> 怎么定义、参数怎么校验，以及 coding-agent 的内置工具是怎么实现的。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/6.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的"
+              class="lazyload"
+            /><a
+          href="/harness/pi/03-agent-loop/"
+          aria-label="Prev:Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的"
+          title="Prev:Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--从-streamfn-到-models">1 · 从 streamFn 到 Models</a></li>
+    <li><a href="#2--供应商和线协议两级分派">2 · 供应商和线协议：两级分派</a></li>
+    <li><a href="#3--一次请求的路径">3 · 一次请求的路径</a>
+      <ul>
+        <li><a href="#31-models-这一段同步返回异步准备">3.1 Models 这一段：同步返回，异步准备</a></li>
+        <li><a href="#32-协议实现这一段换算选项拼请求体">3.2 协议实现这一段：换算选项，拼请求体</a></li>
+        <li><a href="#33-transformmessages把历史整理成这家能接受的样子">3.3 transformMessages：把历史整理成这家能接受的样子</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--流式归一化">4 · 流式归一化</a>
+      <ul>
+        <li><a href="#41-12-种事件">4.1 12 种事件</a></li>
+        <li><a href="#42-partial-是一个活对象">4.2 partial 是一个活对象</a></li>
+        <li><a href="#43-最终消息的三个字段">4.3 最终消息的三个字段</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--失败与中止">5 · 失败与中止</a>
+      <ul>
+        <li><a href="#51-失败怎么进到流里">5.1 失败怎么进到流里</a></li>
+        <li><a href="#52-中止">5.2 中止</a></li>
+        <li><a href="#53-重试">5.3 重试</a></li>
+        <li><a href="#54-oauth-令牌刷新">5.4 OAuth 令牌刷新</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--按需加载与入口体积">6 · 按需加载与入口体积</a></li>
+    <li><a href="#7--用法">7 · 用法</a>
+      <ul>
+        <li><a href="#71-单独用-pi-ai-发一次请求">7.1 单独用 pi-ai 发一次请求</a></li>
+        <li><a href="#72-自定义-streamfn包一层再交给-agent">7.2 自定义 streamFn：包一层再交给 Agent</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--关键数字">8 · 关键数字</a></li>
+    <li><a href="#9--术语表">9 · 术语表</a></li>
+    <li><a href="#10--源码导航">10 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么",
+          url: "https:\/\/example.org\/harness\/pi\/04-model-call\/",
+          description: "接着第三章往下讲：Agent 调用的 streamFn 背后，pi-ai 怎么先找供应商、再选线协议，请求在进入供应商之前做了哪些转换，各家的原始流怎么归一成 12 种事件，失败、中止、重试和凭据刷新怎么落进流里，以及协议实现怎么做到按需加载。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

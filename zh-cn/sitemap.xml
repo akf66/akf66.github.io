@@ -3,23 +3,23 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://example.org/harness/pi/</loc>
-    <lastmod>2026-10-01T19:30:00+08:00</lastmod>
+    <lastmod>2026-10-01T20:30:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/harness/codex/</loc>
   </url><url>
     <loc>https://example.org/harness/dsh/</loc>
   </url><url>
     <loc>https://example.org/tags/harness/</loc>
-    <lastmod>2026-10-01T19:30:00+08:00</lastmod>
+    <lastmod>2026-10-01T20:30:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/pi/</loc>
-    <lastmod>2026-10-01T19:30:00+08:00</lastmod>
+    <lastmod>2026-10-01T20:30:00+08:00</lastmod>
   </url><url>
-    <loc>https://example.org/harness/pi/03-agent-loop/</loc>
-    <lastmod>2026-10-01T19:30:00+08:00</lastmod>
+    <loc>https://example.org/harness/pi/04-model-call/</loc>
+    <lastmod>2026-10-01T20:30:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/</loc>
-    <lastmod>2026-10-01T19:30:00+08:00</lastmod>
+    <lastmod>2026-10-01T20:30:00+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -42,7 +42,7 @@
                 />
   </url><url>
     <loc>https://example.org/</loc>
-    <lastmod>2026-10-01T19:30:00+08:00</lastmod>
+    <lastmod>2026-10-01T20:30:00+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -65,6 +65,9 @@
                 />
   </url><url>
     <loc>https://example.org/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</loc>
+    <lastmod>2026-10-01T20:30:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/harness/pi/03-agent-loop/</loc>
     <lastmod>2026-10-01T19:30:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/harness/pi/02-three-layers/</loc>
@@ -85,6 +88,11 @@
                 />
     <xhtml:link
                 rel="alternate"
+                hreflang="ja"
+                href="https://example.org/ja/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/categories/"
                 />
@@ -92,11 +100,6 @@
                 rel="alternate"
                 hreflang="en"
                 href="https://example.org/en/categories/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="ja"
-                href="https://example.org/ja/categories/"
                 />
   </url><url>
     <loc>https://example.org/tags/helm/</loc>

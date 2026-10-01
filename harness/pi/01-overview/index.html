@@ -10,7 +10,7 @@
 /><title>
   Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架 | AKF
 </title>
-<meta name="description" content="基于 earendil-works/pi v0.99.2 重写的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及三个月来的架构演变。"/><script>
+<meta name="description" content="基于 earendil-works/pi v0.99.2 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"/><script>
   window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
   
 </script>
@@ -37,7 +37,7 @@
   <meta property="og:title" content="Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架 | AKF" />
   <meta
     property="og:description"
-    content="基于 earendil-works/pi v0.99.2 重写的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及三个月来的架构演变。"
+    content="基于 earendil-works/pi v0.99.2 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"
   />
   <meta property="og:url" content="https://example.org/harness/pi/01-overview/" />
   <meta
@@ -200,7 +200,7 @@ This article does not have a corresponding language version
       <ul>
         <li><a href="#21-主干四层堆栈">2.1 主干：四层堆栈</a></li>
         <li><a href="#22-能力库零内部依赖可单独复用">2.2 能力库：零内部依赖、可单独复用</a></li>
-        <li><a href="#23-实验区pi-正在长出来的新方向">2.3 实验区：Pi 正在长出来的新方向</a></li>
+        <li><a href="#23-实验区pi-正在探索的方向">2.3 实验区：Pi 正在探索的方向</a></li>
       </ul>
     </li>
     <li><a href="#3--依赖规则为什么箭头只朝下">3 · 依赖规则：为什么箭头只朝下</a></li>
@@ -216,17 +216,16 @@ This article does not have a corresponding language version
     <li><a href="#6--产品层工具内置扩展与运行模式">6 · 产品层：工具、内置扩展与运行模式</a>
       <ul>
         <li><a href="#61-内置工具8-个">6.1 内置工具（8 个）</a></li>
-        <li><a href="#62-内置扩展v0990-起">6.2 内置扩展（v0.99.0 起）</a></li>
+        <li><a href="#62-内置扩展">6.2 内置扩展</a></li>
         <li><a href="#63-四种运行模式">6.3 四种运行模式</a></li>
         <li><a href="#64-配置文件地图">6.4 配置文件地图</a></li>
       </ul>
     </li>
     <li><a href="#7--定制阶梯从用-pi到造自己的-agent">7 · 定制阶梯：从&quot;用 Pi&quot;到&quot;造自己的 Agent&quot;</a></li>
-    <li><a href="#8--减法哲学的演变pi-不做什么">8 · 减法哲学的演变：Pi 不做什么</a></li>
-    <li><a href="#9--三个月发生了什么">9 · 三个月发生了什么</a></li>
+    <li><a href="#8--减法哲学核心不做什么以及怎么补">8 · 减法哲学：核心不做什么，以及怎么补</a></li>
+    <li><a href="#9--关键数字v0992">9 · 关键数字（v0.99.2）</a></li>
     <li><a href="#10--术语表">10 · 术语表</a></li>
-    <li><a href="#11--源码导航与后续路线">11 · 源码导航与后续路线</a></li>
-    <li><a href="#附录--原博客第-1-章勘误清单对照-v0992">附录 · 原博客第 1 章勘误清单（对照 v0.99.2）</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
   </ul>
 </nav>
 </div></div>
@@ -294,7 +293,7 @@ This article does not have a corresponding language version
             <div class="sidebar-common-btn"></div>
           </div></div>
   </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.5a649b2b883a7cde404200bed5617b68af2cf75696f90f5354b3040a64d23031.css" />
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.4d498b68f17e42373430e73eceae47803d776bc0f17f9bed89d38f183a459c7e.css" />
     <article class="article harness-intro" data-aos="fade-up">
       <div class="article-inner">
         <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
@@ -325,14 +324,12 @@ This article does not have a corresponding language version
   </span></div>
 <div class="article-category"></div>
 </div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
-<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v0.99.2（2026-09-30），commit <code>8ce69e9d2</code>。
-本章是对 <a href="https://www.dgzhuya.com/modules/ch01-overview">dgzhuya.com 第 1 章</a>（基于 v0.80.2）的重写。保留它&quot;工具 / 教材 / SDK&quot;三重视角的好框架，但所有架构、数字和代码都按最新源码重新核对。三个月里 Pi 从 4 个包长到了 14 个目录，第一章的&quot;骨架图&quot;已经需要重画。</p>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v0.99.2（2026-09-30），commit <code>8ce69e9d2</code>。文中所有架构、数字和代码均以该版本源码为准。</p>
 </blockquote>
-<p>本章不深入实现细节，只回答三个问题：</p>
+<p>本章不深入实现细节，只回答两个问题：</p>
 <ol>
 <li><strong>Pi 是什么？</strong>——一句话定义与三重身份</li>
-<li><strong>Pi 的骨架长什么样？</strong>——分层、依赖规则、一次请求怎么穿过各层</li>
-<li><strong>和三个月前比，变了什么？</strong>——哪些结论仍成立，哪些已经过时</li>
+<li><strong>Pi 的骨架长什么样？</strong>——分层、依赖规则、一次请求怎么穿过各层、怎么定制</li>
 </ol>
 <hr>
 <h2 id="0--阅读说明">
@@ -357,10 +354,6 @@ This article does not have a corresponding language version
 			<tr>
 					<td>标记 <code>*</code></td>
 					<td>表示实验性包，README 明确写了&quot;API 随时变化&quot;</td>
-			</tr>
-			<tr>
-					<td>对照原博客</td>
-					<td>第 9 节给出了数字对照表，附录给出了勘误清单</td>
 			</tr>
 	</tbody>
 </table>
@@ -449,7 +442,7 @@ This article does not have a corresponding language version
 	</tbody>
 </table>
 <blockquote>
-<p>💡 原博客说 Pi 是&quot;三层堆栈 + 一个 UI 库&quot;。这个说法<strong>对 L1–L3 仍然成立</strong>，只是现在下面多垫了一层基础设施（L0）。日常阅读源码时，L0 几乎可以忽略：agent-core 主要通过 <code>chord/context</code> 传递取消信号和遥测父 span。</p>
+<p>💡 读源码时，L0 几乎可以忽略：agent-core 主要通过 <code>chord/context</code> 传递取消信号和遥测父 span。真正的主线是 L1 → L2 → L3 这三层。</p>
 </blockquote>
 <h3 id="22-能力库零内部依赖可单独复用">
 <a class="header-anchor" href="#22-%e8%83%bd%e5%8a%9b%e5%ba%93%e9%9b%b6%e5%86%85%e9%83%a8%e4%be%9d%e8%b5%96%e5%8f%af%e5%8d%95%e7%8b%ac%e5%a4%8d%e7%94%a8"></a>
@@ -481,9 +474,9 @@ This article does not have a corresponding language version
 	</tbody>
 </table>
 <p>它们的共同点是 <code>package.json</code> 里没有任何 <code>@earendil-works/*</code> 依赖。这是 Pi 最容易&quot;拆下来就用&quot;的部分。</p>
-<h3 id="23-实验区pi-正在长出来的新方向">
-<a class="header-anchor" href="#23-%e5%ae%9e%e9%aa%8c%e5%8c%bapi-%e6%ad%a3%e5%9c%a8%e9%95%bf%e5%87%ba%e6%9d%a5%e7%9a%84%e6%96%b0%e6%96%b9%e5%90%91"></a>
-2.3 实验区：Pi 正在长出来的新方向
+<h3 id="23-实验区pi-正在探索的方向">
+<a class="header-anchor" href="#23-%e5%ae%9e%e9%aa%8c%e5%8c%bapi-%e6%ad%a3%e5%9c%a8%e6%8e%a2%e7%b4%a2%e7%9a%84%e6%96%b9%e5%90%91"></a>
+2.3 实验区：Pi 正在探索的方向
 </h3><table>
 	<thead>
 			<tr>
@@ -524,11 +517,11 @@ This article does not have a corresponding language version
 <p><strong>规则 2：类型逐层&quot;加料&quot;，下层类型从不为上层修改。</strong></p>
 <ul>
 <li><code>pi-ai</code> 定义最基础的类型：<code>Message</code>、<code>Model</code>、<code>Tool</code>（只有 schema，没有 <code>execute</code>，因为 LLM 不需要知道工具怎么执行）。</li>
-<li><code>pi-agent-core</code> 在此基础上加入 <code>AgentTool</code>（带 <code>execute</code>）、<code>AgentMessage</code>（可以通过声明合并扩展自定义消息）。</li>
+<li><code>pi-agent-core</code> 在此基础上加入 <code>AgentTool</code>（带 <code>execute</code>）、<code>AgentMessage</code>（可以通过 <code>CustomAgentMessages</code> 声明合并扩展自定义消息）。</li>
 <li><code>pi-coding-agent</code> 再加入 <code>ToolDefinition</code>（带 TUI 渲染）、<code>BashExecutionMessage</code>、<code>CompactionSummaryMessage</code> 等业务类型。</li>
 </ul>
 <p><strong>规则 3：叶子包零依赖。</strong>
-<code>chord</code>、<code>pi-telemetry</code>、<code>pi-tui</code>、<code>pi-mcp</code>、<code>pi-codemode</code> 都没有内部依赖。新能力（MCP、codemode）先做成独立的叶子包，再由 L3 以&quot;内置扩展&quot;的形式接进来，而不是直接写进引擎。</p>
+<code>chord</code>、<code>pi-telemetry</code>、<code>pi-tui</code>、<code>pi-mcp</code>、<code>pi-codemode</code> 都没有内部依赖。像 MCP、codemode 这样的能力，先做成独立的叶子包，再由 L3 以&quot;内置扩展&quot;的形式接进来，而不是直接写进引擎。</p>
 <blockquote>
 <p>🧠 <strong>思考题</strong>：为什么 MCP 不放进 <code>pi-agent-core</code>？
 因为对引擎来说，MCP 工具和 <code>read</code> 工具没有区别，都只是一个 <code>AgentTool</code>。把 MCP 放在 L3 的扩展里，引擎就能保持&quot;不知道工具从哪来&quot;。想用别的 MCP 实现，替换扩展就行，不用 fork 引擎。</p>
@@ -572,12 +565,12 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td><code>/compat</code> 入口</td>
-					<td>旧的全局 API（<code>getModel</code> / <code>stream</code>），README 标注为&quot;临时兼容，未来移除&quot;</td>
+					<td>旧的全局 API（<code>getModel</code> / <code>stream</code>），README 标注为&quot;临时兼容，未来移除&quot;，新代码不要用</td>
 					<td><code>packages/ai/src/compat.ts</code></td>
 			</tr>
 	</tbody>
 </table>
-<p><strong>最小示例</strong>（摘自 <code>packages/ai/README.md</code>，当前推荐写法）：</p>
+<p><strong>最小示例</strong>（摘自 <code>packages/ai/README.md</code>）：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span> <span class="nx">Context</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">builtinModels</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/providers/all&#34;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
@@ -594,10 +587,7 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;text_delta&#34;</span><span class="p">)</span> <span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">delta</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">finalMessage</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">s</span><span class="p">.</span><span class="nx">result</span><span class="p">();</span>
-</span></span></code></pre></div><blockquote>
-<p>📌 和原博客的区别：原文从 <code>pi-ai/compat</code> 导入 <code>getModel</code>，那是旧 API。新代码请用 <code>Models</code> 集合。</p>
-</blockquote>
-<h3 id="42-l2--pi-agent-core只管跑循环">
+</span></span></code></pre></div><h3 id="42-l2--pi-agent-core只管跑循环">
 <a class="header-anchor" href="#42-l2--pi-agent-core%e5%8f%aa%e7%ae%a1%e8%b7%91%e5%be%aa%e7%8e%af"></a>
 4.2 L2 · pi-agent-core：只管跑循环
 </h3><p><strong>职责</strong>：实现&quot;模型思考 → 调工具 → 看结果 → 再思考&quot;这个循环。它对&quot;编码&quot;一无所知，可以拿来做客服 Agent、数据分析 Agent 等任何场景。</p>
@@ -611,7 +601,7 @@ This article does not have a corresponding language version
 	<tbody>
 			<tr>
 					<td><code>Agent</code> 类（<code>agent.ts</code>）</td>
-					<td>持有状态（系统提示词、模型、消息、工具）。方法有 <code>prompt</code> / <code>continue</code> / <code>steer</code> / <code>followUp</code> / <code>abort</code> / <code>subscribe</code> / <code>waitForIdle</code></td>
+					<td>持有状态（系统提示词、模型、消息、工具），在构造参数 <code>initialState</code> 里传入。方法有 <code>prompt</code> / <code>continue</code> / <code>steer</code> / <code>followUp</code> / <code>abort</code> / <code>subscribe</code> / <code>waitForIdle</code></td>
 			</tr>
 			<tr>
 					<td><code>agentLoop</code>（<code>agent-loop.ts</code>，约 940 行）</td>
@@ -652,10 +642,7 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl"><span class="p">});</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">agent</span><span class="p">.</span><span class="nx">prompt</span><span class="p">(</span><span class="s2">&#34;Hello!&#34;</span><span class="p">);</span>
-</span></span></code></pre></div><blockquote>
-<p>📌 和原博客的区别：原文写&quot;model/tools/systemPrompt 在调用 prompt() 时传入&quot;。实际上它们放在构造参数 <code>initialState</code> 里（运行中也可以改 <code>agent.state</code>）。</p>
-</blockquote>
-<h3 id="43-l3--pi-coding-agent把引擎装成产品">
+</span></span></code></pre></div><h3 id="43-l3--pi-coding-agent把引擎装成产品">
 <a class="header-anchor" href="#43-l3--pi-coding-agent%e6%8a%8a%e5%bc%95%e6%93%8e%e8%a3%85%e6%88%90%e4%ba%a7%e5%93%81"></a>
 4.3 L3 · pi-coding-agent：把引擎装成产品
 </h3><p><strong>职责</strong>：在 <code>Agent</code> 外面包一层 <code>AgentSession</code>。它负责组装系统提示词和上下文文件、注册内置工具、加载扩展和资源、把会话落盘成 JSONL 树、自动压缩与重试，并把事件扩展成 <code>AgentSessionEvent</code> 广播给各种前端。</p>
@@ -693,7 +680,7 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td>模型</td>
-					<td><code>model-runtime.ts</code>、<code>model-registry.ts</code>（内置目录 + <code>models.json</code> + 认证）</td>
+					<td><code>model-runtime.ts</code>、<code>model-registry.ts</code>、<code>model-config.ts</code>（内置目录 + <code>models.json</code> + 认证）</td>
 			</tr>
 	</tbody>
 </table>
@@ -712,23 +699,21 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl">  <span class="nx">session</span><span class="p">.</span><span class="nx">dispose</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
 </span></span></code></pre></div><blockquote>
-<p>📌 和原博客的区别有两点：</p>
+<p>📌 两个容易踩的点：</p>
 <ul>
-<li><code>createAgentSession()</code> 返回的是 <code>{ session, extensionsResult, ... }</code>，不是 session 本身。</li>
-<li>模型通过 <code>ModelRuntime</code> 获取。</li>
+<li><code>createAgentSession()</code> 返回的是 <code>{ session, extensionsResult, ... }</code>，需要解构。</li>
+<li><strong>SDK 会话不会自动加载内置扩展</strong>。要用 MCP，需要自己加 <code>createMcpExtension()</code>。</li>
 </ul>
-<p>另外，<strong>SDK 会话不会自动加载内置扩展</strong>。要用 MCP，需要自己加 <code>createMcpExtension()</code>。</p>
 </blockquote>
 <h3 id="44-侧库--pi-tui与-agent-无关的终端-ui">
 <a class="header-anchor" href="#44-%e4%be%a7%e5%ba%93--pi-tui%e4%b8%8e-agent-%e6%97%a0%e5%85%b3%e7%9a%84%e7%bb%88%e7%ab%af-ui"></a>
 4.4 侧库 · pi-tui：与 Agent 无关的终端 UI
-</h3><p>pi-tui 不在堆栈链上。只有交互模式用它，它本身也不认识任何 <code>pi-*</code> 包，所以任何 Node.js 终端程序都能用。三个月里它从约 1.2 万行长到约 1.9 万行，新增的主要是：</p>
+</h3><p>pi-tui 不在堆栈链上：只有交互模式用它，它本身也不认识任何 <code>pi-*</code> 包，任何 Node.js 终端程序都能用。核心能力：</p>
 <ul>
-<li>全屏（alt-screen）渲染器 <code>TuiAltScreen</code>，可以在常规模式和全屏模式之间切换</li>
-<li>终端里的 Mermaid 与 LaTeX 渲染</li>
-<li>鼠标滚轮加速、搜索、可拖拽的滚动条</li>
+<li><strong>差分渲染</strong>：只重绘变化的部分，配合同步输出（CSI 2026）避免闪烁</li>
+<li><strong>两种渲染器</strong>：常规模式 <code>TuiMainScreen</code> 和全屏模式 <code>TuiAltScreen</code>，运行时可以切换</li>
+<li><strong>组件</strong>：<code>Editor</code>、<code>Markdown</code>（支持 Mermaid 与 LaTeX）、<code>SelectList</code>、<code>SettingsList</code>、<code>ScrollView</code> 等</li>
 </ul>
-<p>核心 <code>tui.ts</code> 反而从 1714 行瘦身到 1493 行，因为代码拆到了 <code>tui-main-screen.ts</code> 和 <code>tui-alt-screen.ts</code> 两个渲染器里。</p>
 <hr>
 <h2 id="5--把三层串起来一次-prompt-的旅程">
 <a class="header-anchor" href="#5--%e6%8a%8a%e4%b8%89%e5%b1%82%e4%b8%b2%e8%b5%b7%e6%9d%a5%e4%b8%80%e6%ac%a1-prompt-%e7%9a%84%e6%97%85%e7%a8%8b"></a>
@@ -802,12 +787,12 @@ This article does not have a corresponding language version
 </table>
 <p>这张表是读懂后续章节的地图：</p>
 <ul>
-<li>第 3 章讲 ③⑦ 的循环</li>
-<li>第 4 章讲 ④⑥</li>
-<li>第 5 章讲 ⑦ 的工具执行</li>
-<li>第 6、8 章讲 ② 的上下文</li>
-<li>第 7 章讲 ⑨ 的事件</li>
-<li>第 9、10 章讲 ⑧</li>
+<li>Agent Loop 章节讲 ③⑦ 的循环</li>
+<li>模型调用章节讲 ④⑥</li>
+<li>工具系统章节讲 ⑦ 的工具执行</li>
+<li>消息系统与上下文工程章节讲 ②</li>
+<li>事件驱动章节讲 ⑨</li>
+<li>压缩与会话管理章节讲 ⑧</li>
 </ul>
 <hr>
 <h2 id="6--产品层工具内置扩展与运行模式">
@@ -838,14 +823,14 @@ This article does not have a corresponding language version
 			<tr>
 					<td><code>powershell</code></td>
 					<td>❌</td>
-					<td>v0.80.2 之后新增，仅限原生 Windows，例如 <code>&quot;defaultTools&quot;: [&quot;-bash&quot;, &quot;+powershell&quot;]</code></td>
+					<td>仅限原生 Windows，例如 <code>&quot;defaultTools&quot;: [&quot;-bash&quot;, &quot;+powershell&quot;]</code></td>
 			</tr>
 	</tbody>
 </table>
-<p><code>defaultTools</code> 现在支持 <code>+name</code> / <code>-name</code> 增量写法，可以只增删个别工具，不用把默认列表整个重写一遍。</p>
-<h3 id="62-内置扩展v0990-起">
-<a class="header-anchor" href="#62-%e5%86%85%e7%bd%ae%e6%89%a9%e5%b1%95v0990-%e8%b5%b7"></a>
-6.2 内置扩展（v0.99.0 起）
+<p><code>defaultTools</code> 支持 <code>+name</code> / <code>-name</code> 增量写法，可以只增删个别工具，不用把默认列表整个重写一遍。</p>
+<h3 id="62-内置扩展">
+<a class="header-anchor" href="#62-%e5%86%85%e7%bd%ae%e6%89%a9%e5%b1%95"></a>
+6.2 内置扩展
 </h3><table>
 	<thead>
 			<tr>
@@ -898,7 +883,7 @@ This article does not have a corresponding language version
 			<tr>
 					<td>Print / JSON</td>
 					<td><code>pi -p &quot;...&quot;</code>、<code>--mode json</code></td>
-					<td>脚本、CI；JSON 模式逐行输出事件（v0.84 起 <code>message_update</code> 只发增量）</td>
+					<td>脚本、CI；JSON 模式逐行输出事件，<code>message_update</code> 只携带增量</td>
 			</tr>
 			<tr>
 					<td>RPC</td>
@@ -927,13 +912,13 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">&lt;项目&gt;/.pi/                     # 项目级（需要先信任项目才会加载）
 </span></span><span class="line"><span class="cl">└── settings.json  mcp.json  SYSTEM.md  extensions/  skills/  prompts/  themes/
-</span></span></code></pre></div><p>上下文文件：每个目录只取下面几个中的第一个匹配项：<code>AGENTS.override.md</code> → <code>AGENTS.md</code> → <code>CLAUDE.md</code>。<code>AGENTS.override.md</code> 是 v0.84 新增的。</p>
+</span></span></code></pre></div><p>上下文文件：每个目录只取下面几个中的第一个匹配项：<code>AGENTS.override.md</code> → <code>AGENTS.md</code> → <code>CLAUDE.md</code>。</p>
 <hr>
 <h2 id="7--定制阶梯从用-pi到造自己的-agent">
 <a class="header-anchor" href="#7--%e5%ae%9a%e5%88%b6%e9%98%b6%e6%a2%af%e4%bb%8e%e7%94%a8-pi%e5%88%b0%e9%80%a0%e8%87%aa%e5%b7%b1%e7%9a%84-agent"></a>
 7 · 定制阶梯：从&quot;用 Pi&quot;到&quot;造自己的 Agent&quot;
-</h2><p><img src="/images/harness/pi/ch01/fig5-levers.png" alt="图 5 · 定制阶梯"></p>
-<p>原博客把定制手段总结为&quot;五根杠杆&quot;（扩展、技能、提示词模板、主题、Pi 包）。这里换一个角度，<strong>按定制深度排成阶梯</strong>，并把 SDK 也放进来：</p>
+</h2><p><img src="/images/harness/pi/ch01/fig4-levers.png" alt="图 4 · 定制阶梯"></p>
+<p>Pi 的定制手段可以<strong>按深度排成阶梯</strong>：</p>
 <table>
 	<thead>
 			<tr>
@@ -976,136 +961,117 @@ This article does not have a corresponding language version
 			</tr>
 	</tbody>
 </table>
-<p>两点需要更正：</p>
+<p>两点补充：</p>
 <ul>
-<li><strong>热重载需要手动触发</strong>：改完扩展后执行 <code>/reload</code>，不用重启会话，但它不会监听文件自动生效。会自动监听文件变化的只有主题。</li>
-<li><strong>官方示例更多了</strong>：<code>examples/extensions/</code> 下现在有 70 个顶层示例和 9 个子目录，包括 <code>subagent/</code>、<code>plan-mode/</code>、<code>sandbox/</code>、<code>permission-gate.ts</code>、<code>todo.ts</code>、<code>ssh.ts</code>。</li>
+<li><strong>重载方式</strong>：改完扩展、Skill 或提示词后执行 <code>/reload</code> 即可生效，不用重启会话。主题文件会被自动监听。</li>
+<li><strong>官方示例</strong>：<code>examples/extensions/</code> 下有 70 个顶层示例和 9 个子目录，包括 <code>subagent/</code>、<code>plan-mode/</code>、<code>sandbox/</code>、<code>permission-gate.ts</code>、<code>todo.ts</code>、<code>ssh.ts</code>，是写扩展最好的参考。</li>
 </ul>
 <hr>
-<h2 id="8--减法哲学的演变pi-不做什么">
-<a class="header-anchor" href="#8--%e5%87%8f%e6%b3%95%e5%93%b2%e5%ad%a6%e7%9a%84%e6%bc%94%e5%8f%98pi-%e4%b8%8d%e5%81%9a%e4%bb%80%e4%b9%88"></a>
-8 · 减法哲学的演变：Pi 不做什么
-</h2><p>原博客引用了官网的 &ldquo;What we didn&rsquo;t build&rdquo; 清单。三个月后，这张表需要加一列&quot;现状&quot;：</p>
+<h2 id="8--减法哲学核心不做什么以及怎么补">
+<a class="header-anchor" href="#8--%e5%87%8f%e6%b3%95%e5%93%b2%e5%ad%a6%e6%a0%b8%e5%bf%83%e4%b8%8d%e5%81%9a%e4%bb%80%e4%b9%88%e4%bb%a5%e5%8f%8a%e6%80%8e%e4%b9%88%e8%a1%a5"></a>
+8 · 减法哲学：核心不做什么，以及怎么补
+</h2><p>Pi 的核心刻意保持很小。下面这些常见能力，核心要么不做，要么做成可以关掉、可以替换的扩展：</p>
 <table>
 	<thead>
 			<tr>
-					<th>原本不做的</th>
-					<th>当时的理由</th>
-					<th><strong>v0.99.2 现状</strong></th>
+					<th>能力</th>
+					<th>核心的态度</th>
+					<th>需要时怎么补</th>
 			</tr>
 	</thead>
 	<tbody>
 			<tr>
-					<td>MCP 支持</td>
-					<td>MCP 会一次性把大量工具描述灌进上下文</td>
-					<td>⚠️ <strong>已内置</strong>（<code>builtin:mcp</code>），但用两个机制规避原问题：工具默认通过 <code>codemode</code> 暴露，或用 <code>tool_search</code> 延迟声明，不再一次性灌入上下文。可以关掉</td>
+					<td>MCP</td>
+					<td>做成内置扩展 <code>builtin:mcp</code>，可以关闭。工具默认通过 <code>codemode</code> 暴露，或用 <code>tool_search</code> 延迟声明，避免一次性把大量工具描述灌进上下文</td>
+					<td>不需要时 <code>-builtin:mcp</code>；也可以换成第三方 MCP 扩展</td>
 			</tr>
 			<tr>
 					<td>子 Agent</td>
-					<td>增加复杂度，降低可观察性</td>
-					<td>核心仍然没有；有 <code>examples/extensions/subagent/</code>；实验性的 <code>pi-durable</code> 提供了子 Agent 和子任务</td>
+					<td>核心没有</td>
+					<td><code>examples/extensions/subagent/</code>；实验性的 <code>pi-durable</code> 提供子 Agent 与子任务</td>
 			</tr>
 			<tr>
-					<td>权限弹窗</td>
-					<td>弹窗疲劳，沦为&quot;安全表演&quot;</td>
-					<td>核心仍然默认 YOLO；有 <code>permission-gate.ts</code>、<code>sandbox/</code> 示例，还有项目信任机制（project trust）</td>
+					<td>权限审批</td>
+					<td>核心默认不弹窗（YOLO）</td>
+					<td><code>permission-gate.ts</code>、<code>sandbox/</code> 示例；项目级配置需要先信任项目才会加载</td>
 			</tr>
 			<tr>
 					<td>计划模式</td>
-					<td>写到 plan.md 更持久</td>
-					<td>核心仍然没有；有 <code>examples/extensions/plan-mode/</code></td>
+					<td>核心没有</td>
+					<td><code>examples/extensions/plan-mode/</code>，或者直接写 plan.md</td>
 			</tr>
 			<tr>
 					<td>后台 bash</td>
-					<td>tmux 已经解决了</td>
-					<td>不变</td>
+					<td>核心没有</td>
+					<td>用 tmux</td>
 			</tr>
 			<tr>
-					<td>内置待办</td>
-					<td>TODO.md 更灵活</td>
-					<td>核心仍然没有；有 <code>examples/extensions/todo.ts</code></td>
+					<td>待办清单</td>
+					<td>核心没有</td>
+					<td><code>examples/extensions/todo.ts</code>，或者用 TODO.md</td>
 			</tr>
 	</tbody>
 </table>
-<p><strong>结论</strong>：&ldquo;减法&quot;没有被放弃，但做法从&quot;不做&quot;演进成了&rdquo;<strong>做成可关闭、可替换的内置扩展</strong>&quot;。</p>
-<ul>
-<li>引擎（L2）依然保持干净，MCP 只是 L3 的一个扩展。</li>
-<li>默认配置变得更&quot;开箱即用&quot;。</li>
-<li>判断 Pi 哲学的标准不再是&quot;有没有某功能&quot;，而是&quot;这个功能是不是焊死的&quot;。</li>
-</ul>
+<p>背后的逻辑是：<strong>引擎（L2）保持干净，产品层（L3）的能力都是可以拆下来的模块</strong>。评价 Pi 的标准不是&quot;有没有某个功能&quot;，而是&quot;这个功能是不是焊死的&quot;。</p>
 <hr>
-<h2 id="9--三个月发生了什么">
-<a class="header-anchor" href="#9--%e4%b8%89%e4%b8%aa%e6%9c%88%e5%8f%91%e7%94%9f%e4%ba%86%e4%bb%80%e4%b9%88"></a>
-9 · 三个月发生了什么
-</h2><p><img src="/images/harness/pi/ch01/fig4-timeline.png" alt="图 4 · 版本时间线"></p>
-<table>
+<h2 id="9--关键数字v0992">
+<a class="header-anchor" href="#9--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97v0992"></a>
+9 · 关键数字（v0.99.2）
+</h2><table>
 	<thead>
 			<tr>
 					<th>指标</th>
-					<th>v0.80.2（原博客）</th>
-					<th><strong>v0.99.2（本文）</strong></th>
+					<th>数值</th>
 			</tr>
 	</thead>
 	<tbody>
 			<tr>
-					<td>包目录数</td>
-					<td>4</td>
-					<td><strong>14</strong>（13 个可发布 + 私有 evals）</td>
+					<td>包目录</td>
+					<td>14 个（13 个可发布 npm 包 + 私有 evals）</td>
 			</tr>
 			<tr>
-					<td>默认工具</td>
-					<td>read · write · edit · bash</td>
-					<td>不变</td>
-			</tr>
-			<tr>
-					<td>全部内置工具</td>
-					<td>7</td>
-					<td><strong>8</strong>（+ powershell）</td>
+					<td>内置工具</td>
+					<td>8 个，默认启用 4 个（read · bash · edit · write）</td>
 			</tr>
 			<tr>
 					<td>内置扩展</td>
-					<td>无</td>
-					<td><strong>4</strong>（mcp、codemode、tool-search、llama.cpp）</td>
+					<td>4 个（mcp · codemode · tool-search · llama.cpp）</td>
 			</tr>
 			<tr>
-					<td><code>KnownProvider</code></td>
-					<td>35</td>
-					<td><strong>42</strong></td>
+					<td>供应商 <code>KnownProvider</code></td>
+					<td>42 个</td>
 			</tr>
 			<tr>
 					<td>线协议 <code>KnownApi</code></td>
-					<td>——</td>
-					<td>10</td>
+					<td>10 种</td>
 			</tr>
 			<tr>
 					<td>模型类型</td>
-					<td>chat</td>
-					<td><strong>chat · image · classifier</strong></td>
+					<td>chat · image · classifier</td>
 			</tr>
 			<tr>
 					<td><code>agent-loop.ts</code></td>
-					<td>748 行</td>
-					<td>940 行</td>
+					<td>约 940 行</td>
+			</tr>
+			<tr>
+					<td><code>agent-session.ts</code></td>
+					<td>约 4300 行</td>
 			</tr>
 			<tr>
 					<td>pi-tui 源码</td>
-					<td>约 12,100 行</td>
-					<td><strong>约 19,200 行</strong></td>
+					<td>约 1.9 万行</td>
 			</tr>
 			<tr>
-					<td><code>system-prompt.ts</code></td>
-					<td>173 行</td>
-					<td>216 行；静态模板约 200 个英文词，原博客写的是 90 词</td>
+					<td>系统提示词静态模板</td>
+					<td>约 200 个英文词（运行时再拼接工具说明、上下文文件、Skills）</td>
 			</tr>
 			<tr>
 					<td>运行模式</td>
-					<td>4</td>
-					<td>4（远程 server 模式仍是实验性，不对外发布）</td>
+					<td>4 种（交互 · Print/JSON · RPC · SDK）</td>
 			</tr>
 			<tr>
-					<td><code>examples/extensions</code></td>
-					<td>77 项</td>
-					<td>80 项（70 个 <code>.ts</code> + 9 个目录 + README）</td>
+					<td>官方扩展示例</td>
+					<td>70 个顶层 <code>.ts</code> + 9 个子目录</td>
 			</tr>
 	</tbody>
 </table>
@@ -1135,7 +1101,7 @@ This article does not have a corresponding language version
 			<tr>
 					<td><strong>Models 集合</strong></td>
 					<td>pi-ai 中注册供应商、查找模型、发起请求的对象</td>
-					<td>旧的 <code>/compat</code> 全局函数</td>
+					<td><code>/compat</code> 里的旧全局函数</td>
 			</tr>
 			<tr>
 					<td><strong>ModelRuntime</strong></td>
@@ -1195,11 +1161,10 @@ This article does not have a corresponding language version
 	</tbody>
 </table>
 <hr>
-<h2 id="11--源码导航与后续路线">
-<a class="header-anchor" href="#11--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa%e4%b8%8e%e5%90%8e%e7%bb%ad%e8%b7%af%e7%ba%bf"></a>
-11 · 源码导航与后续路线
-</h2><p><strong>按&quot;想搞懂什么&quot;找文件：</strong></p>
-<table>
+<h2 id="11--源码导航">
+<a class="header-anchor" href="#11--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+11 · 源码导航
+</h2><table>
 	<thead>
 			<tr>
 					<th>想搞懂</th>
@@ -1241,7 +1206,7 @@ This article does not have a corresponding language version
 			</tr>
 	</tbody>
 </table>
-<p><strong>后续章节</strong>（沿用原博客的章节划分，内容按 v0.99.2 重写）：</p>
+<p><strong>后续章节</strong>：</p>
 <ol>
 <li>开篇总览（本章）</li>
 <li>三层架构与类型分层</li>
@@ -1253,82 +1218,7 @@ This article does not have a corresponding language version
 <li>上下文工程</li>
 <li>上下文压缩</li>
 <li>会话管理</li>
-</ol>
-<hr>
-<h2 id="附录--原博客第-1-章勘误清单对照-v0992">
-<a class="header-anchor" href="#%e9%99%84%e5%bd%95--%e5%8e%9f%e5%8d%9a%e5%ae%a2%e7%ac%ac-1-%e7%ab%a0%e5%8b%98%e8%af%af%e6%b8%85%e5%8d%95%e5%af%b9%e7%85%a7-v0992"></a>
-附录 · 原博客第 1 章勘误清单（对照 v0.99.2）
-</h2><table>
-	<thead>
-			<tr>
-					<th>#</th>
-					<th>原文</th>
-					<th>现状</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>1</td>
-					<td>&ldquo;四个核心包&rdquo;</td>
-					<td>主干仍是 ai / agent-core / coding-agent + tui，但仓库已有 14 个包目录，见第 2 节</td>
-			</tr>
-			<tr>
-					<td>2</td>
-					<td>&ldquo;刻意不构建 MCP&rdquo;</td>
-					<td>v0.99.0 起 MCP 是内置扩展（可关闭）</td>
-			</tr>
-			<tr>
-					<td>3</td>
-					<td>&ldquo;pi-tui 约 12000 行&rdquo;</td>
-					<td>约 19,200 行</td>
-			</tr>
-			<tr>
-					<td>4</td>
-					<td>&ldquo;35 个 KnownProvider&rdquo;</td>
-					<td>42 个</td>
-			</tr>
-			<tr>
-					<td>5</td>
-					<td>&ldquo;4 核心 + 3 辅助工具&rdquo;</td>
-					<td>4 个默认 + 4 个可选（新增 powershell）</td>
-			</tr>
-			<tr>
-					<td>6</td>
-					<td>&ldquo;静态系统提示词约 90 词&rdquo;</td>
-					<td>静态模板约 200 词</td>
-			</tr>
-			<tr>
-					<td>7</td>
-					<td>&ldquo;改扩展文件，会话立即生效&rdquo;</td>
-					<td>需要执行 <code>/reload</code>（无需重启）；只有主题会自动监听文件</td>
-			</tr>
-			<tr>
-					<td>8</td>
-					<td><code>getModel</code> 从 <code>pi-ai/compat</code> 导入</td>
-					<td>compat 是临时兼容入口；推荐用 <code>createModels()</code> / <code>builtinModels()</code>，L3 用 <code>ModelRuntime</code></td>
-			</tr>
-			<tr>
-					<td>9</td>
-					<td><code>const session = await createAgentSession(...)</code></td>
-					<td>返回 <code>{ session, ... }</code>，需要解构</td>
-			</tr>
-			<tr>
-					<td>10</td>
-					<td>&ldquo;model/tools 在 prompt() 时传入 Agent&rdquo;</td>
-					<td>放在构造参数 <code>initialState</code></td>
-			</tr>
-			<tr>
-					<td>11</td>
-					<td>&ldquo;pi-orchestrator（v0.80.x 新增）&rdquo;</td>
-					<td>v0.80.3 引入，v0.81.0 更名为 <code>pi-server</code>，仍是实验性</td>
-			</tr>
-			<tr>
-					<td>12</td>
-					<td>&ldquo;models.json schema 在 model-registry.ts:158-218&rdquo;</td>
-					<td><code>model-registry.ts</code> 现在只有 230 行，schema 相关逻辑见 <code>model-config.ts</code> 和 <code>docs/models.md</code></td>
-			</tr>
-	</tbody>
-</table></div>
+</ol></div>
     <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
       <a
         class="article-tag-list-link"
@@ -1409,7 +1299,7 @@ This article does not have a corresponding language version
       <ul>
         <li><a href="#21-主干四层堆栈">2.1 主干：四层堆栈</a></li>
         <li><a href="#22-能力库零内部依赖可单独复用">2.2 能力库：零内部依赖、可单独复用</a></li>
-        <li><a href="#23-实验区pi-正在长出来的新方向">2.3 实验区：Pi 正在长出来的新方向</a></li>
+        <li><a href="#23-实验区pi-正在探索的方向">2.3 实验区：Pi 正在探索的方向</a></li>
       </ul>
     </li>
     <li><a href="#3--依赖规则为什么箭头只朝下">3 · 依赖规则：为什么箭头只朝下</a></li>
@@ -1425,17 +1315,16 @@ This article does not have a corresponding language version
     <li><a href="#6--产品层工具内置扩展与运行模式">6 · 产品层：工具、内置扩展与运行模式</a>
       <ul>
         <li><a href="#61-内置工具8-个">6.1 内置工具（8 个）</a></li>
-        <li><a href="#62-内置扩展v0990-起">6.2 内置扩展（v0.99.0 起）</a></li>
+        <li><a href="#62-内置扩展">6.2 内置扩展</a></li>
         <li><a href="#63-四种运行模式">6.3 四种运行模式</a></li>
         <li><a href="#64-配置文件地图">6.4 配置文件地图</a></li>
       </ul>
     </li>
     <li><a href="#7--定制阶梯从用-pi到造自己的-agent">7 · 定制阶梯：从&quot;用 Pi&quot;到&quot;造自己的 Agent&quot;</a></li>
-    <li><a href="#8--减法哲学的演变pi-不做什么">8 · 减法哲学的演变：Pi 不做什么</a></li>
-    <li><a href="#9--三个月发生了什么">9 · 三个月发生了什么</a></li>
+    <li><a href="#8--减法哲学核心不做什么以及怎么补">8 · 减法哲学：核心不做什么，以及怎么补</a></li>
+    <li><a href="#9--关键数字v0992">9 · 关键数字（v0.99.2）</a></li>
     <li><a href="#10--术语表">10 · 术语表</a></li>
-    <li><a href="#11--源码导航与后续路线">11 · 源码导航与后续路线</a></li>
-    <li><a href="#附录--原博客第-1-章勘误清单对照-v0992">附录 · 原博客第 1 章勘误清单（对照 v0.99.2）</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
   </ul>
 </nav>
 </div></div>
@@ -1539,7 +1428,7 @@ This article does not have a corresponding language version
           author: "AKF",
           title: "Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架",
           url: "https:\/\/example.org\/harness\/pi\/01-overview\/",
-          description: "基于 earendil-works\/pi v0.99.2 重写的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及三个月来的架构演变。",
+          description: "基于 earendil-works\/pi v0.99.2 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {

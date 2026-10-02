@@ -278,7 +278,7 @@ This article does not have a corresponding language version
             <div class="sidebar-common-btn"></div>
           </div></div>
   </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.21a54122b538bc5f34806df91215a9330622250ef841f6aeb00cd227030f380e.css" />
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.344a176854e7303a93c63c4e7df7b0d604c6c3bbb26c2ce0fe9ee592bc15f3c6.css" />
 <h1 class="immersive-title">Git Cherry-Pick 使用指南</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
@@ -289,12 +289,19 @@ This article does not have a corresponding language version
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
   <span>沉浸阅读</span>
-</button><button type="button" class="immersive-side" data-immersive-toggle title="进入沉浸阅读">
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
-  </svg>
-  <span>沉浸阅读</span>
-</button><button
+</button><div class="immersive-side-row">
+  <button type="button" class="immersive-side" data-immersive-toggle title="进入沉浸阅读">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+    <span>沉浸阅读</span>
+  </button>
+  <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+</div><button
   type="button"
   class="immersive-toggle"
   data-immersive-toggle
@@ -333,7 +340,7 @@ This article does not have a corresponding language version
     };
 
     const nav = document.querySelector(".immersive-nav");
-    const side = document.querySelector(".immersive-side");
+    const side = document.querySelector(".immersive-side-row");
 
     const placeEntry = () => {
       const date = document.querySelector(".article-meta .article-date");
@@ -358,6 +365,9 @@ This article does not have a corresponding language version
         apply(!root.classList.contains("immersive"));
         window.scrollTo({ top: 0 });
       })
+    );
+    side.querySelector(".immersive-side-top").addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
     );
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
@@ -549,7 +559,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/6.webp"
+              data-src="/random/2.webp"
               data-sizes="auto"
               alt="Git Cherry-Pick 图形化使用指南"
               class="lazyload"
@@ -561,7 +571,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Git Cherry-Pick 图形化使用指南</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/12.webp"
+              data-src="/random/27.webp"
               data-sizes="auto"
               alt="订单支付链接缓存设计：为什么是 9 分 30 秒？"
               class="lazyload"

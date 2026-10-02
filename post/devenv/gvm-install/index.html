@@ -268,13 +268,18 @@ This article does not have a corresponding language version
             <div class="sidebar-common-btn"></div>
           </div></div>
   </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.c41fc0c227a89ae111281c2d04081ba5407d0fe53b98965bbd5817922940c547.css" />
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.21a54122b538bc5f34806df91215a9330622250ef841f6aeb00cd227030f380e.css" />
 <h1 class="immersive-title">GVM 安装与使用指南</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
   <span>沉浸阅读</span>
 </button><button type="button" class="immersive-nav" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><button type="button" class="immersive-side" data-immersive-toggle title="进入沉浸阅读">
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
@@ -318,12 +323,18 @@ This article does not have a corresponding language version
     };
 
     const nav = document.querySelector(".immersive-nav");
+    const side = document.querySelector(".immersive-side");
 
     const placeEntry = () => {
       const date = document.querySelector(".article-meta .article-date");
       if (date) date.appendChild(entry);
       const subNav = document.getElementById("sub-nav");
       if (subNav) subNav.prepend(nav);
+      const sidebar = document.querySelector("#sidebar .sidebar-wrapper-container");
+      if (sidebar) {
+        sidebar.appendChild(side);
+        root.classList.add("immersive-has-side");
+      }
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", placeEntry);
@@ -479,7 +490,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/12.webp"
+              data-src="/random/23.webp"
               data-sizes="auto"
               alt="解决 GVM 安装后 cd 命令失效问题"
               class="lazyload"
@@ -491,7 +502,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">解决 GVM 安装后 cd 命令失效问题</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/18.webp"
+              data-src="/random/17.webp"
               data-sizes="auto"
               alt="Golang 后端踩坑：Protobuf 枚举命名与全局唯一性"
               class="lazyload"

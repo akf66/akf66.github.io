@@ -304,8 +304,7 @@ This article does not have a corresponding language version
     Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么</p>
 </div>
       </div>
-    </article><link rel="stylesheet" href="/css/immersive.min.4e70a78d3da44dee71aa98e2ab651244d6ac07eb77862e170f1e8bf38c009646.css" />
-<h1 class="immersive-title">Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
+    </article><link rel="stylesheet" href="/css/immersive.min.2db92d937938ad74c3f0da9f094e4878ceeb590da6c1a4e7129c8e526ba57363.css" /><h1 class="immersive-title">Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
@@ -374,7 +373,11 @@ This article does not have a corresponding language version
     const nav = document.querySelector(".immersive-nav");
     const side = document.querySelector(".immersive-side-row");
 
+    const title = document.querySelector(".immersive-title");
+
     const placeEntry = () => {
+      const inner = document.querySelector("article.h-entry .article-inner");
+      if (inner) inner.prepend(title);
       const date = document.querySelector(".article-meta .article-date");
       if (date) date.appendChild(entry);
       const subNav = document.getElementById("sub-nav");
@@ -1191,7 +1194,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/23.webp"
+              data-src="/random/29.webp"
               data-sizes="auto"
               alt="Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的"
               class="lazyload"
@@ -1203,7 +1206,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/15.webp"
+              data-src="/random/19.webp"
               data-sizes="auto"
               alt="Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么"
               class="lazyload"

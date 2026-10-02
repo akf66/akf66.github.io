@@ -307,8 +307,13 @@ This article does not have a corresponding language version
             <div class="sidebar-common-btn"></div>
           </div></div>
   </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.602688af4e9cf951670995438d5e54a460a84cf172d4c9bdc973112f036009dc.css" />
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.c41fc0c227a89ae111281c2d04081ba5407d0fe53b98965bbd5817922940c547.css" />
 <h1 class="immersive-title">Go 定时任务完全指南：robfig/cron 库详解</h1><button type="button" class="immersive-entry" data-immersive-toggle title="Enter immersive reading">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>Immersive</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="Enter immersive reading">
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
@@ -329,6 +334,7 @@ This article does not have a corresponding language version
   <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
   </svg>
+  <span class="immersive-toggle-text-on">Immersive</span>
   <span class="immersive-toggle-text">Exit immersive reading</span>
   <kbd class="immersive-toggle-kbd">Esc</kbd>
 </button>
@@ -350,9 +356,13 @@ This article does not have a corresponding language version
       } catch (e) {}
     };
 
+    const nav = document.querySelector(".immersive-nav");
+
     const placeEntry = () => {
       const date = document.querySelector(".article-meta .article-date");
       if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", placeEntry);
@@ -1010,7 +1020,7 @@ Q4: 如何测试 cron 任务？
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/23.webp"
+              data-src="/random/16.webp"
               data-sizes="auto"
               alt="订单支付链接缓存设计：为什么是 9 分 30 秒？"
               class="lazyload"
@@ -1022,7 +1032,7 @@ Q4: 如何测试 cron 任务？
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">订单支付链接缓存设计：为什么是 9 分 30 秒？</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/5.webp"
+              data-src="/random/7.webp"
               data-sizes="auto"
               alt="在本地单机快速搭建 Kubernetes：k3s 从安装到彻底用 kubectl 命令"
               class="lazyload"

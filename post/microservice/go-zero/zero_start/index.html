@@ -274,8 +274,13 @@ This article does not have a corresponding language version
             <div class="sidebar-common-btn"></div>
           </div></div>
   </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.602688af4e9cf951670995438d5e54a460a84cf172d4c9bdc973112f036009dc.css" />
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.c41fc0c227a89ae111281c2d04081ba5407d0fe53b98965bbd5817922940c547.css" />
 <h1 class="immersive-title">Go-Zero 快速入门指南</h1><button type="button" class="immersive-entry" data-immersive-toggle title="Enter immersive reading">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>Immersive</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="Enter immersive reading">
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
   </svg>
@@ -296,6 +301,7 @@ This article does not have a corresponding language version
   <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
     <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
   </svg>
+  <span class="immersive-toggle-text-on">Immersive</span>
   <span class="immersive-toggle-text">Exit immersive reading</span>
   <kbd class="immersive-toggle-kbd">Esc</kbd>
 </button>
@@ -317,9 +323,13 @@ This article does not have a corresponding language version
       } catch (e) {}
     };
 
+    const nav = document.querySelector(".immersive-nav");
+
     const placeEntry = () => {
       const date = document.querySelector(".article-meta .article-date");
       if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
     };
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", placeEntry);
@@ -474,7 +484,7 @@ Model 生成
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/2.webp"
+              data-src="/random/14.webp"
               data-sizes="auto"
               alt="Golang 后端踩坑：Protobuf 枚举命名与全局唯一性"
               class="lazyload"
@@ -486,7 +496,7 @@ Model 生成
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Golang 后端踩坑：Protobuf 枚举命名与全局唯一性</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/8.webp"
+              data-src="/random/18.webp"
               data-sizes="auto"
               alt="微服务日志采集链路：从文件到 Kibana"
               class="lazyload"

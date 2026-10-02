@@ -668,7 +668,7 @@ This article does not have a corresponding language version
 4.5 中止
 </h3><p>调用 <code>Agent.abort()</code>（或者中止你传给 <code>agentLoop()</code> 的 signal）后，按中止发生的时机分几种情况：</p>
 <ul>
-<li><strong>请求模型时</strong>：按 <code>StreamFn</code> 的约定，被中止的请求不抛错，而是返回一条 <code>stopReason: &quot;aborted&quot;</code> 的助手消息，循环从 2.4 节的提前出口退出。</li>
+<li><strong>请求模型时</strong>：按 <code>StreamFn</code> 的约定，被中止的请求不抛错，而是返回一条 <code>stopReason</code> 为 <code>aborted</code> 或 <code>error</code> 的助手消息，循环从 2.4 节的提前出口退出。用 pi-ai 的 <code>Models.streamSimple</code> 时，流式过程中被中止是 <code>aborted</code>；请求发出前 signal 就已中止，会在准备阶段失败，得到的是 <code>error</code>（详见第四章 5.2 节）。</li>
 <li><strong>准备工具时</strong>：<code>beforeToolCall</code> 之后、执行之前各检查一次，已中止就返回 <code>Operation aborted</code>。并行模式下，后面还没准备的调用直接丢弃。</li>
 <li><strong>工具执行中</strong>：signal 会传给 <code>execute</code>，工具要自己响应中止。
 <ul>
@@ -677,7 +677,7 @@ This article does not have a corresponding language version
 </ul>
 </li>
 </ul>
-<p>工具批次结束后，循环并不会马上退出，而是照常调用 <code>finishTurn</code>、发出 <code>turn_end</code>，进入下一轮。下一次请求带着已中止的 signal，<code>streamFn</code> 返回 <code>aborted</code>，循环这才结束。探针用串行模式，中止发生在第一个工具执行期间，记录是这样的：</p>
+<p>工具批次结束后，循环并不会马上退出，而是照常调用 <code>finishTurn</code>、发出 <code>turn_end</code>，进入下一轮。下一次请求带着已中止的 signal 发出，<code>streamFn</code> 返回一条失败的助手消息，循环这才结束。用 pi-ai 的 <code>Models.streamSimple</code> 时，这条消息在准备阶段就生成，不会发出 HTTP 请求，<code>stopReason</code> 是 <code>error</code>，<code>errorMessage</code> 为 <code>This operation was aborted</code>。探针用的是假 <code>streamFn</code>，它对已中止的 signal 返回 <code>aborted</code>。探针用串行模式，中止发生在第一个工具执行期间，记录是这样的：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">tool_execution_start(a) → tool_execution_end(a!: cancelled) → message_start/end(toolResult:a!)
 </span></span><span class="line"><span class="cl">→ turn_end → turn_start → streamFn#1 → message_start/end(assistant, aborted) → turn_end → agent_end
 </span></span></code></pre></div><p>第二个调用 <code>b</code> 没有任何事件和结果。同样的场景换成并行模式，<code>b</code> 会得到一条 <code>Operation aborted</code> 的结果。串行模式下留下的这种调用，之后再把这段对话发给模型时，pi-ai 的消息转换会给这种没有结果的调用补一条 <code>No result provided</code> 的错误结果，让请求符合供应商的格式要求。</p>
@@ -1037,7 +1037,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/17.webp"
+              data-src="/random/15.webp"
               data-sizes="auto"
               alt="Pi 源码分析 02 · 三层架构：层与层之间怎么接"
               class="lazyload"
@@ -1049,7 +1049,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 02 · 三层架构：层与层之间怎么接</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/9.webp"
+              data-src="/random/1.webp"
               data-sizes="auto"
               alt="Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么"
               class="lazyload"

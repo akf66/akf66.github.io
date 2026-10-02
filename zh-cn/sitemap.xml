@@ -9,17 +9,17 @@
   </url><url>
     <loc>https://example.org/harness/dsh/</loc>
   </url><url>
+    <loc>https://example.org/harness/sandbox/</loc>
+    <lastmod>2026-10-02T20:02:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/e2b/</loc>
+    <lastmod>2026-10-02T20:02:00+08:00</lastmod>
+  </url><url>
     <loc>https://example.org/tags/harness/</loc>
-    <lastmod>2026-10-02T18:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/tags/pi/</loc>
-    <lastmod>2026-10-02T18:00:00+08:00</lastmod>
-  </url><url>
-    <loc>https://example.org/harness/pi/06-session/</loc>
-    <lastmod>2026-10-02T18:00:00+08:00</lastmod>
+    <lastmod>2026-10-02T20:02:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/</loc>
-    <lastmod>2026-10-02T18:00:00+08:00</lastmod>
+    <lastmod>2026-10-02T20:02:00+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -41,8 +41,14 @@
                 href="https://example.org/zh-tw/tags/"
                 />
   </url><url>
+    <loc>https://example.org/tags/%E6%B2%99%E7%AE%B1/</loc>
+    <lastmod>2026-10-02T20:02:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/harness/sandbox/03-e2b/</loc>
+    <lastmod>2026-10-02T20:02:00+08:00</lastmod>
+  </url><url>
     <loc>https://example.org/</loc>
-    <lastmod>2026-10-02T18:00:00+08:00</lastmod>
+    <lastmod>2026-10-02T20:02:00+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
@@ -63,6 +69,24 @@
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/"
                 />
+  </url><url>
+    <loc>https://example.org/tags/gvisor/</loc>
+    <lastmod>2026-10-02T20:01:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/harness/sandbox/02-gvisor/</loc>
+    <lastmod>2026-10-02T20:01:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/firecracker/</loc>
+    <lastmod>2026-10-02T20:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/harness/sandbox/01-firecracker/</loc>
+    <lastmod>2026-10-02T20:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/pi/</loc>
+    <lastmod>2026-10-02T18:00:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/harness/pi/06-session/</loc>
+    <lastmod>2026-10-02T18:00:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/</loc>
     <lastmod>2026-10-02T18:00:00+08:00</lastmod>

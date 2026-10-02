@@ -68,7 +68,7 @@
     integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
     rel="stylesheet"
     href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
-    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/></head>
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
   <body><div id='loader'>
     <div class="loading-left-bg loading-bg"></div>
     <div class="loading-right-bg loading-bg"></div>
@@ -268,7 +268,49 @@ This article does not have a corresponding language version
             <div class="sidebar-common-btn"></div>
           </div></div>
   </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><article
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.a5fa7757ebd7004ccb17b530e5c9a8854582d9e86c3a873db4263885305f84fb.css" />
+<h1 class="immersive-title">Go-Zero 微服务网关：Nginx 统一入口实践</h1>
+<button
+  type="button"
+  class="immersive-toggle"
+  data-label-on="Enter immersive reading"
+  data-label-off="Exit immersive reading"
+  title="Enter immersive reading"
+  aria-label="Enter immersive reading"
+  aria-pressed="false"
+>
+  <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </svg>
+</button>
+<script>
+  (() => {
+    const KEY = "immersive-reading";
+    const root = document.documentElement;
+    const btn = document.querySelector(".immersive-toggle");
+
+    const apply = (on) => {
+      root.classList.toggle("immersive", on);
+      const label = on ? btn.dataset.labelOff : btn.dataset.labelOn;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", String(on));
+      try {
+        localStorage.setItem(KEY, on ? "1" : "0");
+      } catch (e) {}
+    };
+
+    apply(root.classList.contains("immersive"));
+    btn.addEventListener("click", () => apply(!root.classList.contains("immersive")));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
+    });
+  })();
+</script>
+<article
   class="h-entry article"
   itemscope
   itemtype="https://schema.org/BlogPosting"
@@ -479,7 +521,7 @@ JWT 鉴权
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/11.webp"
+              data-src="/random/23.webp"
               data-sizes="auto"
               alt="使用 modd 实现 Go 项目热加载"
               class="lazyload"
@@ -491,7 +533,7 @@ JWT 鉴权
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">使用 modd 实现 Go 项目热加载</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/2.webp"
+              data-src="/random/17.webp"
               data-sizes="auto"
               alt="Go-Zero 鉴权"
               class="lazyload"

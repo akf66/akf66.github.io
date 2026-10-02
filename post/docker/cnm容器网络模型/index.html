@@ -258,7 +258,7 @@ This article does not have a corresponding language version
             <div class="sidebar-common-btn"></div>
           </div></div>
   </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.344a176854e7303a93c63c4e7df7b0d604c6c3bbb26c2ce0fe9ee592bc15f3c6.css" />
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/immersive.min.4e70a78d3da44dee71aa98e2ab651244d6ac07eb77862e170f1e8bf38c009646.css" />
 <h1 class="immersive-title"></h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
@@ -270,11 +270,15 @@ This article does not have a corresponding language version
   </svg>
   <span>沉浸阅读</span>
 </button><div class="immersive-side-row">
-  <button type="button" class="immersive-side" data-immersive-toggle title="进入沉浸阅读">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+  <button type="button" class="immersive-side" data-immersive-toggle>
+    <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
     </svg>
-    <span>沉浸阅读</span>
+    <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
+    <span class="immersive-side-text-on">沉浸阅读</span>
+    <span class="immersive-side-text-off">退出沉浸</span>
   </button>
   <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -314,6 +318,8 @@ This article does not have a corresponding language version
       btn.title = label;
       btn.setAttribute("aria-label", label);
       btn.setAttribute("aria-pressed", String(on));
+      const sideBtn = document.querySelector(".immersive-side");
+      if (sideBtn) sideBtn.title = label;
       try {
         localStorage.setItem(KEY, on ? "1" : "0");
       } catch (e) {}
@@ -389,7 +395,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/13.webp"
+              data-src="/random/9.webp"
               data-sizes="auto"
               alt=""
               class="lazyload"
@@ -401,7 +407,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">(no title)</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/29.webp"
+              data-src="/random/17.webp"
               data-sizes="auto"
               alt="Golang Randder线性同余的坑"
               class="lazyload"

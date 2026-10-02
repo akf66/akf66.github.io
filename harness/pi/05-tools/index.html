@@ -1,0 +1,1512 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么 | AKF
+</title>
+<meta name="description" content="接着第四章往下讲：一个工具在 Pi 里怎么定义、怎么声明给模型、工具集中途变化时三种线协议发法、参数在执行前经过的修补转换和校验、结果的每个字段交给谁，以及 coding-agent 内置工具的默认值与保护措施、工具的四个来源和 tool_search 的按需加载。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么 | AKF" />
+  <meta
+    property="og:description"
+    content="接着第四章往下讲：一个工具在 Pi 里怎么定义、怎么声明给模型、工具集中途变化时三种线协议发法、参数在执行前经过的修补转换和校验、结果的每个字段交给谁，以及 coding-agent 内置工具的默认值与保护措施、工具的四个来源和 tool_search 的按需加载。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/05-tools/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-02T10:30:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-02T10:30:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--一个工具调用的全程">1 · 一个工具调用的全程</a></li>
+    <li><a href="#2--三层类型每个字段由谁读取">2 · 三层类型：每个字段由谁读取</a></li>
+    <li><a href="#3--声明工具怎么到达模型">3 · 声明：工具怎么到达模型</a>
+      <ul>
+        <li><a href="#31-声明写在对话记录里">3.1 声明写在对话记录里</a></li>
+        <li><a href="#32-运行中换工具要经过-preparenextturn">3.2 运行中换工具：要经过 prepareNextTurn</a></li>
+        <li><a href="#33-三种发法">3.3 三种发法</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--参数从模型的-json-到-execute-的-params">4 · 参数：从模型的 JSON 到 execute 的 params</a>
+      <ul>
+        <li><a href="#41-preparearguments工具自带的修补">4.1 prepareArguments：工具自带的修补</a></li>
+        <li><a href="#42-validatetoolarguments复制删-null转换校验">4.2 validateToolArguments：复制、删 null、转换、校验</a></li>
+        <li><a href="#43-constrainedsampling在供应商那边约束生成">4.3 constrainedSampling：在供应商那边约束生成</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--执行与结果">5 · 执行与结果</a>
+      <ul>
+        <li><a href="#51-execute-的四个参数">5.1 execute 的四个参数</a></li>
+        <li><a href="#52-结果的每个字段交给谁">5.2 结果的每个字段交给谁</a></li>
+        <li><a href="#53-工具结果里的图片">5.3 工具结果里的图片</a></li>
+        <li><a href="#54-嵌套调用nestedcalls">5.4 嵌套调用：nestedCalls</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--coding-agent-的内置工具">6 · coding-agent 的内置工具</a>
+      <ul>
+        <li><a href="#61-8-个工具默认-4-个">6.1 8 个工具，默认 4 个</a></li>
+        <li><a href="#62-保护措施">6.2 保护措施</a></li>
+        <li><a href="#63-可替换的底层操作">6.3 可替换的底层操作</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--工具从哪来">7 · 工具从哪来</a>
+      <ul>
+        <li><a href="#71-四个来源一张注册表">7.1 四个来源，一张注册表</a></li>
+        <li><a href="#72-mcp">7.2 MCP</a></li>
+        <li><a href="#73-tool_search按需加载">7.3 tool_search：按需加载</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--用法写一个自定义工具">8 · 用法：写一个自定义工具</a>
+      <ul>
+        <li><a href="#81-引擎层直接交给-agent">8.1 引擎层：直接交给 Agent</a></li>
+        <li><a href="#82-产品层通过扩展注册">8.2 产品层：通过扩展注册</a></li>
+      </ul>
+    </li>
+    <li><a href="#9--三个可以带走的方法">9 · 三个可以带走的方法</a></li>
+    <li><a href="#10--关键数字">10 · 关键数字</a></li>
+    <li><a href="#11--术语表">11 · 术语表</a></li>
+    <li><a href="#12--源码导航">12 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.3cf30c7271bec63efd7f486bce6e5fb5d736af11ecc46b715600952e59d2bb1a.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么</p>
+</div>
+      </div>
+    </article><article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-02 10:30:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-02</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-02</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v1.0.0-2-g7fbbd5f4a</code>（2026-10-01），commit <code>7fbbd5f4a</code>。从第四章的基线 <code>f29ea3deb</code> 到这里有 16 个提交，其中包括 v1.0.0 的发布。和工具有关的是：bash 结构化输出的字段说明改短了，codemode 加了图像生成接口，pi-ai 修正了 grammar 工具调用回放时的 id。npm 上的 1.0.0 与基线在 <code>packages/ai</code>、<code>packages/agent</code> 和 <code>packages/coding-agent/src</code> 上只差一个界面动画提交。文中所有行为、数字和代码均以该版本为准。</p>
+</blockquote>
+<p>第四章讲到，<code>Models.streamSimple</code> 把各家的流归一成统一事件，其中一组是 <code>toolcall_*</code>：模型想调用一个工具。本章接着往下讲工具本身：一个工具从被定义出来，到模型看见它、调用它、拿到结果，中间经过了哪些代码。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>工具声明写在对话记录里</strong>：引擎把&quot;模型可以调用哪些工具&quot;记在 system 消息的 <code>toolsAdded</code> / <code>toolsRemoved</code> 上。工具集中途变化时，协议实现按模型能力选三种发法之一：原生增删、就地新增、重发完整列表。</li>
+<li><strong>参数先修补、再转换、再校验</strong>：<code>prepareArguments</code> 修补模型给的原始参数；<code>validateToolArguments</code> 在副本上删掉 <code>null</code> 的可选参数、转换类型，再按 schema 校验。校验失败时，模型收到逐条错误和修补后、转换前的参数。</li>
+<li><strong>结果按字段分流</strong>：发给各家供应商的只有 <code>content</code>（和一个错误标记）；<code>details</code> 给界面和会话，<code>structuredContent</code> 给程序调用方。工具结果里的图片，各线协议的发法不同。</li>
+<li><strong>保护措施写在工具内部</strong>：coding-agent 有 8 个内置工具，默认启用 4 个。输出截断、超时、同文件写入排队都由各工具自己实现，没有路径沙箱。</li>
+<li><strong>工具有四个来源，模型只看得见其中一部分</strong>：内置、扩展、SDK、MCP。每个工具的 <code>exposure</code> 决定它是直接声明给模型，还是等 <code>codemode</code> 脚本调用或 <code>tool_search</code> 加载。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章只讲已发布的路径：pi-ai、pi-agent-core 的 <code>Agent</code>、pi-coding-agent。<code>pi-durable</code> 等实验引擎不在范围内。</li>
+<li>下面这些第三章已经讲过，本章只引用，不重复：
+<ul>
+<li>一个工具调用要过的 6 道关卡，以及每一关失败时交给模型的文本（第三章 4.3 节）</li>
+<li><code>beforeToolCall</code> / <code>afterToolCall</code> 两个钩子（第三章 4.2 节）</li>
+<li>串行与并行（第三章 4.1 节）、<code>terminate</code>（4.4 节）、中止（4.5 节）</li>
+</ul>
+</li>
+<li>第二章 3.1 节讲过 <code>Tool → AgentTool → ToolDefinition</code> 三种类型和 <code>wrapToolDefinition</code> 的代码，本章第 2 节在此基础上讲各字段在运行时被谁读取。</li>
+<li>文中的行为和计数都用探针实际跑过。探针用 npm 上的 1.0.0 三个包，走真实的 <code>Models.streamSimple</code>（产品层走 <code>createAgentSession</code>），把模型的 <code>baseUrl</code> 指向本地 mock 服务；mock 按 Anthropic 或 OpenAI 的格式返回预先写好的 SSE 流，并记录每次收到的请求体。不需要真实的 API key。</li>
+<li>术语：
+<ul>
+<li><strong>声明</strong>：发给模型的工具描述（名字、说明、参数 schema）。</li>
+<li><strong>激活</strong>：工具在当前的声明集合里。</li>
+<li><strong>线协议</strong>：第四章的用法，指 <code>anthropic-messages</code>、<code>openai-completions</code> 这类请求格式。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1--一个工具调用的全程">
+<a class="header-anchor" href="#1--%e4%b8%80%e4%b8%aa%e5%b7%a5%e5%85%b7%e8%b0%83%e7%94%a8%e7%9a%84%e5%85%a8%e7%a8%8b"></a>
+1 · 一个工具调用的全程
+</h2><p><img src="/images/harness/pi/ch05/fig1-lifecycle.png" alt="图 1 · 一个工具调用的全程"></p>
+<p>一个工具从定义到结果交回模型，图 1 拆成 12 步，横跨三个包。下面按 8 段说明：</p>
+<ol>
+<li><strong>定义</strong>（coding-agent）：内置工具由 <code>createReadToolDefinition</code> 这类工厂函数（按工作目录创建一个工具定义）产出，扩展工具通过 <code>pi.registerTool</code> 交进来，都是 <code>ToolDefinition</code>。</li>
+<li><strong>包装</strong>（coding-agent）：注册表刷新时，每个注册的工具都经 <code>wrapToolDefinition</code> 转成 <code>AgentTool</code>。</li>
+<li><strong>激活</strong>（coding-agent）：<code>_applyToolLoadout</code>（按 exposure 和激活名单算出要声明的工具）从包装好的工具里选出要给模型看的那部分，赋值给 <code>agent.state.tools</code>。</li>
+<li><strong>声明</strong>（agent-core）：每轮开始时，<code>declareToolChanges</code>（比较可执行的工具和对话里已声明的工具）把差异写成一条 system 消息。</li>
+<li><strong>发出</strong>（pi-ai）：协议实现把对话里的工具声明翻译成这家供应商的格式（第 3 节）。</li>
+<li><strong>调用</strong>：模型返回 <code>toolCall</code>。</li>
+<li><strong>查找到执行</strong>（agent-core）：按名字找到工具，依次经过 <code>prepareArguments</code>、<code>validateToolArguments</code>、<code>beforeToolCall</code>、<code>execute</code>、<code>afterToolCall</code>（第 4、5 节）。</li>
+<li><strong>回到模型</strong>：结果变成 <code>ToolResultMessage</code> 进入对话记录；下一次请求时，<code>transformMessages</code> 按模型能力处理其中的图片，协议实现再序列化发出。</li>
+</ol>
+<p>后面各节按这个顺序展开。</p>
+<hr>
+<h2 id="2--三层类型每个字段由谁读取">
+<a class="header-anchor" href="#2--%e4%b8%89%e5%b1%82%e7%b1%bb%e5%9e%8b%e6%af%8f%e4%b8%aa%e5%ad%97%e6%ae%b5%e7%94%b1%e8%b0%81%e8%af%bb%e5%8f%96"></a>
+2 · 三层类型：每个字段由谁读取
+</h2><p>第二章讲过三种类型的继承关系。从运行时看，每个字段只有特定的读取方：</p>
+<p><strong>L1 <code>Tool</code></strong>（pi-ai，工具声明）有 4 个字段，全部发给模型或供应商：</p>
+<ul>
+<li><code>name</code>（模型调用时用的名字）</li>
+<li><code>description</code>（模型读到的说明）</li>
+<li><code>parameters</code>（TypeBox 写的参数 schema，同时用于本地校验）</li>
+<li><code>constrainedSampling</code>（请供应商在生成阶段就按 schema 或语法约束参数，第 4.3 节）</li>
+</ul>
+<p><strong>L2 <code>AgentTool</code></strong>（agent-core，可执行的工具）继承 <code>Tool</code>，新增的字段只给引擎和界面用：</p>
+<ul>
+<li><code>label</code>（界面上显示的名字）</li>
+<li><code>prepareArguments</code>（校验前修补原始参数）</li>
+<li><code>outputSchema</code>（成功结果里 <code>structuredContent</code> 的格式）</li>
+<li><code>execute</code>（执行函数，签名见第 5.1 节）</li>
+<li><code>executionMode</code>（这个工具是否必须单独执行）</li>
+<li><code>replay</code>（持久化运行时用的恢复策略；已发布的路径里没有代码读取它，<code>wrapToolDefinition</code> 也不拷贝它）</li>
+</ul>
+<p><strong>L3 <code>ToolDefinition</code></strong>（coding-agent，完整定义）没有继承 <code>AgentTool</code>，而是把除 <code>replay</code> 之外的字段重新声明了一遍，再加上这些只在 coding-agent 内部使用的字段：</p>
+<ul>
+<li><code>promptSnippet</code>（写进系统提示词工具列表的一行说明；不填的自定义工具不进这个列表）</li>
+<li><code>promptGuidelines</code>（写进系统提示词的使用守则）</li>
+<li><code>exposure</code>（模型怎么够到这个工具，第 7.1 节）</li>
+<li><code>namespace</code>（工具分组，例如一个 MCP 服务器）</li>
+<li><code>annotations</code>（MCP 风格的只读、破坏性等提示）</li>
+<li><code>defaultActive</code>（注册时是否顺带激活）</li>
+<li><code>prepareLoadout</code>（工具组合变化时，改写其他工具的描述或隐藏它们的声明）</li>
+<li><code>renderCall</code> / <code>renderResult</code> / <code>renderShell</code>（终端里怎么画调用和结果）</li>
+<li><code>execute</code> 多出第五个参数 <code>ctx</code>（扩展运行环境，能拿到工作目录、界面，还能调用其他工具）</li>
+</ul>
+<p>把工具交给模型之前，引擎会先用 <code>toToolDeclaration</code>（只保留四个声明字段，并把 schema 做一次 JSON 往返）剥掉其余字段。所以 <code>label</code>、<code>execute</code> 这些字段不会出现在请求里，也不会写进会话文件。</p>
+<hr>
+<h2 id="3--声明工具怎么到达模型">
+<a class="header-anchor" href="#3--%e5%a3%b0%e6%98%8e%e5%b7%a5%e5%85%b7%e6%80%8e%e4%b9%88%e5%88%b0%e8%be%be%e6%a8%a1%e5%9e%8b"></a>
+3 · 声明：工具怎么到达模型
+</h2><h3 id="31-声明写在对话记录里">
+<a class="header-anchor" href="#31-%e5%a3%b0%e6%98%8e%e5%86%99%e5%9c%a8%e5%af%b9%e8%af%9d%e8%ae%b0%e5%bd%95%e9%87%8c"></a>
+3.1 声明写在对话记录里
+</h3><p>pi-ai 公开的 <code>Context</code> 虽然有 <code>tools</code> 字段，但它只是简写：<code>normalizeContext</code> 会把它折进开头的 system 消息，供应商收到的 <code>TranscriptContext</code> 里没有独立的工具列表。工具声明放在 <code>SystemMessage</code>（system 消息）上：</p>
+<ul>
+<li><code>content</code>（提示词文本）</li>
+<li><code>sections</code>（按名字替换或删除提示词的某一段）</li>
+<li><code>toolsAdded</code>（从这里开始可用的工具，完整定义）</li>
+<li><code>toolsRemoved</code>（从这里开始不可用的工具，只有名字）</li>
+</ul>
+<p>开头那条 system 消息就是系统提示词加初始工具；之后每条 system 消息都是一次变更。按顺序重放所有 system 消息，就得到当前的提示词和工具集。几个辅助函数负责重放：</p>
+<ul>
+<li><code>createInitialSystemMessage</code>（把系统提示词和初始工具做成开头的 system 消息）</li>
+<li><code>getCurrentTools</code>（按顺序应用所有增删，得到当前工具集）</li>
+<li><code>getToolStateChanges</code>（比较两个工具集；同名但定义变了，算一次移除加一次新增）</li>
+</ul>
+<p><code>Agent</code> 构造时，<code>initialState.tools</code> 就通过 <code>createInitialSystemMessage</code> 变成开头那条消息的 <code>toolsAdded</code>。</p>
+<h3 id="32-运行中换工具要经过-preparenextturn">
+<a class="header-anchor" href="#32-%e8%bf%90%e8%a1%8c%e4%b8%ad%e6%8d%a2%e5%b7%a5%e5%85%b7%e8%a6%81%e7%bb%8f%e8%bf%87-preparenextturn"></a>
+3.2 运行中换工具：要经过 prepareNextTurn
+</h3><p><code>agent.state.tools</code> 是&quot;可执行的工具&quot;，对话里的 system 消息是&quot;已声明的工具&quot;。两者不一致时，<code>declareToolChanges</code> 在下一轮开头补一条 system 消息，把差异写进去（第三章第 3 节的第 2 步）。</p>
+<p>要注意的是，<code>Agent</code> 在每次运行开始时会给工具集拍一份快照交给循环。只在运行中途给 <code>agent.state.tools</code> 赋值，当前这次运行看不到。探针里，第一个工具在执行时把 <code>extra</code> 加进 <code>agent.state.tools</code>，模型下一轮调用 <code>extra</code>，得到的是 <code>Tool extra not found</code>。</p>
+<p>要让变化在同一次运行里生效，得在 <code>prepareNextTurnWithContext</code>（每轮开始前调用，可以替换上下文）里把新工具集交给循环：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="nx">agent</span><span class="p">.</span><span class="nx">prepareNextTurnWithContext</span> <span class="o">=</span> <span class="kr">async</span> <span class="p">(</span><span class="nx">turn</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">context</span><span class="o">:</span> <span class="p">{</span> <span class="p">...</span><span class="nx">turn</span><span class="p">.</span><span class="nx">context</span><span class="p">,</span> <span class="nx">tools</span>: <span class="kt">agent.state.tools.slice</span><span class="p">()</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span></code></pre></div><p>coding-agent 的 <code>AgentSession</code> 每一轮都这样做，<code>prepareRequest</code> 里还会再同步一次。所以扩展在工具的 <code>execute</code> 里调用 <code>pi.setActiveTools(...)</code>，从同一次运行的下一次请求起就生效。<code>tool_search</code> 就是靠这一点工作的（第 7.3 节）。</p>
+<h3 id="33-三种发法">
+<a class="header-anchor" href="#33-%e4%b8%89%e7%a7%8d%e5%8f%91%e6%b3%95"></a>
+3.3 三种发法
+</h3><p><img src="/images/harness/pi/ch05/fig2-declare.png" alt="图 2 · 工具集变了：同一段对话，三种发给模型的方式"></p>
+<p>对话记录里的 system 消息不会原样发出去，模型也看不到 <code>toolsAdded</code> 这几个字。协议实现按模型的 compat 标记选择发法：</p>
+<p><strong>A · 原生增删</strong>：<code>anthropic-messages</code>，模型同时声明了 <code>supportsMidConvoSystemMessages</code>（接受对话中途的 system 消息）和 <code>supportsMidConvoToolChanges</code>（接受中途增删工具）。内置目录里有 6 个模型满足，例如 <code>claude-fable-5</code>、<code>claude-opus-5</code>。</p>
+<ul>
+<li>初始工具留在请求顶层的 <code>tools</code> 里，缓存断点打在最后一个初始工具上。</li>
+<li>后来加入的工具也放进顶层 <code>tools</code>，但标记 <code>defer_loading: true</code>，然后在对话中途的 system 消息里用 <code>tool_addition</code> 块启用。</li>
+<li>移除的工具仍留在顶层列表里，用 <code>tool_removal</code> 块撤下。</li>
+<li>顶层列表只增不减，所以工具集怎么变，缓存前缀都不会失效。</li>
+<li>从第一次请求起，顶层列表里就多一个永远不会启用的 <code>__pi_deferred_placeholder__</code>。源码注释的解释是：只要有任何一个工具带 <code>defer_loading</code>，Anthropic 就会在提示词里加一段隐藏的脚手架；提前放一个占位工具，这段脚手架从第一次请求起就在缓存前缀里，第一个后加的工具不会让缓存整段失效。</li>
+<li>两种情况退回 C：历史里同一个名字被重新定义过，按名字引用的增删表达不了；开头一个工具都没有，Anthropic 不接受全部是延迟声明的工具列表。</li>
+</ul>
+<p><strong>B · 只能就地新增</strong>：工具可以在新增的位置声明，但不能撤下。</p>
+<ul>
+<li>OpenAI Responses 用一个 <code>additional_tools</code> 条目（内置目录里有 41 个模型声明支持）。</li>
+<li>只支持 Responses 工具搜索的模型（内置目录里只有 <code>openai-codex/gpt-5.5</code>），改用一对伪造的 <code>tool_search_call</code> / <code>tool_search_output</code> 条目。</li>
+<li>Kimi 一类的 <code>openai-completions</code> 模型用带 <code>tools</code> 字段的 system 消息（6 个模型）。</li>
+<li>历史里只要出现过一次移除或同名重定义，就退回 C。</li>
+</ul>
+<p><strong>C · 全量列表</strong>：其余所有模型。对话中途的 system 消息合并回开头（模型不支持中途 system 消息时），顶层 <code>tools</code> 每次都是当前完整的工具集。工具集一变，顶层列表就变，缓存前缀从这里失效。</p>
+<p>探针把同一段对话分别发给四个模型，只看第二次请求。这段对话先声明了 <code>keep</code>，后来新增 <code>extra</code>，有的场景还移除了 <code>keep</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">anthropic/claude-fable-5   只新增   tools=[keep, __pi_deferred_placeholder__(deferred), extra(deferred)]  中途: system[tool_addition:extra]
+</span></span><span class="line"><span class="cl">                           新增+移除 同上                                                                   中途: system[tool_removal:keep, tool_addition:extra]
+</span></span><span class="line"><span class="cl">openai/gpt-5.4             只新增   tools=[keep]          中途: additional_tools[extra]
+</span></span><span class="line"><span class="cl">                           新增+移除 tools=[extra]         （退回全量）
+</span></span><span class="line"><span class="cl">kimi-k3 (fireworks)        只新增   tools=[keep]          中途: system{tools:[extra]}
+</span></span><span class="line"><span class="cl">                           新增+移除 tools=[extra]         （退回全量）
+</span></span><span class="line"><span class="cl">openai/gpt-4               只新增   tools=[keep, extra]   （全量）
+</span></span></code></pre></div><blockquote>
+<p>📌 coding-agent 在这层之上还有一次投影：工具的 <code>prepareLoadout</code> 可以要求隐藏某些工具的声明（例如 codemode 的 <code>only</code> 模式隐藏所有直接工具）。<code>AgentSession</code> 在 <code>transformContext</code> 里把这些工具从每条 system 消息的增删里过滤掉，对话记录本身不改（第二章 4 节提到的&quot;再包两层&quot;之一）。</p>
+</blockquote>
+<hr>
+<h2 id="4--参数从模型的-json-到-execute-的-params">
+<a class="header-anchor" href="#4--%e5%8f%82%e6%95%b0%e4%bb%8e%e6%a8%a1%e5%9e%8b%e7%9a%84-json-%e5%88%b0-execute-%e7%9a%84-params"></a>
+4 · 参数：从模型的 JSON 到 execute 的 params
+</h2><p><img src="/images/harness/pi/ch05/fig3-arguments.png" alt="图 3 · 参数从模型到 execute 经过的几步"></p>
+<h3 id="41-preparearguments工具自带的修补">
+<a class="header-anchor" href="#41-preparearguments%e5%b7%a5%e5%85%b7%e8%87%aa%e5%b8%a6%e7%9a%84%e4%bf%ae%e8%a1%a5"></a>
+4.1 prepareArguments：工具自带的修补
+</h3><p>模型给的参数是流式拼出的 JSON（第四章 4.1 节），按名字找到工具后，先交给工具自己的 <code>prepareArguments</code>。它在校验之前运行，用来兼容模型的常见偏差。内置的 <code>edit</code> 工具就有一个：</p>
+<ul>
+<li><code>edits</code> 被模型写成了 JSON 字符串（源码注释点名了 Opus 4.6 和 GLM-5.1），解析成数组</li>
+<li><code>edits</code> 是单个对象，包成数组</li>
+<li>旧格式的顶层 <code>oldText</code> / <code>newText</code>，转成 <code>edits: [{ oldText, newText }]</code></li>
+</ul>
+<p>探针里直接调用 <code>edit.prepareArguments</code>，<code>{ path, oldText: &quot;a&quot;, newText: &quot;b&quot; }</code> 和 <code>{ path, edits: '[{&quot;oldText&quot;:&quot;a&quot;,&quot;newText&quot;:&quot;b&quot;}]' }</code> 都变成了 <code>{ path, edits: [{ oldText: &quot;a&quot;, newText: &quot;b&quot; }] }</code>。</p>
+<h3 id="42-validatetoolarguments复制删-null转换校验">
+<a class="header-anchor" href="#42-validatetoolarguments%e5%a4%8d%e5%88%b6%e5%88%a0-null%e8%bd%ac%e6%8d%a2%e6%a0%a1%e9%aa%8c"></a>
+4.2 validateToolArguments：复制、删 null、转换、校验
+</h3><p>修补后的参数交给 pi-ai 的 <code>validateToolArguments</code>：</p>
+<ol>
+<li><code>structuredClone</code>：复制一份，后面的改动都作用在副本上。</li>
+<li><code>normalizeOptionalNulls</code>：可选参数的值是 <code>null</code>、而它的 schema 不允许 <code>null</code> 时，删掉这个参数。</li>
+<li><code>Value.Convert</code>：TypeBox 按 schema 转换类型，例如字符串 <code>&quot;10&quot;</code> 转成数字 <code>10</code>。</li>
+<li>对普通 JSON Schema（不是 TypeBox 构造的）再做一轮自己的转换。</li>
+<li>用按 schema 缓存的校验器 <code>Check</code>。通过就把副本交给 <code>execute</code>；不通过就抛错。</li>
+</ol>
+<p>第 2 步和第 4.3 节有关：严格模式会把可选参数改写成&quot;必填但可为 null&quot;，模型于是可能对没打算填的参数给出 <code>null</code>，校验前要先删掉。</p>
+<p>探针自己写了一个 <code>read</code> 工具（<code>path</code> 必填，<code>limit</code>、<code>lines</code> 可选，带一个把 <code>file_path</code> 改名为 <code>path</code> 的 <code>prepareArguments</code>；内置的 <code>read</code> 没有这个函数），发了一批调用，<code>execute</code> 收到的参数如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">模型给的参数                              execute 收到的
+</span></span><span class="line"><span class="cl">{&#34;path&#34;:&#34;a.txt&#34;,&#34;limit&#34;:&#34;10&#34;,&#34;lines&#34;:&#34;true&#34;}  {&#34;path&#34;:&#34;a.txt&#34;,&#34;limit&#34;:10,&#34;lines&#34;:true}
+</span></span><span class="line"><span class="cl">{&#34;path&#34;:&#34;b.txt&#34;,&#34;limit&#34;:null}                {&#34;path&#34;:&#34;b.txt&#34;}
+</span></span><span class="line"><span class="cl">{&#34;file_path&#34;:&#34;c.txt&#34;}                        {&#34;path&#34;:&#34;c.txt&#34;}          ← 探针给这个工具写的 prepareArguments
+</span></span><span class="line"><span class="cl">{&#34;limit&#34;:&#34;many&#34;}                             （没有执行）
+</span></span></code></pre></div><p>最后一个调用校验失败，模型在下一次请求里收到一条 <code>is_error: true</code> 的工具结果：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Validation failed for tool &#34;read&#34;:
+</span></span><span class="line"><span class="cl">  - path: must have required properties path
+</span></span><span class="line"><span class="cl">  - limit: must be number
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Received arguments:
+</span></span><span class="line"><span class="cl">{
+</span></span><span class="line"><span class="cl">  &#34;limit&#34;: &#34;many&#34;
+</span></span><span class="line"><span class="cl">}
+</span></span></code></pre></div><ul>
+<li>每条错误前面是参数路径，用点号连接；缺少必填参数时，路径就是那个参数名。</li>
+<li><code>Received arguments</code> 是经过 <code>prepareArguments</code> 修补、但还没做类型转换的参数。工具没有 <code>prepareArguments</code> 时，就是模型给的原样，模型能对照自己写了什么。</li>
+<li>抛错之后，就是第三章 4.3 节讲过的流程：变成错误结果，循环照常继续。<code>beforeToolCall</code> 拿到的 <code>args</code> 是校验后的副本。</li>
+</ul>
+<h3 id="43-constrainedsampling在供应商那边约束生成">
+<a class="header-anchor" href="#43-constrainedsampling%e5%9c%a8%e4%be%9b%e5%ba%94%e5%95%86%e9%82%a3%e8%be%b9%e7%ba%a6%e6%9d%9f%e7%94%9f%e6%88%90"></a>
+4.3 constrainedSampling：在供应商那边约束生成
+</h3><p>本地校验发生在模型生成之后。<code>constrainedSampling</code> 则请供应商在生成阶段就约束参数，有两种：</p>
+<ul>
+<li><code>{ type: &quot;json_schema&quot;, strict: &quot;prefer&quot; | &quot;require&quot; }</code>：按 schema 严格生成。<code>prefer</code> 在做不到时静默退回普通模式；<code>require</code> 做不到就报错。</li>
+<li><code>{ type: &quot;grammar&quot;, variants: { openai_lark?, openai_regex? } }</code>：按语法生成。工具的参数里必须恰好有一个必填的字符串属性，模型生成的原文就放进这个属性。</li>
+</ul>
+<p>内置的 <code>read</code>、<code>bash</code>、<code>powershell</code>、<code>edit</code>、<code>write</code> 都设了 <code>json_schema</code> + <code>prefer</code>；<code>codemode</code> 工具用 Lark 语法。</p>
+<p>能不能生效，由线协议和模型的 compat 标记共同决定：</p>
+<table>
+	<thead>
+			<tr>
+					<th>线协议</th>
+					<th>json_schema</th>
+					<th>grammar</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>openai-responses</code></td>
+					<td>看 <code>supportsStrictMode</code></td>
+					<td>看 <code>supportsOpenAIGrammarTools</code></td>
+			</tr>
+			<tr>
+					<td><code>azure-openai-responses</code></td>
+					<td>默认支持</td>
+					<td>同上</td>
+			</tr>
+			<tr>
+					<td><code>openai-codex-responses</code></td>
+					<td>默认支持</td>
+					<td>同上</td>
+			</tr>
+			<tr>
+					<td><code>openai-completions</code></td>
+					<td>看 <code>supportsStrictMode</code>（默认关）</td>
+					<td>看 <code>supportsOpenAIGrammarTools</code></td>
+			</tr>
+			<tr>
+					<td><code>anthropic-messages</code></td>
+					<td>看 <code>supportsStrictTools</code></td>
+					<td>不生效</td>
+			</tr>
+			<tr>
+					<td><code>bedrock-converse-stream</code></td>
+					<td>看 <code>supportsStrictMode</code></td>
+					<td>不生效</td>
+			</tr>
+			<tr>
+					<td>Google 两种</td>
+					<td>仅 Gemini 3 及以后</td>
+					<td>不生效</td>
+			</tr>
+			<tr>
+					<td><code>mistral-conversations</code></td>
+					<td>总是尝试</td>
+					<td>不生效</td>
+			</tr>
+	</tbody>
+</table>
+<p>转成严格 schema 时，<code>makeStrictJsonSchema</code>（把 schema 改写成严格模式能接受的形式）会把所有属性设为必填、可选属性改为&quot;原类型或 null&quot;、加上 <code>additionalProperties: false</code>；遇到 <code>$ref</code>、<code>oneOf</code> 这类结构就放弃。Anthropic 另有一份不支持的关键字清单（如 <code>minimum</code>、<code>maxItems</code>）。探针的请求体：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">anthropic/claude-fable-5   read  → strict: true, required: [path, limit], additionalProperties: false
+</span></span><span class="line"><span class="cl">                           loose（含 minimum: 1, prefer）→ 没有 strict，原样发出
+</span></span><span class="line"><span class="cl">                           must （含 minimum: 1, require）→ 请求不发出：
+</span></span><span class="line"><span class="cl">                             Tool &#34;must&#34; requires JSON-schema constrained sampling, but minimum: 1 is unsupported.
+</span></span><span class="line"><span class="cl">openai/gpt-5.5             loose → strict: true（OpenAI 接受 minimum）
+</span></span><span class="line"><span class="cl">                           calc（grammar）→ { type: &#34;custom&#34;, format: { type: &#34;grammar&#34;, … } }
+</span></span><span class="line"><span class="cl">deepseek-flash             calc（grammar）→ 退回普通 function 工具，strict: false
+</span></span></code></pre></div><p>内置目录里，声明支持 grammar 工具的有 111 个模型，全部在 OpenAI Responses 这一系（<code>openai-completions</code> 的实现也支持，但目录里没有模型打开这个标记）。不支持时，grammar 工具按普通工具发出，模型自由生成那一个字符串参数。</p>
+<hr>
+<h2 id="5--执行与结果">
+<a class="header-anchor" href="#5--%e6%89%a7%e8%a1%8c%e4%b8%8e%e7%bb%93%e6%9e%9c"></a>
+5 · 执行与结果
+</h2><h3 id="51-execute-的四个参数">
+<a class="header-anchor" href="#51-execute-%e7%9a%84%e5%9b%9b%e4%b8%aa%e5%8f%82%e6%95%b0"></a>
+5.1 execute 的四个参数
+</h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="nx">execute</span><span class="o">:</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">toolCallId</span>: <span class="kt">string</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">params</span>: <span class="kt">Static</span><span class="p">&lt;</span><span class="nt">TParameters</span><span class="p">&gt;,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">signal?</span>: <span class="kt">AbortSignal</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">onUpdate?</span>: <span class="kt">AgentToolUpdateCallback</span><span class="p">&lt;</span><span class="nt">TDetails</span><span class="p">&gt;,</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">Promise</span><span class="p">&lt;</span><span class="nt">AgentToolResult</span><span class="p">&lt;</span><span class="nt">TDetails</span><span class="p">&gt;&gt;;</span>
+</span></span></code></pre></div><ul>
+<li><code>toolCallId</code>（这次调用的 id，和模型给的一致）</li>
+<li><code>params</code>（校验后的副本）</li>
+<li><code>signal</code>（中止信号；工具要自己响应，第三章 4.5 节）</li>
+<li><code>onUpdate</code>（汇报进度：每次调用发出一个 <code>tool_execution_update</code> 事件，带上 <code>partialResult</code>；<code>execute</code> 结束后再调用，引擎直接忽略）</li>
+</ul>
+<p>失败时二选一：抛错，或者返回 <code>isError: true</code>。<code>AgentTool</code> 的注释明确要求不要只在 <code>content</code> 里描述失败。</p>
+<p>coding-agent 的 <code>ToolDefinition.execute</code> 多一个 <code>ctx</code>（<code>ExtensionToolContext</code>），常用的是：</p>
+<ul>
+<li><code>ctx.cwd</code>（会话的工作目录）</li>
+<li><code>ctx.ui</code>（和界面交互）</li>
+<li><code>ctx.executeTool(name, args, options?)</code>（调用另一个工具，第 5.4 节）</li>
+</ul>
+<h3 id="52-结果的每个字段交给谁">
+<a class="header-anchor" href="#52-%e7%bb%93%e6%9e%9c%e7%9a%84%e6%af%8f%e4%b8%aa%e5%ad%97%e6%ae%b5%e4%ba%a4%e7%bb%99%e8%b0%81"></a>
+5.2 结果的每个字段交给谁
+</h3><p><img src="/images/harness/pi/ch05/fig4-result.png" alt="图 4 · 工具结果的每个字段交给谁"></p>
+<p><code>AgentToolResult</code> 有 6 个字段：</p>
+<ul>
+<li><code>content</code>（文本和图片；<strong>唯一发给模型的内容</strong>）</li>
+<li><code>details</code>（任意 JSON，给界面的 <code>renderResult</code>、会话文件和 HTML 导出用）</li>
+<li><code>structuredContent</code>（符合 <code>outputSchema</code> 的结构化结果，给程序调用方，不进对话记录）</li>
+<li><code>usage</code>（工具自己的用量，计入会话的总用量，不算进上下文占用）</li>
+<li><code>isError</code>（不抛错地报告失败）</li>
+<li><code>terminate</code>（建议这批结束就停，第三章 4.4 节）</li>
+</ul>
+<p>引擎把结果变成 <code>ToolResultMessage</code> 放进对话记录时，带上 <code>content</code>、<code>details</code>、<code>usage</code> 和 <code>isError</code>，不带 <code>structuredContent</code>。各家供应商的协议实现序列化工具结果时只读 <code>content</code>、<code>isError</code>、<code>toolCallId</code> 和 <code>toolName</code>。探针让工具在 <code>details</code> 里放了一个 <code>savedTo</code> 字段，在发给模型的请求体里搜不到它。例外是 <code>pi-messages</code>：它是 Pi 自己的网关协议（内置目录里 28 个 Radius 模型），把整段上下文原样发给网关，由网关再转给模型，所以 <code>details</code>、<code>usage</code>、<code>nestedCalls</code> 会到达网关。本节和下一节的列表只讲直连供应商的协议。</p>
+<p><code>isError</code> 也不是每家都发：Anthropic 有 <code>is_error</code>，Bedrock 有 <code>status</code>，Google 用 <code>error</code> 字段，Mistral 在文本前加 <code>[tool error]</code>；OpenAI 的两种协议不发错误标记，模型只能从文本里看出失败。</p>
+<p><code>structuredContent</code> 目前主要给 codemode 用：<code>bash</code>（和 <code>powershell</code>）声明了 <code>outputSchema</code>，codemode 脚本经 <code>ctx.executeTool</code> 调用 bash 时，拿到的是 <code>{ output, truncated, full_output_path, exit_code, wall_time_seconds }</code> 这个对象，而不是给模型看的那段文本。其中 <code>output</code> 最多 1 MiB，比给模型的 50KB 宽得多。</p>
+<h3 id="53-工具结果里的图片">
+<a class="header-anchor" href="#53-%e5%b7%a5%e5%85%b7%e7%bb%93%e6%9e%9c%e9%87%8c%e7%9a%84%e5%9b%be%e7%89%87"></a>
+5.3 工具结果里的图片
+</h3><p>图片先经过 pi-ai 的 <code>transformMessages</code>（发请求前整理历史，第四章 3.3 节）：模型不支持图片输入时，每一段连续的图片替换成一行文字 <code>(tool image omitted: model does not support images)</code>。之后各协议的发法：</p>
+<ul>
+<li><strong>Anthropic</strong>：图片作为 <code>image</code> 块直接放在 <code>tool_result</code> 里。</li>
+<li><strong>Bedrock</strong>：同样放在 <code>toolResult</code> 里。</li>
+<li><strong>OpenAI Responses 一系</strong>：作为 <code>input_image</code> 放在 <code>function_call_output</code> 里。</li>
+<li><strong>OpenAI Completions</strong>：<code>role: &quot;tool&quot;</code> 的消息只能放文本。一串连续工具结果里的图片，都挪到这一串之后的一条 user 消息里，开头是 <code>Attached image(s) from tool result:</code>；有的供应商要求工具结果后面先跟一条助手消息，就先补一句 <code>I have processed the tool results.</code>。</li>
+<li><strong>Google</strong>：Gemini 2.x 及更早的模型挪到单独的 user 消息里，开头是 <code>Tool result image:</code>；其余放在 <code>functionResponse.parts</code> 里。</li>
+<li><strong>Mistral</strong>：作为 <code>image_url</code> 块放在 tool 消息里。</li>
+</ul>
+<p>探针让一个截图工具返回一行文字加一张 PNG，发给三个模型：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">anthropic/claude-fable-5      tool_result.content = [text &#34;screen 1x1&#34;, image(base64)]
+</span></span><span class="line"><span class="cl">deepseek-flash（支持图片）     tool: &#34;screen 1x1&#34;
+</span></span><span class="line"><span class="cl">                              user: [&#34;Attached image(s) from tool result:&#34;, image_url(data:…)]
+</span></span><span class="line"><span class="cl">deepseek-v4-pro（只支持文本）  tool: &#34;screen 1x1\n(tool image omitted: model does not support images)&#34;
+</span></span></code></pre></div><p>coding-agent 的 <code>read</code> 工具读图片时还做了两件事：默认把图片缩放到 2000×2000 以内；当前模型不支持图片时，在结果里提前加一句 <code>[Current model does not support images. The image will be omitted from this request.]</code>。</p>
+<h3 id="54-嵌套调用nestedcalls">
+<a class="header-anchor" href="#54-%e5%b5%8c%e5%a5%97%e8%b0%83%e7%94%a8nestedcalls"></a>
+5.4 嵌套调用：nestedCalls
+</h3><p>工具可以通过 <code>ctx.executeTool</code> 调用别的工具，codemode 脚本就是这样调用工具的。这种嵌套调用不经过模型，走的是 agent-core 导出的 <code>runToolCall</code>（和循环里同一套准备、校验、钩子、执行流程，但不发事件、不产生消息）。coding-agent 在外面补上事件和记录：</p>
+<ul>
+<li>嵌套调用的 id 是 <code>&lt;父调用 id&gt;/&lt;序号&gt;</code>，事件带 <code>parentToolCallId</code>（上级调用的 id）。</li>
+<li>嵌套调用的结果不进对话记录。<code>NestedCallRecorder</code>（嵌套调用记录器）只记一份摘要，挂在父调用结果消息的 <code>nestedCalls</code> 上，嵌套调用的用量也加进父消息的 <code>usage</code>。</li>
+<li>摘要有上限：最多 256 次调用，每次参数 8KB、合计 32KB，错误信息 500 字符。</li>
+<li><code>nestedCalls</code> 只进会话记录，供压缩时追踪文件操作和 HTML 导出使用，不发给模型。</li>
+</ul>
+<p>探针里一个工具先后调用了两次 <code>read</code>，第二次参数不合法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">events: start(toolu_0_read_both)
+</span></span><span class="line"><span class="cl">        start(toolu_0_read_both/1 parent=toolu_0_read_both)  end(toolu_0_read_both/1 …)
+</span></span><span class="line"><span class="cl">        start(toolu_0_read_both/2 parent=toolu_0_read_both)  end(toolu_0_read_both/2 …)
+</span></span><span class="line"><span class="cl">        end(toolu_0_read_both)
+</span></span><span class="line"><span class="cl">nestedCalls: [{ id: &#34;.../1&#34;, name: &#34;read&#34;, status: &#34;ok&#34;, … },
+</span></span><span class="line"><span class="cl">              { id: &#34;.../2&#34;, name: &#34;read&#34;, status: &#34;error&#34;, error: &#34;Validation failed for tool \&#34;read\&#34;: …&#34; }]
+</span></span></code></pre></div><p>嵌套调用一样要过参数校验和 <code>beforeToolCall</code>（会话里的权限检查对它们同样有效）。对话记录里仍然只有一条工具结果消息，发给供应商的请求体里也找不到 <code>nestedCalls</code>。</p>
+<hr>
+<h2 id="6--coding-agent-的内置工具">
+<a class="header-anchor" href="#6--coding-agent-%e7%9a%84%e5%86%85%e7%bd%ae%e5%b7%a5%e5%85%b7"></a>
+6 · coding-agent 的内置工具
+</h2><h3 id="61-8-个工具默认-4-个">
+<a class="header-anchor" href="#61-8-%e4%b8%aa%e5%b7%a5%e5%85%b7%e9%bb%98%e8%ae%a4-4-%e4%b8%aa"></a>
+6.1 8 个工具，默认 4 个
+</h3><table>
+	<thead>
+			<tr>
+					<th>工具</th>
+					<th>默认启用</th>
+					<th>参数</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>read</code></td>
+					<td>✅</td>
+					<td><code>path</code>、<code>offset</code>、<code>limit</code></td>
+			</tr>
+			<tr>
+					<td><code>bash</code></td>
+					<td>✅</td>
+					<td><code>command</code>、<code>timeout</code></td>
+			</tr>
+			<tr>
+					<td><code>edit</code></td>
+					<td>✅</td>
+					<td><code>path</code>、<code>edits</code></td>
+			</tr>
+			<tr>
+					<td><code>write</code></td>
+					<td>✅</td>
+					<td><code>path</code>、<code>content</code></td>
+			</tr>
+			<tr>
+					<td><code>grep</code></td>
+					<td>—</td>
+					<td><code>pattern</code>、<code>path</code>、<code>glob</code> 等 7 个</td>
+			</tr>
+			<tr>
+					<td><code>find</code></td>
+					<td>—</td>
+					<td><code>pattern</code>、<code>path</code>、<code>limit</code></td>
+			</tr>
+			<tr>
+					<td><code>ls</code></td>
+					<td>—</td>
+					<td><code>path</code>、<code>limit</code></td>
+			</tr>
+			<tr>
+					<td><code>powershell</code></td>
+					<td>—</td>
+					<td>同 <code>bash</code></td>
+			</tr>
+	</tbody>
+</table>
+<ul>
+<li>默认名单是 <code>DEFAULT_TOOL_NAMES</code>。启动时的选择顺序：命令行 <code>--tools</code>，否则 <code>--no-tools</code> 给空集（<code>--no-builtin-tools</code> 只去掉内置工具，保留扩展工具），否则设置里的 <code>defaultTools</code>（支持 <code>+name</code> / <code>-name</code> 增量写法），否则默认名单；最后去掉 <code>--exclude-tools</code> 列出的工具。</li>
+<li><code>--tools</code>（以及 <code>--no-tools</code>）同时是注册白名单：不在名单里的工具（包括扩展注册的）连注册表都进不去，<code>--exclude-tools</code> 也在注册时就排除。设置里的 <code>defaultTools</code> 只决定初始激活，不限制注册。</li>
+<li><code>powershell</code> 在所有平台上都能选，但只有在原生 Windows 上能运行，其他平台上执行时直接报错。会话的 <code>commandPrefix</code>、<code>shellPath</code> 设置只传给 <code>bash</code>。</li>
+<li>内置扩展再提供两个默认不激活的工具：<code>codemode</code> 和 <code>tool_search</code>（第 7 节）。连上带资源的 MCP 服务器后，还会出现 <code>list_mcp_resources</code>、<code>list_mcp_resource_templates</code>、<code>read_mcp_resource</code> 三个资源工具。</li>
+</ul>
+<h3 id="62-保护措施">
+<a class="header-anchor" href="#62-%e4%bf%9d%e6%8a%a4%e6%8e%aa%e6%96%bd"></a>
+6.2 保护措施
+</h3><p>会产生输出的内置工具（<code>read</code>、<code>bash</code>、<code>powershell</code>、<code>grep</code>、<code>find</code>、<code>ls</code>）共用一套截断函数：默认最多 2000 行或 50KB（<code>DEFAULT_MAX_LINES</code>、<code>DEFAULT_MAX_BYTES</code>），先到哪个算哪个。每个工具的具体做法不同：</p>
+<p><strong><code>read</code></strong></p>
+<ul>
+<li>保留开头（<code>truncateHead</code>），并告诉模型从哪一行接着读。探针读一个 5000 行的文件，结果末尾是 <code>[Showing lines 1-2000 of 5000. Use offset=2001 to continue.]</code>。</li>
+<li>给了 <code>limit</code> 时先按行数截取，再套用 2000 行 / 50KB 的上限。</li>
+<li>第一行就超过 50KB 时，提示模型改用 <code>sed</code>。</li>
+</ul>
+<p><strong><code>bash</code></strong></p>
+<ul>
+<li>保留结尾（<code>truncateTail</code>）；截断时把完整输出写进临时文件，路径告诉模型。探针执行 <code>seq 1 100000</code>，结果末尾是 <code>[Showing lines 98001-100000 of 100000. Full output: /var/folders/…/pi-bash-….log]</code>。</li>
+<li><strong>没有默认超时</strong>，schema 的说明直接写着 &ldquo;no default timeout&rdquo;。模型可以给 <code>timeout</code>（秒），上限约 24.8 天（2³¹−1 毫秒）。</li>
+<li>超时或中止时，杀掉整个进程组（非 Windows 上进程以独立进程组启动，发 SIGKILL 给 <code>-pid</code>；Windows 上用 <code>taskkill /F /T</code>），然后<strong>抛错</strong>：探针里 <code>timeout: 1</code> 在 1005ms 后抛出 <code>Command timed out after 1 seconds</code>，中止在 306ms 后抛出 <code>Command aborted</code>。</li>
+<li>退出码非零时<strong>不抛错</strong>，返回 <code>isError: true</code>，文本末尾是 <code>Command exited with code 3</code>。</li>
+</ul>
+<p><strong><code>edit</code></strong></p>
+<ul>
+<li>先精确匹配；找不到时退到模糊匹配：做 NFKC 规范化、去掉行尾空白、把弯引号和各种破折号、特殊空格换成 ASCII。探针里文件写的是 <code>const msg = “hello”;   </code>（弯引号加行尾空格），模型给的 <code>oldText</code> 是直引号，替换照样成功，而且只改了匹配到的那一行，同一个文件里其他行的弯引号和行尾空格保持原样。</li>
+<li>每处 <code>oldText</code> 必须唯一：出现两次时报 <code>Found 2 occurrences of the text in a.ts. The text must be unique. …</code>。</li>
+<li>多处编辑都对照原文件匹配，不能重叠；保留文件原有的 BOM 和 CRLF 换行。</li>
+<li>工具描述和&quot;找不到&quot;的报错都说要精确匹配（<code>Could not find the exact text …</code>），模糊匹配是一层兜底，没有写进说明。</li>
+</ul>
+<p><strong><code>write</code></strong>：自动创建父目录，然后整个覆盖文件。</p>
+<p><strong><code>grep</code> / <code>find</code> / <code>ls</code></strong></p>
+<ul>
+<li>默认上限分别是 100 条匹配、1000 个结果、500 个条目，另有 50KB 的总量上限；<code>grep</code> 每行最多 500 字符。</li>
+<li><code>grep</code> 用 <code>rg</code>，<code>find</code> 用 <code>fd</code>，本机没有时会自动下载（离线模式下不下载）。两者都会搜索隐藏文件；<code>find</code> 总是遵守 <code>.gitignore</code>，<code>grep</code> 只在 git 仓库里才遵守。</li>
+</ul>
+<p><strong>同一文件的写入排队</strong>：<code>edit</code> 和 <code>write</code> 都经过 <code>withFileMutationQueue</code>（按文件真实路径排队执行写入），对同一个文件的修改一个接一个执行，不同文件之间仍然并行。探针同时发起两个 <code>edit</code>，分别改同一个文件的第 1 行和第 2 行，两处修改都保留了下来。</p>
+<p><strong>路径没有沙箱</strong>：相对路径相对工作目录解析，<code>~</code> 会展开，开头的 <code>@</code> 会去掉，但不检查结果是否在工作目录之内。探针用绝对路径和 <code>../</code> 都读到了工作目录外的文件。coding-agent 的安全文档也写明：工作目录只决定资源发现和工具的默认位置，不阻止命令访问 Pi 进程能访问的其他路径。文档给出的隔离办法是用专门的系统用户运行、把整个 Pi 放进容器或虚拟机，或者只把内置工具放进隔离环境；扩展拥有完整权限，不构成安全边界。</p>
+<h3 id="63-可替换的底层操作">
+<a class="header-anchor" href="#63-%e5%8f%af%e6%9b%bf%e6%8d%a2%e7%9a%84%e5%ba%95%e5%b1%82%e6%93%8d%e4%bd%9c"></a>
+6.3 可替换的底层操作
+</h3><p>每个内置工具的工厂函数都接受一个 <code>operations</code> 选项，把真正碰文件系统或 shell 的那几步换掉，用来把工具搬到 SSH 或容器里执行：</p>
+<ul>
+<li><code>ReadOperations</code>（<code>readFile</code>、<code>access</code>、可选的 <code>detectImageMimeType</code>）</li>
+<li><code>BashOperations</code>（<code>exec</code>：收到命令、工作目录、输出回调、中止信号、超时和环境变量，返回退出码）</li>
+<li><code>EditOperations</code>（<code>readFile</code>、<code>writeFile</code>、<code>access</code>）</li>
+<li><code>WriteOperations</code>（<code>writeFile</code>、<code>mkdir</code>）</li>
+<li><code>GrepOperations</code>（<code>isDirectory</code>、<code>readFile</code>；<code>rg</code> 本身仍在本地运行）</li>
+<li><code>FindOperations</code>（<code>exists</code>、<code>glob</code>；自定义 <code>glob</code> 时不再调用 <code>fd</code>）</li>
+<li><code>LsOperations</code>（<code>exists</code>、<code>stat</code>、<code>readdir</code>）</li>
+</ul>
+<p>截断、模糊匹配、排队这些逻辑都在操作之上，换掉操作之后仍然有效。</p>
+<hr>
+<h2 id="7--工具从哪来">
+<a class="header-anchor" href="#7--%e5%b7%a5%e5%85%b7%e4%bb%8e%e5%93%aa%e6%9d%a5"></a>
+7 · 工具从哪来
+</h2><p><img src="/images/harness/pi/ch05/fig5-sources.png" alt="图 5 · 工具从哪来，以及模型能看见哪些"></p>
+<h3 id="71-四个来源一张注册表">
+<a class="header-anchor" href="#71-%e5%9b%9b%e4%b8%aa%e6%9d%a5%e6%ba%90%e4%b8%80%e5%bc%a0%e6%b3%a8%e5%86%8c%e8%a1%a8"></a>
+7.1 四个来源，一张注册表
+</h3><ul>
+<li><strong>内置工具</strong>：<code>createAllToolDefinitions</code> 为每个会话创建全部 8 个，再按名单激活。</li>
+<li><strong>扩展</strong>：<code>pi.registerTool(definition)</code>。注册时先检查 <code>parameters</code> 是一个对象（不能是 null 或数组），然后触发一次注册表刷新，所以会话中途注册的工具（例如 MCP 服务器连上之后）也能立即进入注册表。</li>
+<li><strong>SDK</strong>：<code>createAgentSession({ customTools })</code>，和扩展工具进同一张表。</li>
+<li><strong>MCP 服务器</strong>：内置的 <code>builtin:mcp</code> 扩展为每个远端工具调用一次 <code>pi.registerTool</code>。</li>
+</ul>
+<p>同名时，扩展的工具替换内置工具。工具注册后不能注销，要撤回只能用 <code>exposure: &quot;hidden&quot;</code> 重新注册一次。</p>
+<p>每个工具的 <code>exposure</code> 决定模型怎么够到它。这里的&quot;可被调用&quot;指能被其他工具经 <code>ctx.executeTool</code> 调用：</p>
+<table>
+	<thead>
+			<tr>
+					<th>exposure</th>
+					<th>声明给模型</th>
+					<th>可被调用</th>
+					<th>注册时激活</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>direct</code></td>
+					<td>激活时</td>
+					<td>激活时</td>
+					<td>是</td>
+			</tr>
+			<tr>
+					<td><code>model-only</code></td>
+					<td>激活时</td>
+					<td>否</td>
+					<td>是</td>
+			</tr>
+			<tr>
+					<td><code>codemode</code></td>
+					<td>激活后</td>
+					<td>是</td>
+					<td>否</td>
+			</tr>
+			<tr>
+					<td><code>deferred</code></td>
+					<td>激活后</td>
+					<td>是</td>
+					<td>否</td>
+			</tr>
+			<tr>
+					<td><code>hidden</code></td>
+					<td>否</td>
+					<td>否</td>
+					<td>否</td>
+			</tr>
+	</tbody>
+</table>
+<ul>
+<li>不填时是 <code>direct</code>；<code>defaultActive: false</code> 可以让 <code>direct</code> 工具注册时先不激活。</li>
+<li><code>codemode</code> 和 <code>deferred</code> 注册时不激活，所以默认不声明；被 <code>setActiveTools</code> 或 <code>tool_search</code> 激活后照样声明给模型（第 7.3 节的 <code>deploy</code>）。两者的区别：<code>codemode</code> 类工具会列在 codemode 工具的描述里，<code>deferred</code> 不列，要靠搜索找到。</li>
+<li><code>codemode</code> 和 <code>tool_search</code> 两个工具自身是 <code>model-only</code>：只给模型直接调用，不允许被脚本再调用。</li>
+</ul>
+<p>激活集合由 <code>AgentSession</code> 管理：</p>
+<ul>
+<li><code>getActiveToolNames()</code>（当前激活的工具名）</li>
+<li><code>setActiveToolsByName(names)</code>（重设激活集合；扩展里对应 <code>pi.setActiveTools</code>）</li>
+<li><code>_applyToolLoadout</code>（只保留已注册、非 hidden 的名字，运行各工具的 <code>prepareLoadout</code>，最后执行 <code>this.agent.state.tools = declared</code>）</li>
+</ul>
+<p>最后那一句赋值，就是第 3 节里引擎拿到工具集的地方。</p>
+<h3 id="72-mcp">
+<a class="header-anchor" href="#72-mcp"></a>
+7.2 MCP
+</h3><ul>
+<li><strong>配置文件</strong>：<code>~/.pi/agent/mcp.json</code>；项目被信任时，还会读 <code>&lt;cwd&gt;/.pi/mcp.json</code>。格式是常见的 <code>mcpServers</code>。扩展也可以用 <code>pi.registerMcpServer(name, config)</code> 从代码里添加。</li>
+<li><strong>工具名</strong>：<code>mcp__&lt;server&gt;__&lt;tool&gt;</code>，非 <code>[A-Za-z0-9_]</code> 的字符换成 <code>_</code>，最长 64 个字符；超长或重名时加 8 位哈希后缀。</li>
+<li><strong>暴露方式</strong>：<code>codemode</code>（默认）、<code>deferred</code>、<code>direct</code>、<code>hidden</code>，可以用 <code>toolExposure</code> 按工具名（支持通配）单独设置。</li>
+<li>MCP 的 <code>codemode</code> 在注册表里记为 <code>deferred</code>。MCP 的 <code>codemode</code> 和 <code>deferred</code> 两种设置，区别只在于扩展顺带激活哪个发现工具：前者激活 <code>codemode</code>（设置了 <code>autoEnableCodemode: false</code> 时不激活），后者激活 <code>tool_search</code>。</li>
+</ul>
+<p>所以默认配置下，MCP 工具一个都不直接声明给模型，模型要通过 codemode 脚本里的 <code>searchTools()</code> 找到并调用它们。工具很多的 MCP 服务器，不会把上下文撑满。</p>
+<h3 id="73-tool_search按需加载">
+<a class="header-anchor" href="#73-tool_search%e6%8c%89%e9%9c%80%e5%8a%a0%e8%bd%bd"></a>
+7.3 tool_search：按需加载
+</h3><p><code>tool_search</code> 来自内置扩展 <code>builtin:tool-search</code>，CLI 默认加载但不激活；SDK 会话要自己把 <code>createToolSearchExtension()</code> 加进 <code>extensionFactories</code>。它的工作方式：</p>
+<ol>
+<li>模型调用 <code>tool_search({ query, limit? })</code>，<code>limit</code> 默认 8。</li>
+<li>在已注册、尚未激活、<code>exposure</code> 为 <code>codemode</code> 或 <code>deferred</code> 的工具里，用 BM25 按名字、描述、schema 文本和命名空间排序。</li>
+<li>把命中的工具加进激活集合（<code>setActiveTools([...当前, ...命中])</code>）。</li>
+<li>返回 <code>Loaded N tools. They are available from your next call:</code>，后面每行一个工具名和描述的第一行。</li>
+</ol>
+<p><code>tool_search</code> 自己的描述是固定的，MCP 服务器连上或断开都不会改写它，避免它自己的声明变化让缓存失效。</p>
+<p>探针用 <code>createAgentSession</code> 搭了一个会话：扩展注册一个普通工具 <code>weather</code> 和一个 <code>exposure: &quot;deferred&quot;</code> 的 <code>deploy</code>，设置里写 <code>defaultTools: [&quot;+tool_search&quot;]</code>。mock 依次让模型调用 <code>weather</code>、<code>tool_search(&quot;deploy service&quot;)</code>、<code>deploy</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">开始时激活: read, bash, edit, write, tool_search, weather
+</span></span><span class="line"><span class="cl">req1 tools=[read, bash, edit, write, tool_search, weather, __pi_deferred_placeholder__(deferred)]
+</span></span><span class="line"><span class="cl">req2 同上                                           tool_result: &#34;Berlin: 18°C&#34;
+</span></span><span class="line"><span class="cl">req3 tools=[…, __pi_deferred_placeholder__(deferred), deploy(deferred)]
+</span></span><span class="line"><span class="cl">     中途 system: tool_addition(deploy)              tool_result: &#34;Loaded 1 tool. They are available from your next call:\n- deploy: Deploy a service to production&#34;
+</span></span><span class="line"><span class="cl">req4 同上                                           tool_result: &#34;deployed api&#34;
+</span></span><span class="line"><span class="cl">结束时激活: read, bash, edit, write, tool_search, weather, deploy
+</span></span></code></pre></div><p>模型换成 <code>claude-haiku-4-5</code>（不支持中途改工具）再跑一遍，req3 起顶层 <code>tools</code> 直接变成包含 <code>deploy</code> 的完整列表。对话记录里两次都是同样两条 system 消息：开头一条声明 6 个初始工具，加载后一条 <code>toolsAdded: [deploy]</code>。</p>
+<p>两个细节：</p>
+<ul>
+<li><code>weather</code> 带了 <code>promptSnippet</code>，出现在系统提示词的工具列表里；<code>deploy</code> 没带，系统提示词里找不到它。</li>
+<li>恢复会话时，<code>AgentSession</code> 从对话记录里重放出上次激活的工具。MCP 服务器重连得比这一步晚，所以还没注册上的名字先记为待定，等工具注册进来再补上激活；下一次运行开始时，还没补上的待定名字就丢弃。</li>
+</ul>
+<hr>
+<h2 id="8--用法写一个自定义工具">
+<a class="header-anchor" href="#8--%e7%94%a8%e6%b3%95%e5%86%99%e4%b8%80%e4%b8%aa%e8%87%aa%e5%ae%9a%e4%b9%89%e5%b7%a5%e5%85%b7"></a>
+8 · 用法：写一个自定义工具
+</h2><h3 id="81-引擎层直接交给-agent">
+<a class="header-anchor" href="#81-%e5%bc%95%e6%93%8e%e5%b1%82%e7%9b%b4%e6%8e%a5%e4%ba%a4%e7%bb%99-agent"></a>
+8.1 引擎层：直接交给 Agent
+</h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Agent</span><span class="p">,</span> <span class="kr">type</span> <span class="nx">AgentTool</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-agent-core&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createModels</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">anthropicProvider</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/providers/anthropic&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">readFile</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;node:fs/promises&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Type</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;typebox&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">parameters</span> <span class="o">=</span> <span class="nx">Type</span><span class="p">.</span><span class="nb">Object</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">path</span>: <span class="kt">Type.String</span><span class="p">({</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&#34;File path&#34;</span> <span class="p">}),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">countLines</span>: <span class="kt">AgentTool</span><span class="p">&lt;</span><span class="nt">typeof</span> <span class="na">parameters</span><span class="p">,</span> <span class="p">{</span> <span class="na">path</span><span class="err">:</span> <span class="na">string</span><span class="err">;</span> <span class="na">chars</span><span class="err">:</span> <span class="na">number</span> <span class="p">}&gt;</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">name</span><span class="o">:</span> <span class="s2">&#34;count_lines&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">label</span><span class="o">:</span> <span class="s2">&#34;Count lines&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">description</span><span class="o">:</span> <span class="s2">&#34;Count the lines of a text file.&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">parameters</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Some models say `file` instead of `path`
+</span></span></span><span class="line"><span class="cl">	<span class="nx">prepareArguments</span><span class="p">(</span><span class="nx">args</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="nx">args</span> <span class="o">&amp;&amp;</span> <span class="k">typeof</span> <span class="nx">args</span> <span class="o">===</span> <span class="s2">&#34;object&#34;</span> <span class="o">&amp;&amp;</span> <span class="s2">&#34;file&#34;</span> <span class="k">in</span> <span class="nx">args</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="p">(</span><span class="s2">&#34;path&#34;</span> <span class="k">in</span> <span class="nx">args</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="kr">const</span> <span class="p">{</span> <span class="nx">file</span><span class="p">,</span> <span class="p">...</span><span class="nx">rest</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">args</span> <span class="kr">as</span> <span class="nx">Record</span><span class="p">&lt;</span><span class="nt">string</span><span class="p">,</span> <span class="na">unknown</span><span class="p">&gt;;</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="p">{</span> <span class="p">...</span><span class="nx">rest</span><span class="p">,</span> <span class="nx">path</span>: <span class="kt">file</span> <span class="p">}</span> <span class="kr">as</span> <span class="p">{</span> <span class="nx">path</span>: <span class="kt">string</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">args</span> <span class="kr">as</span> <span class="p">{</span> <span class="nx">path</span>: <span class="kt">string</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">async</span> <span class="nx">execute</span><span class="p">(</span><span class="nx">_toolCallId</span><span class="p">,</span> <span class="nx">params</span><span class="p">,</span> <span class="nx">signal</span><span class="p">,</span> <span class="nx">onUpdate</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">onUpdate</span><span class="o">?</span><span class="p">.({</span> <span class="nx">content</span><span class="o">:</span> <span class="p">[{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="nx">text</span><span class="o">:</span> <span class="sb">`reading </span><span class="si">${</span><span class="nx">params</span><span class="p">.</span><span class="nx">path</span><span class="si">}</span><span class="sb">`</span> <span class="p">}],</span> <span class="nx">details</span><span class="o">:</span> <span class="p">{</span> <span class="nx">path</span>: <span class="kt">params.path</span><span class="p">,</span> <span class="nx">chars</span>: <span class="kt">0</span> <span class="p">}</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">text</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">readFile</span><span class="p">(</span><span class="nx">params</span><span class="p">.</span><span class="nx">path</span><span class="p">,</span> <span class="p">{</span> <span class="nx">encoding</span><span class="o">:</span> <span class="s2">&#34;utf8&#34;</span><span class="p">,</span> <span class="nx">signal</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">lines</span> <span class="o">=</span> <span class="nx">text</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="s2">&#34;\n&#34;</span><span class="p">).</span><span class="nx">length</span> <span class="o">-</span> <span class="p">(</span><span class="nx">text</span><span class="p">.</span><span class="nx">endsWith</span><span class="p">(</span><span class="s2">&#34;\n&#34;</span><span class="p">)</span> <span class="o">?</span> <span class="nx">1</span> : <span class="kt">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">content</span><span class="o">:</span> <span class="p">[{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="nx">text</span><span class="o">:</span> <span class="sb">`</span><span class="si">${</span><span class="nx">lines</span><span class="si">}</span><span class="sb"> lines`</span> <span class="p">}],</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">details</span><span class="o">:</span> <span class="p">{</span> <span class="nx">path</span>: <span class="kt">params.path</span><span class="p">,</span> <span class="nx">chars</span>: <span class="kt">text.length</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">		<span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">models</span> <span class="o">=</span> <span class="nx">createModels</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="nx">models</span><span class="p">.</span><span class="nx">setProvider</span><span class="p">(</span><span class="nx">anthropicProvider</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;anthropic&#34;</span><span class="p">,</span> <span class="s2">&#34;claude-sonnet-4-6&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">model</span><span class="p">)</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&#34;Model not found&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">agent</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Agent</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">initialState</span><span class="o">:</span> <span class="p">{</span> <span class="nx">model</span><span class="p">,</span> <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;Use tools when helpful.&#34;</span><span class="p">,</span> <span class="nx">tools</span><span class="o">:</span> <span class="p">[</span><span class="nx">countLines</span><span class="p">]</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">streamFn</span>: <span class="kt">models.streamSimple.bind</span><span class="p">(</span><span class="nx">models</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="nx">agent</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">((</span><span class="nx">event</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;tool_execution_update&#34;</span><span class="p">)</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&#34;progress:&#34;</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">partialResult</span><span class="p">.</span><span class="nx">details</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;tool_execution_end&#34;</span><span class="p">)</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&#34;details:&#34;</span><span class="p">,</span> <span class="nx">event</span><span class="p">.</span><span class="nx">result</span><span class="p">.</span><span class="nx">details</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">agent</span><span class="p">.</span><span class="nx">prompt</span><span class="p">(</span><span class="s2">&#34;How many lines does notes.txt have?&#34;</span><span class="p">);</span>
+</span></span></code></pre></div><p>这段代码里的几个选择：</p>
+<ul>
+<li><strong><code>signal</code> 直接交给 <code>readFile</code></strong>：中止时读文件跟着取消，不用自己监听。</li>
+<li><strong><code>content</code> 只放模型需要的结论</strong>，文件大小这类给界面看的数据放进 <code>details</code>。</li>
+<li><strong><code>prepareArguments</code> 只做兼容</strong>，不做校验。它返回的结果还要经过第 4.2 节的转换和校验。</li>
+<li><strong>工具集在构造时给出</strong>：<code>tools</code> 和 <code>systemPrompt</code> 一起变成开头的 system 消息。运行中途要换工具，按第 3.2 节的方式经过 <code>prepareNextTurnWithContext</code>。</li>
+</ul>
+<p>这段代码在 <code>strict</code> + <code>skipLibCheck</code> 下能通过 <code>tsc</code>。运行时需要 <code>ANTHROPIC_API_KEY</code>。探针用 mock 跑了它（把模型的 <code>baseUrl</code> 换成 mock 的地址，再给一个假的密钥），输出是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">progress: { path: &#39;/tmp/pi-ch05-notes.txt&#39;, chars: 0 }
+</span></span><span class="line"><span class="cl">details: { path: &#39;/tmp/pi-ch05-notes.txt&#39;, chars: 8 }
+</span></span><span class="line"><span class="cl">tool_result sent: &#34;4 lines&#34;
+</span></span></code></pre></div><h3 id="82-产品层通过扩展注册">
+<a class="header-anchor" href="#82-%e4%ba%a7%e5%93%81%e5%b1%82%e9%80%9a%e8%bf%87%e6%89%a9%e5%b1%95%e6%b3%a8%e5%86%8c"></a>
+8.2 产品层：通过扩展注册
+</h3><p>coding-agent 自带的最小示例 <code>examples/extensions/hello.ts</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="cm">/**
+</span></span></span><span class="line"><span class="cl"><span class="cm"> * Hello Tool - Minimal custom tool example
+</span></span></span><span class="line"><span class="cl"><span class="cm"> */</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Type</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">defineTool</span><span class="p">,</span> <span class="kr">type</span> <span class="nx">ExtensionAPI</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">helloTool</span> <span class="o">=</span> <span class="nx">defineTool</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">name</span><span class="o">:</span> <span class="s2">&#34;hello&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">label</span><span class="o">:</span> <span class="s2">&#34;Hello&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">description</span><span class="o">:</span> <span class="s2">&#34;A simple greeting tool&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">parameters</span>: <span class="kt">Type.Object</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">name</span>: <span class="kt">Type.String</span><span class="p">({</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&#34;Name to greet&#34;</span> <span class="p">}),</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}),</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="kr">async</span> <span class="nx">execute</span><span class="p">(</span><span class="nx">_toolCallId</span><span class="p">,</span> <span class="nx">params</span><span class="p">,</span> <span class="nx">_signal</span><span class="p">,</span> <span class="nx">_onUpdate</span><span class="p">,</span> <span class="nx">_ctx</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">content</span><span class="o">:</span> <span class="p">[{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="nx">text</span><span class="o">:</span> <span class="sb">`Hello, </span><span class="si">${</span><span class="nx">params</span><span class="p">.</span><span class="nx">name</span><span class="si">}</span><span class="sb">!`</span> <span class="p">}],</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">details</span><span class="o">:</span> <span class="p">{</span> <span class="nx">greeted</span>: <span class="kt">params.name</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">		<span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="p">},</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">pi</span>: <span class="kt">ExtensionAPI</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">registerTool</span><span class="p">(</span><span class="nx">helloTool</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li><code>defineTool</code>（原样返回定义，只为让 TypeScript 推断出 <code>params</code> 的类型）。</li>
+<li>把文件放进 <code>~/.pi/agent/extensions/</code>，或者放进 <code>&lt;cwd&gt;/.pi/extensions/</code>（项目被信任后才加载），或者在 SDK 里放进 <code>DefaultResourceLoader</code> 的 <code>extensionFactories</code>。</li>
+<li>这个工具没设 <code>exposure</code>，按 <code>direct</code> 处理，注册即激活。</li>
+</ul>
+<p>在这个基础上常加的几项：</p>
+<ul>
+<li><code>promptSnippet</code>：让工具出现在系统提示词的工具列表里。</li>
+<li><code>exposure: &quot;deferred&quot;</code>：工具很多、又不想全部常驻上下文时，配合 <code>tool_search</code> 按需加载（第 7.3 节的 <code>deploy</code>）。</li>
+<li><code>renderCall</code> / <code>renderResult</code>：在终端里自定义调用和结果的显示。</li>
+<li><code>ctx.executeTool</code>：在工具里组合调用其他工具，嵌套调用会记进 <code>nestedCalls</code>。</li>
+</ul>
+<hr>
+<h2 id="9--三个可以带走的方法">
+<a class="header-anchor" href="#9--%e4%b8%89%e4%b8%aa%e5%8f%af%e4%bb%a5%e5%b8%a6%e8%b5%b0%e7%9a%84%e6%96%b9%e6%b3%95"></a>
+9 · 三个可以带走的方法
+</h2><ol>
+<li><strong>工具声明跟着对话记录走</strong>。把&quot;模型可以调用哪些工具&quot;写进对话本身，重放对话就能还原工具集；协议实现再按各家能力翻译成原生增删、就地新增或全量列表。换模型、恢复会话、压缩历史时，工具集都不会错位。</li>
+<li><strong>参数在交给工具前先修补、转换，校验失败时把收到的参数还给模型</strong>。模型的小偏差（字段名、字符串数字、多余的 null）在本地吸收掉；真错了，就给模型一份能对照修正的报错。</li>
+<li><strong>结果按读者拆开</strong>。给模型的、给界面的、给程序的放在不同字段，模型上下文里只放它需要的那部分。</li>
+</ol>
+<hr>
+<h2 id="10--关键数字">
+<a class="header-anchor" href="#10--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+10 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>数量</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>L1 <code>Tool</code> 的字段</td>
+					<td>4 个</td>
+			</tr>
+			<tr>
+					<td><code>AgentToolResult</code> 的字段</td>
+					<td>6 个</td>
+			</tr>
+			<tr>
+					<td>coding-agent 内置工具</td>
+					<td>8 个，默认启用 4 个</td>
+			</tr>
+			<tr>
+					<td><code>exposure</code> 取值</td>
+					<td>5 种</td>
+			</tr>
+			<tr>
+					<td>MCP 暴露方式</td>
+					<td>4 种</td>
+			</tr>
+			<tr>
+					<td>默认截断</td>
+					<td>2000 行或 50KB</td>
+			</tr>
+			<tr>
+					<td><code>grep</code> / <code>find</code> / <code>ls</code> 默认条数</td>
+					<td>100 / 1000 / 500</td>
+			</tr>
+			<tr>
+					<td>bash 默认超时</td>
+					<td>无</td>
+			</tr>
+			<tr>
+					<td><code>tool_search</code> 默认返回</td>
+					<td>8 个</td>
+			</tr>
+			<tr>
+					<td>嵌套调用记录上限</td>
+					<td>256 次</td>
+			</tr>
+			<tr>
+					<td>支持原生增删工具的模型</td>
+					<td>6 个</td>
+			</tr>
+			<tr>
+					<td>支持 grammar 工具的模型</td>
+					<td>111 个</td>
+			</tr>
+			<tr>
+					<td>内置模型目录</td>
+					<td>1532 个对话模型</td>
+			</tr>
+			<tr>
+					<td>工具相关目录的提交（北京时间 2026-08-01 至 2026-10-01，不含合并提交）</td>
+					<td><code>core/tools/</code> 23 次，<code>extensions/</code> 26 次，<code>agent-loop.ts</code> 9 次</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="11--术语表">
+<a class="header-anchor" href="#11--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+11 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>含义</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>工具声明</strong></td>
+					<td>发给模型的名字、说明和参数 schema</td>
+			</tr>
+			<tr>
+					<td><strong>激活</strong></td>
+					<td>工具在当前声明集合里</td>
+			</tr>
+			<tr>
+					<td><strong><code>toolsAdded</code> / <code>toolsRemoved</code></strong></td>
+					<td>system 消息上的工具增删</td>
+			</tr>
+			<tr>
+					<td><strong><code>exposure</code></strong></td>
+					<td>模型怎么够到一个工具</td>
+			</tr>
+			<tr>
+					<td><strong>可被调用</strong></td>
+					<td>能被其他工具经 <code>ctx.executeTool</code> 调用</td>
+			</tr>
+			<tr>
+					<td><strong><code>constrainedSampling</code></strong></td>
+					<td>请供应商在生成时约束参数</td>
+			</tr>
+			<tr>
+					<td><strong><code>structuredContent</code></strong></td>
+					<td>给程序调用方的结构化结果</td>
+			</tr>
+			<tr>
+					<td><strong><code>nestedCalls</code></strong></td>
+					<td>工具内部嵌套调用的摘要，只进会话</td>
+			</tr>
+			<tr>
+					<td><strong><code>defer_loading</code></strong></td>
+					<td>Anthropic 的延迟声明标记</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="12--源码导航">
+<a class="header-anchor" href="#12--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+12 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>三层工具类型</td>
+					<td><code>packages/ai/src/types.ts</code> → <code>Tool</code>、<code>SystemMessage</code>、<code>ConstrainedSamplingConfig</code>；<code>packages/agent/src/types.ts</code> → <code>AgentTool</code>、<code>AgentToolResult</code>；<code>packages/coding-agent/src/core/extensions/types.ts</code> → <code>ToolDefinition</code>、<code>ToolExposure</code></td>
+			</tr>
+			<tr>
+					<td>包装</td>
+					<td><code>packages/coding-agent/src/core/tools/tool-definition-wrapper.ts</code> → <code>wrapToolDefinition</code></td>
+			</tr>
+			<tr>
+					<td>工具声明的重放</td>
+					<td><code>packages/ai/src/utils/transcript.ts</code> → <code>getCurrentTools</code>、<code>getToolStateChanges</code>、<code>resolveTranscriptTools</code></td>
+			</tr>
+			<tr>
+					<td>声明变化</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>declareToolChanges</code></td>
+			</tr>
+			<tr>
+					<td>三种发法</td>
+					<td><code>packages/ai/src/api/anthropic-messages.ts</code> → <code>buildParams</code>、<code>DEFERRED_TOOL_PLACEHOLDER</code>；<code>openai-responses-shared.ts</code>；<code>openai-completions.ts</code></td>
+			</tr>
+			<tr>
+					<td>参数准备与校验</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>prepareToolCall</code>；<code>packages/ai/src/utils/validation.ts</code> → <code>validateToolArguments</code></td>
+			</tr>
+			<tr>
+					<td>严格 schema 与语法</td>
+					<td><code>packages/ai/src/api/constrained-sampling.ts</code></td>
+			</tr>
+			<tr>
+					<td>执行与结果消息</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>executePreparedToolCall</code>、<code>createToolResultMessage</code>、<code>runToolCall</code></td>
+			</tr>
+			<tr>
+					<td>图片的处理</td>
+					<td><code>packages/ai/src/api/transform-messages.ts</code></td>
+			</tr>
+			<tr>
+					<td>嵌套调用</td>
+					<td><code>packages/coding-agent/src/core/nested-tool-calls.ts</code></td>
+			</tr>
+			<tr>
+					<td>内置工具</td>
+					<td><code>packages/coding-agent/src/core/tools/</code>（<code>read.ts</code>、<code>bash.ts</code>、<code>edit.ts</code>、<code>edit-diff.ts</code>、<code>truncate.ts</code>、<code>file-mutation-queue.ts</code>、<code>path-utils.ts</code>）</td>
+			</tr>
+			<tr>
+					<td>注册与激活</td>
+					<td><code>packages/coding-agent/src/core/agent-session.ts</code> → <code>_refreshToolRegistry</code>、<code>_applyToolLoadout</code>、<code>setActiveToolsByName</code></td>
+			</tr>
+			<tr>
+					<td>MCP</td>
+					<td><code>packages/coding-agent/src/extensions/mcp/</code>；<code>packages/coding-agent/src/core/mcp-servers.ts</code></td>
+			</tr>
+			<tr>
+					<td>tool_search</td>
+					<td><code>packages/coding-agent/src/extensions/tool-search/tool.ts</code></td>
+			</tr>
+			<tr>
+					<td>codemode</td>
+					<td><code>packages/coding-agent/src/extensions/codemode/</code>；<code>packages/coding-agent/docs/codemode.md</code></td>
+			</tr>
+			<tr>
+					<td>扩展示例</td>
+					<td><code>packages/coding-agent/examples/extensions/hello.ts</code>、<code>dynamic-tools.ts</code></td>
+			</tr>
+			<tr>
+					<td>官方说明</td>
+					<td><code>packages/coding-agent/docs/extensions.md</code>、<code>packages/coding-agent/docs/security.md</code>；<code>packages/agent/README.md</code></td>
+			</tr>
+	</tbody>
+</table></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/26.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么"
+              class="lazyload"
+            /><a
+          href="/harness/pi/04-model-call/"
+          aria-label="Prev:Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么"
+          title="Prev:Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--一个工具调用的全程">1 · 一个工具调用的全程</a></li>
+    <li><a href="#2--三层类型每个字段由谁读取">2 · 三层类型：每个字段由谁读取</a></li>
+    <li><a href="#3--声明工具怎么到达模型">3 · 声明：工具怎么到达模型</a>
+      <ul>
+        <li><a href="#31-声明写在对话记录里">3.1 声明写在对话记录里</a></li>
+        <li><a href="#32-运行中换工具要经过-preparenextturn">3.2 运行中换工具：要经过 prepareNextTurn</a></li>
+        <li><a href="#33-三种发法">3.3 三种发法</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--参数从模型的-json-到-execute-的-params">4 · 参数：从模型的 JSON 到 execute 的 params</a>
+      <ul>
+        <li><a href="#41-preparearguments工具自带的修补">4.1 prepareArguments：工具自带的修补</a></li>
+        <li><a href="#42-validatetoolarguments复制删-null转换校验">4.2 validateToolArguments：复制、删 null、转换、校验</a></li>
+        <li><a href="#43-constrainedsampling在供应商那边约束生成">4.3 constrainedSampling：在供应商那边约束生成</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--执行与结果">5 · 执行与结果</a>
+      <ul>
+        <li><a href="#51-execute-的四个参数">5.1 execute 的四个参数</a></li>
+        <li><a href="#52-结果的每个字段交给谁">5.2 结果的每个字段交给谁</a></li>
+        <li><a href="#53-工具结果里的图片">5.3 工具结果里的图片</a></li>
+        <li><a href="#54-嵌套调用nestedcalls">5.4 嵌套调用：nestedCalls</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--coding-agent-的内置工具">6 · coding-agent 的内置工具</a>
+      <ul>
+        <li><a href="#61-8-个工具默认-4-个">6.1 8 个工具，默认 4 个</a></li>
+        <li><a href="#62-保护措施">6.2 保护措施</a></li>
+        <li><a href="#63-可替换的底层操作">6.3 可替换的底层操作</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--工具从哪来">7 · 工具从哪来</a>
+      <ul>
+        <li><a href="#71-四个来源一张注册表">7.1 四个来源，一张注册表</a></li>
+        <li><a href="#72-mcp">7.2 MCP</a></li>
+        <li><a href="#73-tool_search按需加载">7.3 tool_search：按需加载</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--用法写一个自定义工具">8 · 用法：写一个自定义工具</a>
+      <ul>
+        <li><a href="#81-引擎层直接交给-agent">8.1 引擎层：直接交给 Agent</a></li>
+        <li><a href="#82-产品层通过扩展注册">8.2 产品层：通过扩展注册</a></li>
+      </ul>
+    </li>
+    <li><a href="#9--三个可以带走的方法">9 · 三个可以带走的方法</a></li>
+    <li><a href="#10--关键数字">10 · 关键数字</a></li>
+    <li><a href="#11--术语表">11 · 术语表</a></li>
+    <li><a href="#12--源码导航">12 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么",
+          url: "https:\/\/example.org\/harness\/pi\/05-tools\/",
+          description: "接着第四章往下讲：一个工具在 Pi 里怎么定义、怎么声明给模型、工具集中途变化时三种线协议发法、参数在执行前经过的修补转换和校验、结果的每个字段交给谁，以及 coding-agent 内置工具的默认值与保护措施、工具的四个来源和 tool_search 的按需加载。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

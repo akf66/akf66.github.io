@@ -1,0 +1,1458 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文 | AKF
+</title>
+<meta name="description" content="接着第五章往下讲：coding-agent 的会话文件里有哪些条目、什么时候写盘，条目怎样用 parentId 连成一棵树，/tree、/fork、/clone 分别动了什么，每次请求模型前上下文怎样从当前分支重新投影出来，压缩和 context_edit 怎样参与投影，以及 AgentSession 怎样让会话树成为上下文的唯一来源。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文 | AKF" />
+  <meta
+    property="og:description"
+    content="接着第五章往下讲：coding-agent 的会话文件里有哪些条目、什么时候写盘，条目怎样用 parentId 连成一棵树，/tree、/fork、/clone 分别动了什么，每次请求模型前上下文怎样从当前分支重新投影出来，压缩和 context_edit 怎样参与投影，以及 AgentSession 怎样让会话树成为上下文的唯一来源。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/06-session/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-02T18:00:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-02T18:00:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--一条消息的全程">1 · 一条消息的全程</a></li>
+    <li><a href="#2--会话文件里有什么">2 · 会话文件里有什么</a>
+      <ul>
+        <li><a href="#21-文件和位置">2.1 文件和位置</a></li>
+        <li><a href="#22-11-种条目">2.2 11 种条目</a></li>
+        <li><a href="#23-什么时候写盘">2.3 什么时候写盘</a></li>
+        <li><a href="#24-版本与容错">2.4 版本与容错</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--树与分支">3 · 树与分支</a>
+      <ul>
+        <li><a href="#31-leaf-决定新条目挂在哪">3.1 leaf 决定新条目挂在哪</a></li>
+        <li><a href="#32-leaf-不写进文件">3.2 leaf 不写进文件</a></li>
+        <li><a href="#33-treeforkclone">3.3 /tree、/fork、/clone</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--从树到上下文">4 · 从树到上下文</a>
+      <ul>
+        <li><a href="#41-第一步走出当前分支">4.1 第一步：走出当前分支</a></li>
+        <li><a href="#42-第二步按最新的压缩条目裁剪">4.2 第二步：按最新的压缩条目裁剪</a></li>
+        <li><a href="#43-第三步逐条转消息套用-context_edit">4.3 第三步：逐条转消息，套用 context_edit</a></li>
+        <li><a href="#44-模型和思考级别">4.4 模型和思考级别</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--agentsession会话树是上下文的唯一来源">5 · AgentSession：会话树是上下文的唯一来源</a>
+      <ul>
+        <li><a href="#51-每次请求前重新投影">5.1 每次请求前重新投影</a></li>
+        <li><a href="#52-agentstatemessages-是副本">5.2 agent.state.messages 是副本</a></li>
+        <li><a href="#53-失败的尝试被编辑掉而不是删掉">5.3 失败的尝试被编辑掉，而不是删掉</a></li>
+        <li><a href="#54-打开会话和切换分支">5.4 打开会话和切换分支</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--会话从哪里被操作">6 · 会话从哪里被操作</a></li>
+    <li><a href="#7--用法">7 · 用法</a>
+      <ul>
+        <li><a href="#71-用-sdk-选择会话的保存方式">7.1 用 SDK 选择会话的保存方式</a></li>
+        <li><a href="#72-扩展只给模型看最近一轮的-read-输出">7.2 扩展：只给模型看最近一轮的 read 输出</a></li>
+        <li><a href="#73-离线读一个会话">7.3 离线读一个会话</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.3cf30c7271bec63efd7f486bce6e5fb5d736af11ecc46b715600952e59d2bb1a.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文</p>
+</div>
+      </div>
+    </article><link rel="stylesheet" href="/css/immersive.min.2db92d937938ad74c3f0da9f094e4878ceeb590da6c1a4e7129c8e526ba57363.css" /><h1 class="immersive-title">Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><div class="immersive-side-row">
+  <button type="button" class="immersive-side" data-immersive-toggle>
+    <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+    <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
+    <span class="immersive-side-text-on">沉浸阅读</span>
+    <span class="immersive-side-text-off">退出沉浸</span>
+  </button>
+  <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+</div><button
+  type="button"
+  class="immersive-toggle"
+  data-immersive-toggle
+  data-label-on="进入沉浸阅读"
+  data-label-off="退出沉浸阅读"
+  title="进入沉浸阅读"
+  aria-label="进入沉浸阅读"
+  aria-pressed="false"
+>
+  <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </svg>
+  <span class="immersive-toggle-text-on">沉浸阅读</span>
+  <span class="immersive-toggle-text">退出沉浸阅读</span>
+  <kbd class="immersive-toggle-kbd">Esc</kbd>
+</button>
+<script>
+  (() => {
+    const KEY = "immersive-reading";
+    const root = document.documentElement;
+    const btn = document.querySelector(".immersive-toggle");
+    const entry = document.querySelector(".immersive-entry");
+
+    const apply = (on) => {
+      root.classList.toggle("immersive", on);
+      const label = on ? btn.dataset.labelOff : btn.dataset.labelOn;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", String(on));
+      const sideBtn = document.querySelector(".immersive-side");
+      if (sideBtn) sideBtn.title = label;
+      try {
+        localStorage.setItem(KEY, on ? "1" : "0");
+      } catch (e) {}
+    };
+
+    const nav = document.querySelector(".immersive-nav");
+    const side = document.querySelector(".immersive-side-row");
+
+    const title = document.querySelector(".immersive-title");
+
+    const placeEntry = () => {
+      const inner = document.querySelector("article.h-entry .article-inner");
+      if (inner) inner.prepend(title);
+      const date = document.querySelector(".article-meta .article-date");
+      if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
+      const sidebar = document.querySelector("#sidebar .sidebar-wrapper-container");
+      if (sidebar) {
+        sidebar.appendChild(side);
+        root.classList.add("immersive-has-side");
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", placeEntry);
+    } else {
+      placeEntry();
+    }
+
+    apply(root.classList.contains("immersive"));
+    document.querySelectorAll("[data-immersive-toggle]").forEach((el) =>
+      el.addEventListener("click", () => {
+        apply(!root.classList.contains("immersive"));
+        window.scrollTo({ top: 0 });
+      })
+    );
+    side.querySelector(".immersive-side-top").addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
+    });
+  })();
+</script>
+<article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-02 18:00:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-02</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-02</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v1.0.0-8-g3874b3e98</code>（2026-10-02），commit <code>3874b3e98</code>。从第五章的基线 <code>7fbbd5f4a</code> 到这里有 6 个提交，都没有改动会话相关的代码。npm 上的 1.0.0 与基线在 <code>session-manager.ts</code> 上完全一致。文中所有行为、数字和代码均以该版本为准。</p>
+</blockquote>
+<p>前五章讲的都是一次运行内部的事：循环怎么转、模型怎么调、工具怎么跑。运行结束以后，这些消息去了哪里？下一次请求时，模型看到的历史又是从哪来的？本章接着往下讲 coding-agent 的会话：一条消息怎么写进会话树，又怎么在下一次请求前变回上下文。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>会话是一棵只增不改的树</strong>：一个会话就是一个 JSONL 文件。第一行是文件头，之后每行一个条目，用 <code>parentId</code> 连成树，<code>leaf</code> 指向当前位置。新条目总是挂在 leaf 下面。切换分支只移动 leaf，已有条目不删也不改。</li>
+<li><strong>11 种条目分四组</strong>：会变成消息的 4 种，改写别的条目的 1 种（<code>context_edit</code>），决定模型和思考级别的 2 种，模型完全看不到的 4 种。</li>
+<li><strong>文件按需创建，之后逐行追加</strong>：只有模型和思考级别这类设置时，条目只留在内存；第一条 user 或 assistant 消息出现时才建文件，之后每个条目追加一行。leaf 本身不写进文件，重新打开会话时落在最后一行。</li>
+<li><strong>上下文每次请求前重新投影</strong>：<code>AgentSession</code> 在每次请求前，从 leaf 走到根，按最新的压缩条目裁剪，再套用 <code>context_edit</code>，用结果替换要发给模型的消息。<code>agent.state.messages</code> 只是这份投影的一个副本。</li>
+<li><strong>编辑上下文也是追加条目</strong>：失败的重试、扩展想隐藏的旧输出，都通过追加一条 <code>context_edit</code> 从后续上下文里去掉或替换。原始条目留在文件里，换到别的分支时也不受影响。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章讲已发布的 <code>pi</code> 用的会话实现：pi-coding-agent 的 <code>SessionManager</code>（会话的读写和树操作）和 <code>AgentSession</code> 里接线的部分。源码里 <code>src/experimental/</code> 下还有一套基于 pi-durable 和 SQLite 的会话，不随 npm 包发布，不在本章范围内。</li>
+<li>压缩怎么挑选要总结的消息、摘要怎么生成，留给第七章。本章只讲压缩条目写进会话以后，怎样参与上下文的投影。</li>
+<li>第二章 3.2 节讲过 4 种自定义消息（<code>bashExecution</code>、<code>custom</code>、<code>branchSummary</code>、<code>compactionSummary</code>）和 <code>convertToLlm</code>，第五章讲过 system 消息上的 <code>sections</code>、<code>toolsAdded</code>、<code>toolsRemoved</code>。本章引用这些结论，不再重复。</li>
+<li>文中的行为都用探针实际跑过。探针用 npm 上的 1.0.0，一部分直接调用 <code>SessionManager</code>，另一部分用 <code>createAgentSession</code> 加 pi-ai 自带的 faux 供应商（按脚本返回预先写好的回复，并能拿到每次请求的上下文），不需要真实的 API key。</li>
+<li>术语：
+<ul>
+<li><strong>条目</strong>（entry）：会话文件里除文件头以外的一行。</li>
+<li><strong>leaf</strong>：当前位置，下一个条目会挂在它下面。</li>
+<li><strong>当前分支</strong>：从 leaf 沿 <code>parentId</code> 走到根经过的条目。</li>
+<li><strong>投影</strong>：从当前分支算出发给模型的消息列表。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1--一条消息的全程">
+<a class="header-anchor" href="#1--%e4%b8%80%e6%9d%a1%e6%b6%88%e6%81%af%e7%9a%84%e5%85%a8%e7%a8%8b"></a>
+1 · 一条消息的全程
+</h2><p><img src="/images/harness/pi/ch06/fig1-roundtrip.png" alt="图 1 · 会话的两个方向"></p>
+<p>会话在一次运行里有两个方向，图 1 左列是写，右列是读：</p>
+<ol>
+<li><strong>写</strong>：<code>Agent</code> 每完成一条消息就发出 <code>message_end</code>（第三章）。<code>AgentSession</code> 在事件处理里把它交给 <code>SessionManager</code>：<code>custom</code> 消息走 <code>appendCustomMessageEntry</code>（写一条扩展消息条目），<code>system</code>、<code>user</code>、<code>assistant</code>、<code>toolResult</code> 走 <code>appendMessage</code>（写一条普通消息条目）。新条目的 <code>parentId</code> 是当前 leaf，写完后 leaf 移到新条目上，再追加到文件末尾。</li>
+<li><strong>读</strong>：下一次请求模型之前，<code>AgentSession</code> 装在 <code>Agent</code> 上的 <code>prepareRequest</code>（每次请求前调用的钩子，第三章）调用 <code>buildSessionProjection</code>（从当前分支投影出消息），用它的结果替换循环里的消息。之后再经过 <code>transformContext</code> 和 <code>convertToLlm</code>，交给 pi-ai。</li>
+</ol>
+<p>两边的交汇点是 <code>SessionManager</code> 在内存里保存的全部条目。请求时读的是内存，不读文件；文件是内存的持久副本，重新打开会话时，内存从文件重建。</p>
+<p><code>Agent</code> 的事件处理是逐个等待的：<code>message_end</code> 的处理函数返回之后，循环才继续往下走。所以下一次请求做投影时，上一条消息一定已经在树上。</p>
+<hr>
+<h2 id="2--会话文件里有什么">
+<a class="header-anchor" href="#2--%e4%bc%9a%e8%af%9d%e6%96%87%e4%bb%b6%e9%87%8c%e6%9c%89%e4%bb%80%e4%b9%88"></a>
+2 · 会话文件里有什么
+</h2><h3 id="21-文件和位置">
+<a class="header-anchor" href="#21-%e6%96%87%e4%bb%b6%e5%92%8c%e4%bd%8d%e7%bd%ae"></a>
+2.1 文件和位置
+</h3><p>默认位置是 <code>~/.pi/agent/sessions/--&lt;工作目录&gt;--/&lt;时间戳&gt;_&lt;会话 id&gt;.jsonl</code>。工作目录去掉开头的路径分隔符，再把 <code>/</code>、<code>\</code>、<code>:</code> 换成 <code>-</code>。会话 id 是 UUIDv7，条目 id 是 8 位十六进制，与本会话已有的 id 冲突就重新生成，100 次都冲突就改用完整 UUID。</p>
+<p>探针用 <code>createAgentSession</code> 跑了一次带工具调用的对话（读一个文件，再回答一句），文件里依次是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">session                   ← 文件头：version 3、id、timestamp、cwd
+</span></span><span class="line"><span class="cl">model_change              ← 新会话先记下模型
+</span></span><span class="line"><span class="cl">thinking_level_change     ← 和思考级别
+</span></span><span class="line"><span class="cl">message  system           ← 第一次请求时写下完整的提示词和工具声明
+</span></span><span class="line"><span class="cl">message  user
+</span></span><span class="line"><span class="cl">message  assistant        ← 调用 read
+</span></span><span class="line"><span class="cl">message  toolResult
+</span></span><span class="line"><span class="cl">message  assistant
+</span></span></code></pre></div><p>系统提示词和工具声明也是普通的 <code>message</code> 条目，role 为 <code>system</code>。第一条带上全部 <code>sections</code> 和 <code>toolsAdded</code>，之后的变化写成补丁（第五章），除了压缩条目里的检查点（4.2 节），会话里没有另外存一份&quot;当前提示词&quot;。</p>
+<h3 id="22-11-种条目">
+<a class="header-anchor" href="#22-11-%e7%a7%8d%e6%9d%a1%e7%9b%ae"></a>
+2.2 11 种条目
+</h3><p><img src="/images/harness/pi/ch06/fig2-entries.png" alt="图 2 · 11 种条目分成四组"></p>
+<p>文件头之外，<code>SessionEntry</code> 有 11 种。图 2 按它们对模型上下文的作用分组：</p>
+<table>
+	<thead>
+			<tr>
+					<th>组</th>
+					<th>条目</th>
+					<th>投影时变成</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>变成消息</td>
+					<td><code>message</code></td>
+					<td>存进去的 <code>AgentMessage</code> 原样</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>custom_message</code></td>
+					<td>一条 <code>custom</code> 消息；<code>display</code> 和 <code>details</code> 不发给模型</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>branch_summary</code></td>
+					<td>一条 <code>branchSummary</code> 消息</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>compaction</code></td>
+					<td>一条 system 检查点，加一条 <code>compactionSummary</code> 消息</td>
+			</tr>
+			<tr>
+					<td>改写别的条目</td>
+					<td><code>context_edit</code></td>
+					<td>自己不产生消息；替换或去掉目标条目的内容</td>
+			</tr>
+			<tr>
+					<td>决定设置</td>
+					<td><code>model_change</code>、<code>thinking_level_change</code></td>
+					<td>不产生消息；决定恢复会话时用的模型和思考级别</td>
+			</tr>
+			<tr>
+					<td>不进上下文</td>
+					<td><code>usage</code>、<code>custom</code>、<code>label</code>、<code>session_info</code></td>
+					<td>什么都不产生</td>
+			</tr>
+	</tbody>
+</table>
+<p>几个容易混的地方：</p>
+<ul>
+<li><code>custom</code> 和 <code>custom_message</code> 都由扩展写入。<code>custom</code> 用来保存扩展自己的状态（<code>pi.appendEntry</code>），模型看不到；<code>custom_message</code> 是扩展插进对话的消息，模型看得到。</li>
+<li><code>label</code> 和 <code>session_info</code> 也是树上的节点，写入时同样挂在 leaf 下面并移动 leaf。它们不产生消息，所以不影响上下文。</li>
+<li><code>SessionManager.appendMessage</code> 的参数类型里没有 <code>branchSummary</code> 和 <code>compactionSummary</code> 两种消息（运行时不做检查）。这两种摘要应该分别通过 <code>branchWithSummary</code> 和 <code>appendCompaction</code> 写成独立的条目，方便以后查找。</li>
+</ul>
+<h3 id="23-什么时候写盘">
+<a class="header-anchor" href="#23-%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e5%86%99%e7%9b%98"></a>
+2.3 什么时候写盘
+</h3><p><strong>第一条对话消息出现时才建文件</strong>。<code>newSession</code>（新建一个空会话）只在内存里准备文件头。<code>_persist</code>（把条目写进文件）在会话里出现 user 或 assistant 消息之前什么都不做，所以打开 pi 什么都不说就退出，不会留下空文件。第一次写盘时，用 <code>wx</code> 方式（文件已存在就失败）新建文件，把内存里攒下的条目一次写进去；之后每个条目用 <code>appendFileSync</code> 追加一行。探针确认：写完模型、思考级别和 system 消息后文件还不存在，写入第一条 user 消息后文件出现，里面有 5 行。</p>
+<p><strong>有三种情况会整体重写文件</strong>：</p>
+<ul>
+<li>打开的文件版本低于 3，迁移后整个重写（2.4 节）</li>
+<li>打开一个 0 字节的文件，补上文件头</li>
+<li><code>/fork</code>、<code>/clone</code> 截取出的新文件（3.3 节）</li>
+</ul>
+<p><strong>不是所有条目都在 <code>message_end</code> 时写入</strong>：</p>
+<ul>
+<li>用 <code>!</code> 执行的命令由 <code>recordBashResult</code>（记录一次 <code>!</code> 命令的结果）写成 <code>bashExecution</code> 消息。如果模型正在回复，它先排队，等这次运行结束再写</li>
+<li>压缩摘要和分支摘要由各自的流程写成独立条目</li>
+<li>插队消息、后续消息和扩展排进下一轮的消息，在真正进入循环、发出 <code>message_end</code> 之前，都只在队列里</li>
+</ul>
+<h3 id="24-版本与容错">
+<a class="header-anchor" href="#24-%e7%89%88%e6%9c%ac%e4%b8%8e%e5%ae%b9%e9%94%99"></a>
+2.4 版本与容错
+</h3><p>文件头的 <code>version</code> 当前是 3：</p>
+<ul>
+<li>第 1 版没有 <code>id</code> 和 <code>parentId</code>，迁移时按行序给每个条目生成 id，把前一条设为父节点，连成一条链；压缩条目里的 <code>firstKeptEntryIndex</code> 换成 <code>firstKeptEntryId</code>。</li>
+<li>第 2 版到第 3 版只把消息角色 <code>hookMessage</code> 改名为 <code>custom</code>。</li>
+</ul>
+<p>加载时自动迁移并重写文件。解析不了的行直接跳过；文件非空、第一条能解析的记录却不是文件头，就拒绝打开，不改动原文件。最后一行缺换行符时，加载时会补上。</p>
+<hr>
+<h2 id="3--树与分支">
+<a class="header-anchor" href="#3--%e6%a0%91%e4%b8%8e%e5%88%86%e6%94%af"></a>
+3 · 树与分支
+</h2><p><img src="/images/harness/pi/ch06/fig3-tree.png" alt="图 3 · 会话树"></p>
+<h3 id="31-leaf-决定新条目挂在哪">
+<a class="header-anchor" href="#31-leaf-%e5%86%b3%e5%ae%9a%e6%96%b0%e6%9d%a1%e7%9b%ae%e6%8c%82%e5%9c%a8%e5%93%aa"></a>
+3.1 leaf 决定新条目挂在哪
+</h3><p>所有 <code>append*</code> 方法都走同一个私有函数 <code>_appendEntry</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">private</span> <span class="nx">_appendEntry</span><span class="p">(</span><span class="nx">entry</span>: <span class="kt">SessionEntry</span><span class="p">)</span><span class="o">:</span> <span class="k">void</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">this</span><span class="p">.</span><span class="nx">fileEntries</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">entry</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">this</span><span class="p">.</span><span class="nx">byId</span><span class="p">.</span><span class="kr">set</span><span class="p">(</span><span class="nx">entry</span><span class="p">.</span><span class="nx">id</span><span class="p">,</span> <span class="nx">entry</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">this</span><span class="p">.</span><span class="nx">leafId</span> <span class="o">=</span> <span class="nx">entry</span><span class="p">.</span><span class="nx">id</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">this</span><span class="p">.</span><span class="nx">_persist</span><span class="p">(</span><span class="nx">entry</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>新条目在创建时已经把 <code>parentId</code> 设成当前 leaf。所以只要把 leaf 移到更早的条目，下一个条目就会成为它的又一个子节点，树上就多出一个分支。改变 leaf 的方法有三个：</p>
+<ul>
+<li><code>branch(id)</code>（把 leaf 移到指定条目）：只改指针，不写任何东西。</li>
+<li><code>resetLeaf()</code>（把 leaf 设为空）：下一个条目会成为新的根，<code>parentId</code> 为 <code>null</code>。用于重新编辑第一条用户消息。</li>
+<li><code>branchWithSummary(id, summary)</code>（移动 leaf，并在新位置挂一条摘要）：写一条 <code>branch_summary</code>，<code>parentId</code> 是目标位置，<code>fromId</code> 记下离开时的 leaf。</li>
+</ul>
+<p>所以一个文件里可以有多个根。<code>getTree()</code>（把条目组装成树）把 <code>parentId</code> 为空的条目、父节点找不到的孤儿条目都当作根返回；同一父节点下的子节点按时间戳排序。</p>
+<h3 id="32-leaf-不写进文件">
+<a class="header-anchor" href="#32-leaf-%e4%b8%8d%e5%86%99%e8%bf%9b%e6%96%87%e4%bb%b6"></a>
+3.2 leaf 不写进文件
+</h3><p>leaf 只存在内存里。重新打开会话时，<code>_buildIndex</code>（按文件重建索引）把 leaf 设成文件的最后一个条目。探针确认：调用 <code>branch()</code> 把 leaf 移回第一条用户消息、之后不再写任何条目，重新打开文件后，leaf 仍是最后一行。</p>
+<p>这意味着&quot;上次停在哪条分支&quot;取决于最后写入的是哪条分支，而不是最后看的是哪条。<code>/tree</code> 只移动 leaf、没有接着发消息就退出，下次打开会回到最后写入的那条分支。</p>
+<h3 id="33-treeforkclone">
+<a class="header-anchor" href="#33-treeforkclone"></a>
+3.3 /tree、/fork、/clone
+</h3><table>
+	<thead>
+			<tr>
+					<th>操作</th>
+					<th>文件</th>
+					<th>新的 leaf</th>
+					<th>选中消息的原文</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>/tree</code></td>
+					<td>同一个文件</td>
+					<td>选中的条目；选中 user 或 custom 消息时是它的父节点</td>
+					<td>回到输入框</td>
+			</tr>
+			<tr>
+					<td><code>/fork</code></td>
+					<td>新文件</td>
+					<td>所选 user 消息的父节点</td>
+					<td>回到输入框</td>
+			</tr>
+			<tr>
+					<td><code>/clone</code></td>
+					<td>新文件</td>
+					<td>当前 leaf</td>
+					<td>—</td>
+			</tr>
+	</tbody>
+</table>
+<ul>
+<li><code>/tree</code> 由 <code>navigateTree</code>（在树上换位置）完成。交互界面先问要不要给离开的分支生成摘要（设置 <code>branchSummary.skipPrompt</code> 可以跳过这一问），<code>navigateTree</code> 再按情况调用 <code>branchWithSummary</code>、<code>resetLeaf</code> 或 <code>branch</code>；用户给了标签时，还会追加一条 <code>label</code>。</li>
+<li><code>/fork</code> 选的若是第一条用户消息（没有父节点），直接新建一个空会话，<code>parentSession</code> 指回原文件。</li>
+<li><code>/fork</code> 和 <code>/clone</code> 都调用 <code>createBranchedSession</code>，区别只在截到哪里：<code>/fork</code> 截到所选 user 消息之前，<code>/clone</code> 截到当前 leaf（含）。</li>
+</ul>
+<p><code>createBranchedSession</code>（把一条路径截取成新会话）做了几件事：</p>
+<ul>
+<li>跳过路径上的 <code>label</code> 条目，把它们的子节点改接到前一个条目上</li>
+<li>按保留下来的条目重建标签，追加在路径末尾</li>
+<li>修正压缩条目的 <code>firstKeptEntryId</code></li>
+<li>新文件头的 <code>parentSession</code> 指回原文件</li>
+</ul>
+<p>原文件不受影响，别的分支也不会带到新文件里。如果截取出的路径里还没有对话消息，新文件同样等到第一条对话消息出现时才建。</p>
+<p>另外还有两种跨文件的复制：</p>
+<ul>
+<li><code>SessionManager.forkFrom</code>（命令行 <code>--fork</code>）：把另一个会话的全部条目复制到当前目录的新会话里，整棵树都带过来</li>
+<li><code>/import</code>：直接把 JSONL 文件复制进会话目录，再打开</li>
+</ul>
+<hr>
+<h2 id="4--从树到上下文">
+<a class="header-anchor" href="#4--%e4%bb%8e%e6%a0%91%e5%88%b0%e4%b8%8a%e4%b8%8b%e6%96%87"></a>
+4 · 从树到上下文
+</h2><p><img src="/images/harness/pi/ch06/fig4-projection.png" alt="图 4 · 投影"></p>
+<p><code>buildSessionContext()</code>（算出发给模型的消息和设置）背后是三步，图 4 用一个例子画出每一步的结果。</p>
+<h3 id="41-第一步走出当前分支">
+<a class="header-anchor" href="#41-%e7%ac%ac%e4%b8%80%e6%ad%a5%e8%b5%b0%e5%87%ba%e5%bd%93%e5%89%8d%e5%88%86%e6%94%af"></a>
+4.1 第一步：走出当前分支
+</h3><p><code>buildSessionPath</code>（从 leaf 走到根）沿 <code>parentId</code> 往上走，再反转成根在前的顺序。leaf 为空时得到空列表。传入的 leaf 找不到时，从最后一个条目开始走。父节点缺失时，路径在缺口处停下。</p>
+<h3 id="42-第二步按最新的压缩条目裁剪">
+<a class="header-anchor" href="#42-%e7%ac%ac%e4%ba%8c%e6%ad%a5%e6%8c%89%e6%9c%80%e6%96%b0%e7%9a%84%e5%8e%8b%e7%bc%a9%e6%9d%a1%e7%9b%ae%e8%a3%81%e5%89%aa"></a>
+4.2 第二步：按最新的压缩条目裁剪
+</h3><p><code>buildContextEntries</code>（得到参与上下文的条目）只看路径上<strong>最后一个</strong>压缩条目：</p>
+<ul>
+<li>输出以这个压缩条目开头</li>
+<li>接着是它之前、从 <code>firstKeptEntryId</code> 开始的条目，其中 role 为 <code>system</code> 的消息被丢掉</li>
+<li>然后是它之后的所有条目</li>
+</ul>
+<p><code>firstKeptEntryId</code> 等于压缩条目自己的 id 时，表示之前的条目一条不留。</p>
+<p>丢掉 system 消息是因为压缩条目自带一份检查点。<code>appendCompaction</code>（写入压缩条目）在写入时调用 pi-ai 的 <code>getCurrentSystemMessage</code>（把一串 system 消息重放成一条完整的），把当时的完整提示词和工具集存进 <code>systemMessage</code> 字段。投影时，这份检查点代替了被裁掉的、以及保留区间里的所有 system 消息。</p>
+<p>探针按图 4 的压缩部分写了条目：一条带 <code>tools</code> 段的 system 消息，后面跟一条只补 <code>skills</code> 段的 system 补丁，再压缩。投影出来的第一条消息是 <code>system</code>，<code>sections</code> 同时含 <code>tools</code> 和 <code>skills</code>，后面依次是 <code>compactionSummary</code>、<code>user u2</code>、<code>assistant a2</code>、<code>user u3</code>。</p>
+<p>更早的压缩条目如果落在保留区间里，也会出现在条目列表中，但投影时不产生任何消息。只有排在第一位的那个压缩条目贡献检查点和摘要。</p>
+<h3 id="43-第三步逐条转消息套用-context_edit">
+<a class="header-anchor" href="#43-%e7%ac%ac%e4%b8%89%e6%ad%a5%e9%80%90%e6%9d%a1%e8%bd%ac%e6%b6%88%e6%81%af%e5%a5%97%e7%94%a8-context_edit"></a>
+4.3 第三步：逐条转消息，套用 context_edit
+</h3><p><code>buildSessionProjection</code>（投影出带来源的消息）先收集上一步列表里的 <code>context_edit</code>，按 <code>targetId</code> 建一张表。同一个目标有多条编辑时，后写入的覆盖先写入的。然后把每个条目转成消息：</p>
+<ul>
+<li><code>replacement</code> 为 <code>null</code>：目标条目不产生消息</li>
+<li>否则只替换内容，角色和其他字段保持原样。assistant 和 toolResult 收到字符串时，自动包成一个文本块</li>
+</ul>
+<p>返回值除了消息列表，还有 <code>entries</code>：每个条目和它投影出的消息一一对应。<code>AgentSession</code> 用它记住&quot;这条消息来自哪个条目&quot;，后面要编辑某条消息时就知道目标是谁。</p>
+<p><code>appendContextEdit</code>（写入一条编辑）在写入前检查三件事：</p>
+<ul>
+<li>目标存在</li>
+<li>目标在当前分支上</li>
+<li>目标是 user、assistant、toolResult 消息或 <code>custom_message</code></li>
+</ul>
+<p>编辑也是树上的节点，所以它<strong>只对所在的分支生效</strong>。探针在一个分支上去掉了第一条用户消息，再用 <code>branchWithSummary</code> 回到更早的位置，投影里那条用户消息又出现了：新分支的路径上没有那条编辑。</p>
+<h3 id="44-模型和思考级别">
+<a class="header-anchor" href="#44-%e6%a8%a1%e5%9e%8b%e5%92%8c%e6%80%9d%e8%80%83%e7%ba%a7%e5%88%ab"></a>
+4.4 模型和思考级别
+</h3><p>同一趟遍历还从<strong>完整路径</strong>（不经过压缩裁剪）里算出两项设置：</p>
+<ul>
+<li>思考级别：最后一条 <code>thinking_level_change</code>，没有就是 <code>off</code></li>
+<li>模型：最后一条 <code>model_change</code>，或者最后一条 assistant 消息上记录的 <code>provider</code> 和 <code>model</code>，两者取后出现的</li>
+</ul>
+<p>这两项只在打开会话时使用（5.4 节）。</p>
+<hr>
+<h2 id="5--agentsession会话树是上下文的唯一来源">
+<a class="header-anchor" href="#5--agentsession%e4%bc%9a%e8%af%9d%e6%a0%91%e6%98%af%e4%b8%8a%e4%b8%8b%e6%96%87%e7%9a%84%e5%94%af%e4%b8%80%e6%9d%a5%e6%ba%90"></a>
+5 · AgentSession：会话树是上下文的唯一来源
+</h2><h3 id="51-每次请求前重新投影">
+<a class="header-anchor" href="#51-%e6%af%8f%e6%ac%a1%e8%af%b7%e6%b1%82%e5%89%8d%e9%87%8d%e6%96%b0%e6%8a%95%e5%bd%b1"></a>
+5.1 每次请求前重新投影
+</h3><p><code>_installAgentRequestProjection</code>（安装请求前的投影）包住 <code>agent.prepareRequest</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">projection</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">sessionManager</span><span class="p">.</span><span class="nx">buildSessionProjection</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">canonicalContext</span> <span class="o">=</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="p">...</span><span class="nx">request</span><span class="p">.</span><span class="nx">context</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">messages</span>: <span class="kt">projection.messages</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Messages declare the provider-visible loadout; context.tools keeps executable implementations.
+</span></span></span><span class="line"><span class="cl">	<span class="nx">tools</span>: <span class="kt">this.agent.state.tools.slice</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl"><span class="p">};</span>
+</span></span></code></pre></div><p>每次请求模型之前，循环里的消息都被换成从当前分支新投影出来的那份。模型和思考级别则取 <code>agent.state</code> 里当前选中的值，不从树上算。</p>
+<p>投影之后还有几步，所以模型实际收到的和投影结果不完全相同：</p>
+<ol>
+<li><code>transformContext</code> 依次经过三层：扩展的上下文事件、去掉工具的 <code>prepareLoadout</code> 要求隐藏的声明（第五章）、强制系统提示词。扩展的上下文事件分两段：先是 <code>context</code>，处理函数拿到的是去掉 system 消息的副本，返回后 pi 把 system 消息放回原位；然后是 <code>context_with_system</code>，能看到完整的消息列表。</li>
+<li><code>convertToLlm</code> 把 4 种自定义消息转成 user 消息（第二章）。</li>
+<li>pi-ai 的协议实现按供应商能力处理 system 消息（第五章）。</li>
+</ol>
+<p>这几步都只影响这一次请求，不写回会话。</p>
+<h3 id="52-agentstatemessages-是副本">
+<a class="header-anchor" href="#52-agentstatemessages-%e6%98%af%e5%89%af%e6%9c%ac"></a>
+5.2 agent.state.messages 是副本
+</h3><p>运行过程中，<code>Agent</code> 自己也把每条 <code>message_end</code> 的消息推进 <code>agent.state.messages</code>（第三章），所以这里有两份消息：会话树和 <code>Agent</code> 的状态。以会话树为准，<code>agent.state.messages</code> 在这些时机被 <code>_refreshFinalizedContext</code>（用投影覆盖 <code>agent.state.messages</code>）覆盖：</p>
+<ul>
+<li>打开会话时，<code>createAgentSession</code> 用 <code>buildSessionContext().messages</code> 作为 <code>Agent</code> 的初始消息</li>
+<li>写入 <code>bashExecution</code> 或扩展消息之后</li>
+<li>压缩之后、<code>/tree</code> 切换分支之后</li>
+<li>扩展在回合边界提交条目之后（7.2 节）</li>
+<li>隐藏失败的尝试之后（5.3 节）</li>
+</ul>
+<p>SDK 文档也写明了这一点：直接给 <code>session.agent.state.messages</code> 赋值，不会替换持久化的上下文。</p>
+<p>一次普通的运行结束时，不会额外刷新。不过下一次请求前，<code>prepareRequest</code> 照样会重新投影，所以模型看到的始终是会话树里的内容。</p>
+<h3 id="53-失败的尝试被编辑掉而不是删掉">
+<a class="header-anchor" href="#53-%e5%a4%b1%e8%b4%a5%e7%9a%84%e5%b0%9d%e8%af%95%e8%a2%ab%e7%bc%96%e8%be%91%e6%8e%89%e8%80%8c%e4%b8%8d%e6%98%af%e5%88%a0%e6%8e%89"></a>
+5.3 失败的尝试被编辑掉，而不是删掉
+</h3><p>供应商返回可重试的错误时（过载、限流之类），出错的 assistant 消息已经在 <code>message_end</code> 时写进了会话。<code>_omitRecoveryAttempt</code>（隐藏一次失败的尝试）给这条消息追加一条 <code>replacement: null</code> 的 <code>context_edit</code>，再刷新状态。上下文超长、需要压缩后再试时也这样处理，这时连同这条回复产生的工具结果一起隐藏。</p>
+<p>结果是：</p>
+<ul>
+<li>文件里保留着失败的记录</li>
+<li>界面、导出和用量统计照常能看到这次失败</li>
+<li>后续请求里不再出现这次失败</li>
+</ul>
+<p>用户主动中止的回复、不可重试的错误，以及重试次数用完后的最后一次失败，都不走这条路，会留在上下文里。</p>
+<h3 id="54-打开会话和切换分支">
+<a class="header-anchor" href="#54-%e6%89%93%e5%bc%80%e4%bc%9a%e8%af%9d%e5%92%8c%e5%88%87%e6%8d%a2%e5%88%86%e6%94%af"></a>
+5.4 打开会话和切换分支
+</h3><p><code>createAgentSession</code> 打开已有会话时：</p>
+<ul>
+<li><strong>模型</strong>：调用方没有指定模型时，从当前分支恢复。<code>getBranchSelection</code>（取分支上最后一次选择的模型）沿分支往回找，取最后出现的 <code>model_change</code> 或 assistant 消息上记录的模型；之前选的是虚拟模型时，以 <code>model_change</code> 为准。恢复不了，比如找不到这个模型或没有凭据，就按设置里的默认值选，并给出 <code>modelFallbackMessage</code>。</li>
+<li><strong>思考级别</strong>：从 <code>thinking_level_change</code> 恢复。老会话里没有这类条目时，补写一条。</li>
+<li><strong>新会话</strong>：先写一条 <code>thinking_level_change</code>，选到了模型还会写一条 <code>model_change</code>。这就是探针文件第 2、3 行的来源。</li>
+</ul>
+<p><code>/tree</code> 切换分支时，只重新投影消息、从投影里的 system 消息恢复工具集，模型和思考级别保持当前的选择，不切回那条分支当时用的。</p>
+<hr>
+<h2 id="6--会话从哪里被操作">
+<a class="header-anchor" href="#6--%e4%bc%9a%e8%af%9d%e4%bb%8e%e5%93%aa%e9%87%8c%e8%a2%ab%e6%93%8d%e4%bd%9c"></a>
+6 · 会话从哪里被操作
+</h2><p>所有入口最终都落到 <code>SessionManager</code> 的方法上：</p>
+<table>
+	<thead>
+			<tr>
+					<th>入口</th>
+					<th>操作</th>
+					<th>落到</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>命令行</td>
+					<td><code>--continue</code> / <code>-c</code></td>
+					<td><code>continueRecent</code>：打开最近修改的会话，没有就新建</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>--resume</code> / <code>-r</code></td>
+					<td>列出会话让用户选，再 <code>open</code></td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>--session &lt;路径或 id 前缀&gt;</code></td>
+					<td>当前项目里找到就 <code>open</code>；在别的项目里找到，先问要不要复制过来（<code>forkFrom</code>）</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>--session-id &lt;id&gt;</code></td>
+					<td>按精确 id 打开，不存在就用这个 id 新建</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>--fork &lt;路径或 id 前缀&gt;</code></td>
+					<td><code>forkFrom</code>：复制成当前目录下的新会话</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>--no-session</code></td>
+					<td><code>inMemory</code>：不写文件</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>--session-dir &lt;目录&gt;</code></td>
+					<td>会话目录；也可以用环境变量 <code>PI_CODING_AGENT_SESSION_DIR</code> 或设置项 <code>sessionDir</code></td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>--name</code> / <code>-n</code></td>
+					<td><code>appendSessionInfo</code></td>
+			</tr>
+			<tr>
+					<td>斜杠命令</td>
+					<td><code>/tree</code>、<code>/fork</code>、<code>/clone</code></td>
+					<td>见 3.3 节</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>/resume</code>、<code>/new</code></td>
+					<td>换一个 <code>SessionManager</code>，重建整个运行时</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>/name</code></td>
+					<td><code>appendSessionInfo</code></td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>/export</code>、<code>/share</code></td>
+					<td>导出。JSONL 只导出当前分支，HTML 导出整棵树</td>
+			</tr>
+			<tr>
+					<td>SDK</td>
+					<td><code>createAgentSession({ sessionManager })</code></td>
+					<td>不传时默认 <code>SessionManager.create</code></td>
+			</tr>
+			<tr>
+					<td>扩展</td>
+					<td><code>pi.appendEntry</code>、<code>pi.setLabel</code>、<code>pi.setSessionName</code></td>
+					<td>写 <code>custom</code>、<code>label</code>、<code>session_info</code> 条目</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>ctx.sessionManager</code></td>
+					<td>类型是 <code>ReadonlySessionManager</code>，只暴露读取方法</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>turn_end</code>、<code>agent_before_settle</code> 的返回值</td>
+					<td>提交条目草稿（7.2 节）</td>
+			</tr>
+			<tr>
+					<td></td>
+					<td><code>session_before_switch</code> / <code>_fork</code> / <code>_compact</code> / <code>_tree</code></td>
+					<td>可以取消切换、复制、压缩和分支导航。<code>_compact</code> 和 <code>_tree</code> 还能代替默认流程提供摘要</td>
+			</tr>
+	</tbody>
+</table>
+<p>几点补充：</p>
+<ul>
+<li><code>ReadonlySessionManager</code> 只在类型上只读，运行时拿到的就是同一个 <code>SessionManager</code> 对象。扩展要写会话，应该通过上面列出的 API。</li>
+<li>会话列表（<code>SessionManager.list</code>）里的名字、消息数、第一条消息，统计的是整个文件，不区分分支。</li>
+<li>RPC 模式提供 <code>get_entries</code>、<code>get_tree</code>、<code>fork</code>、<code>clone</code>、<code>switch_session</code>、<code>new_session</code> 等命令，但没有直接的分支导航命令。</li>
+</ul>
+<hr>
+<h2 id="7--用法">
+<a class="header-anchor" href="#7--%e7%94%a8%e6%b3%95"></a>
+7 · 用法
+</h2><h3 id="71-用-sdk-选择会话的保存方式">
+<a class="header-anchor" href="#71-%e7%94%a8-sdk-%e9%80%89%e6%8b%a9%e4%bc%9a%e8%af%9d%e7%9a%84%e4%bf%9d%e5%ad%98%e6%96%b9%e5%bc%8f"></a>
+7.1 用 SDK 选择会话的保存方式
+</h3><p><code>examples/sdk/11-sessions.ts</code> 里的写法：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createAgentSession</span><span class="p">,</span> <span class="nx">SessionManager</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// In-memory (no persistence)
+</span></span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="p">{</span> <span class="nx">session</span>: <span class="kt">inMemory</span> <span class="p">}</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">createAgentSession</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sessionManager</span>: <span class="kt">SessionManager.inMemory</span><span class="p">(),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&#34;In-memory session:&#34;</span><span class="p">,</span> <span class="nx">inMemory</span><span class="p">.</span><span class="nx">sessionFile</span> <span class="o">??</span> <span class="s2">&#34;(none)&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nx">inMemory</span><span class="p">.</span><span class="nx">dispose</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// New persistent session
+</span></span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="p">{</span> <span class="nx">session</span>: <span class="kt">newSession</span> <span class="p">}</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">createAgentSession</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sessionManager</span>: <span class="kt">SessionManager.create</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">()),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&#34;New session file:&#34;</span><span class="p">,</span> <span class="nx">newSession</span><span class="p">.</span><span class="nx">sessionFile</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nx">newSession</span><span class="p">.</span><span class="nx">dispose</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Continue most recent session (or create new if none)
+</span></span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="p">{</span> <span class="nx">session</span>: <span class="kt">continued</span><span class="p">,</span> <span class="nx">modelFallbackMessage</span> <span class="p">}</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">createAgentSession</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">sessionManager</span>: <span class="kt">SessionManager.continueRecent</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">cwd</span><span class="p">()),</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="nx">modelFallbackMessage</span><span class="p">)</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&#34;Note:&#34;</span><span class="p">,</span> <span class="nx">modelFallbackMessage</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&#34;Continued session:&#34;</span><span class="p">,</span> <span class="nx">continued</span><span class="p">.</span><span class="nx">sessionFile</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nx">continued</span><span class="p">.</span><span class="nx">dispose</span><span class="p">();</span>
+</span></span></code></pre></div><p><code>SessionManager.inMemory</code> 还可以接收一组现成的条目，用来从外部恢复历史。</p>
+<h3 id="72-扩展只给模型看最近一轮的-read-输出">
+<a class="header-anchor" href="#72-%e6%89%a9%e5%b1%95%e5%8f%aa%e7%bb%99%e6%a8%a1%e5%9e%8b%e7%9c%8b%e6%9c%80%e8%bf%91%e4%b8%80%e8%bd%ae%e7%9a%84-read-%e8%be%93%e5%87%ba"></a>
+7.2 扩展：只给模型看最近一轮的 read 输出
+</h3><p><code>turn_end</code> 和 <code>agent_before_settle</code> 是两个可以写会话的回合边界。</p>
+<p><strong>工作方式</strong>：</p>
+<ul>
+<li>处理函数收到 <code>event.entries</code>（前面的扩展已经提出的条目草稿），返回新的 <code>entries</code> 就替换这个列表。返回 <code>continue: true</code> 要求再请求一次模型；预览出的上下文不能继续时（比如最后一条是 assistant 回复、又没有排队的消息），会报告扩展错误。</li>
+<li>草稿只有 4 种：<code>custom</code>、<code>custom_message</code>、<code>context_edit</code>、<code>compaction</code>。</li>
+</ul>
+<p><strong>提交方式</strong>：</p>
+<ol>
+<li><code>AgentSession</code> 用当前分支建一个内存里的临时会话，把草稿写进去，预览出新的上下文。</li>
+<li>草稿不合法（比如编辑的目标不在当前分支上）时，这一批全部作废，并报告扩展错误。</li>
+<li>合法的草稿才写进真正的会话，然后刷新 <code>agent.state.messages</code>。</li>
+</ol>
+<p>下面这个扩展在每一轮结束时，把上一轮 <code>read</code> 工具的输出从后续上下文里换成一句提示，只留最近一轮的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span> <span class="nx">ExtensionAPI</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">pi</span>: <span class="kt">ExtensionAPI</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kd">let</span> <span class="nx">previousReads</span>: <span class="kt">string</span><span class="p">[]</span> <span class="o">=</span> <span class="p">[];</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;turn_end&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">onBranch</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Set</span><span class="p">(</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">sessionManager</span><span class="p">.</span><span class="nx">getBranch</span><span class="p">().</span><span class="nx">map</span><span class="p">((</span><span class="nx">entry</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">entry</span><span class="p">.</span><span class="nx">id</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">edits</span> <span class="o">=</span> <span class="nx">previousReads</span>
+</span></span><span class="line"><span class="cl">			<span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">id</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">onBranch</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">id</span><span class="p">))</span>
+</span></span><span class="line"><span class="cl">			<span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">targetId</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">({</span>
+</span></span><span class="line"><span class="cl">				<span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;context_edit&#34;</span> <span class="kr">as</span> <span class="kr">const</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">targetId</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">replacement</span><span class="o">:</span> <span class="p">{</span> <span class="nx">content</span><span class="o">:</span> <span class="s2">&#34;(earlier read output omitted; read the file again if needed)&#34;</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}));</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">previousReads</span> <span class="o">=</span> <span class="nx">event</span><span class="p">.</span><span class="nx">toolResultEntryIds</span><span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">id</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="kr">const</span> <span class="nx">entry</span> <span class="o">=</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">sessionManager</span><span class="p">.</span><span class="nx">getEntry</span><span class="p">(</span><span class="nx">id</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="nx">entry</span><span class="o">?</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;message&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">entry</span><span class="p">.</span><span class="nx">message</span><span class="p">.</span><span class="nx">role</span> <span class="o">===</span> <span class="s2">&#34;toolResult&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">entry</span><span class="p">.</span><span class="nx">message</span><span class="p">.</span><span class="nx">toolName</span> <span class="o">===</span> <span class="s2">&#34;read&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="p">});</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="nx">edits</span><span class="p">.</span><span class="nx">length</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="p">{</span> <span class="nx">entries</span><span class="o">:</span> <span class="p">[...</span><span class="nx">event</span><span class="p">.</span><span class="nx">entries</span><span class="p">,</span> <span class="p">...</span><span class="nx">edits</span><span class="p">]</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>这段代码用 <code>tsc --strict</code> 检查过类型。探针用 faux 供应商跑了它的 JavaScript 等价版本：模型先读 <code>a.txt</code>，再读 <code>b.txt</code>，最后回答。</p>
+<ul>
+<li>第三次请求里，<code>a.txt</code> 的结果已经换成提示文字，<code>b.txt</code> 的结果还是原文。</li>
+<li>会话文件里两次 <code>read</code> 的原始输出都在，后面各跟一条 <code>context_edit</code>。</li>
+</ul>
+<p>过滤 <code>onBranch</code> 是因为用户可能在两轮之间用 <code>/tree</code> 换了分支，编辑不在当前分支上的条目会让整批草稿作废。<code>toolResultEntryIds</code> 只包含找得到条目的工具结果，不一定和 <code>toolResults</code> 一一对齐，所以这里按条目 id 回查工具名，而不是按下标配对。</p>
+<h3 id="73-离线读一个会话">
+<a class="header-anchor" href="#73-%e7%a6%bb%e7%ba%bf%e8%af%bb%e4%b8%80%e4%b8%aa%e4%bc%9a%e8%af%9d"></a>
+7.3 离线读一个会话
+</h3><p><code>SessionManager.open</code> 可以直接打开任意一个会话文件。注意打开不是只读的：版本低于 3 会迁移并重写，0 字节的文件会补上文件头，缺换行的最后一行会补上换行。下面三个方法拿到的是 pi 下一次请求会用的上下文、整棵树和当前分支：</p>
+<ul>
+<li><code>buildSessionContext()</code>（要发给模型的消息和设置）</li>
+<li><code>getTree()</code>（整棵树）</li>
+<li><code>getBranch()</code>（当前分支上的条目）</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">SessionManager</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">sm</span> <span class="o">=</span> <span class="nx">SessionManager</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="s2">&#34;/path/to/session.jsonl&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="p">{</span> <span class="nx">messages</span><span class="p">,</span> <span class="nx">model</span><span class="p">,</span> <span class="nx">thinkingLevel</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">sm</span><span class="p">.</span><span class="nx">buildSessionContext</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">thinkingLevel</span><span class="p">,</span> <span class="nx">messages</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">m</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">m</span><span class="p">.</span><span class="nx">role</span><span class="p">));</span>
+</span></span></code></pre></div><p>打开文件后，leaf 是最后一行（3.2 节）。</p>
+<hr>
+<h2 id="8--三个可以带走的方法">
+<a class="header-anchor" href="#8--%e4%b8%89%e4%b8%aa%e5%8f%af%e4%bb%a5%e5%b8%a6%e8%b5%b0%e7%9a%84%e6%96%b9%e6%b3%95"></a>
+8 · 三个可以带走的方法
+</h2><ol>
+<li><strong>历史只追加，位置用指针表示</strong>。条目一旦写下就不再改动，分支靠移动 leaf 产生。写盘只需要追加一行，写到一半的最后一行在下次加载时会被跳过；换个分支也不会丢失任何东西。</li>
+<li><strong>上下文从历史投影出来，不单独维护</strong>。每次请求前都从当前分支重新算出消息，压缩、编辑、分支切换都只是改变投影的输入。内存里的消息列表只是投影的副本，两者不一致时以历史为准。</li>
+<li><strong>修改也写成条目</strong>。<code>context_edit</code> 和压缩条目都是追加进去的。它们只对所在的分支生效，原始内容一直留在文件里，界面、导出和用量统计看到的仍是真实发生过的事。</li>
+</ol>
+<hr>
+<h2 id="9--关键数字">
+<a class="header-anchor" href="#9--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+9 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>数量</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>session-manager.ts</code></td>
+					<td>2013 行</td>
+			</tr>
+			<tr>
+					<td>条目类型</td>
+					<td>11 种（另有 1 种文件头）</td>
+			</tr>
+			<tr>
+					<td>会产生消息的条目类型</td>
+					<td>4 种</td>
+			</tr>
+			<tr>
+					<td>当前会话版本</td>
+					<td>3</td>
+			</tr>
+			<tr>
+					<td>条目 id</td>
+					<td>8 位十六进制，最多重试 100 次</td>
+			</tr>
+			<tr>
+					<td>会话 id</td>
+					<td>UUIDv7</td>
+			</tr>
+			<tr>
+					<td>读取文件头的上限</td>
+					<td>1 MB</td>
+			</tr>
+			<tr>
+					<td><code>turn_end</code> 草稿类型</td>
+					<td>4 种</td>
+			</tr>
+			<tr>
+					<td>选择或命名会话的命令行选项（不含 <code>--export</code>）</td>
+					<td>8 个</td>
+			</tr>
+			<tr>
+					<td><code>session-manager.ts</code> 的提交（北京时间 2026-08-01 至 2026-10-01，不含合并提交）</td>
+					<td>14 次</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="10--术语表">
+<a class="header-anchor" href="#10--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+10 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>含义</th>
+					<th>别和它混淆</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>条目</strong>（entry）</td>
+					<td>会话文件里除文件头以外的一行，有 <code>id</code>、<code>parentId</code>、<code>timestamp</code></td>
+					<td>消息：只有 <code>message</code> 条目直接装着消息</td>
+			</tr>
+			<tr>
+					<td><strong>leaf</strong></td>
+					<td>当前位置，新条目挂在它下面</td>
+					<td>文件最后一行：移动 leaf 之后、再写入之前两者不同；重新打开时 leaf 总是最后一行</td>
+			</tr>
+			<tr>
+					<td><strong>当前分支</strong></td>
+					<td>从 leaf 沿 <code>parentId</code> 走到根经过的条目</td>
+					<td><code>getEntries()</code>：整个文件的所有条目</td>
+			</tr>
+			<tr>
+					<td><strong>投影</strong></td>
+					<td>从当前分支算出发给模型的消息</td>
+					<td><code>transformContext</code>：投影之后、只影响一次请求的改写</td>
+			</tr>
+			<tr>
+					<td><strong><code>context_edit</code></strong></td>
+					<td>追加的一条编辑，替换或去掉早先条目的内容</td>
+					<td>删除条目：会话里没有删除操作</td>
+			</tr>
+			<tr>
+					<td><strong>检查点</strong></td>
+					<td>压缩条目里存的完整 system 消息</td>
+					<td>系统提示词补丁：普通 system 消息只写变化的部分</td>
+			</tr>
+			<tr>
+					<td><strong><code>custom</code></strong> / <strong><code>custom_message</code></strong></td>
+					<td>扩展的状态 / 扩展插入的消息</td>
+					<td>前者模型看不到，后者看得到</td>
+			</tr>
+			<tr>
+					<td><strong><code>parentSession</code></strong></td>
+					<td>文件头里指向来源会话文件的路径</td>
+					<td><code>parentId</code>：条目之间的父子关系</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="11--源码导航">
+<a class="header-anchor" href="#11--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+11 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>条目类型、文件头</td>
+					<td><code>packages/coding-agent/src/core/session-manager.ts</code> → <code>SessionEntry</code>、<code>SessionHeader</code></td>
+			</tr>
+			<tr>
+					<td>写盘</td>
+					<td><code>session-manager.ts</code> → <code>_appendEntry</code>、<code>_persist</code>、<code>_rewriteFile</code>、<code>_hasConversation</code></td>
+			</tr>
+			<tr>
+					<td>树和分支</td>
+					<td><code>session-manager.ts</code> → <code>branch</code>、<code>resetLeaf</code>、<code>branchWithSummary</code>、<code>getTree</code>、<code>createBranchedSession</code></td>
+			</tr>
+			<tr>
+					<td>投影</td>
+					<td><code>session-manager.ts</code> → <code>buildSessionPath</code>、<code>buildContextEntries</code>、<code>buildSessionProjection</code>、<code>sessionEntryToContextMessages</code></td>
+			</tr>
+			<tr>
+					<td>迁移</td>
+					<td><code>session-manager.ts</code> → <code>migrateV1ToV2</code>、<code>migrateV2ToV3</code></td>
+			</tr>
+			<tr>
+					<td>system 消息的重放</td>
+					<td><code>packages/ai/src/utils/transcript.ts</code> → <code>getCurrentSystemMessage</code></td>
+			</tr>
+			<tr>
+					<td>消息落盘</td>
+					<td><code>packages/coding-agent/src/core/agent-session.ts</code> → <code>_handleAgentEvent</code></td>
+			</tr>
+			<tr>
+					<td>请求前投影</td>
+					<td><code>agent-session.ts</code> → <code>_installAgentRequestProjection</code>、<code>_refreshFinalizedContext</code></td>
+			</tr>
+			<tr>
+					<td>失败的尝试</td>
+					<td><code>agent-session.ts</code> → <code>_omitRecoveryAttempt</code></td>
+			</tr>
+			<tr>
+					<td>回合边界草稿</td>
+					<td><code>agent-session.ts</code> → <code>_applyBoundaryDrafts</code>、<code>_buildBoundaryContext</code>；<code>packages/coding-agent/src/core/extensions/runner.ts</code> → <code>emitBoundary</code>；<code>extensions/types.ts</code> → <code>SessionBoundaryDraft</code></td>
+			</tr>
+			<tr>
+					<td>/tree</td>
+					<td><code>agent-session.ts</code> → <code>navigateTree</code></td>
+			</tr>
+			<tr>
+					<td>/fork、/clone、/import</td>
+					<td><code>packages/coding-agent/src/core/agent-session-runtime.ts</code> → <code>fork</code>、<code>importFromJsonl</code></td>
+			</tr>
+			<tr>
+					<td>打开会话时恢复模型</td>
+					<td><code>packages/coding-agent/src/core/sdk.ts</code> → <code>createAgentSession</code></td>
+			</tr>
+			<tr>
+					<td>自定义消息转换</td>
+					<td><code>packages/coding-agent/src/core/messages.ts</code> → <code>convertToLlm</code></td>
+			</tr>
+			<tr>
+					<td>命令行选项</td>
+					<td><code>packages/coding-agent/src/cli/args.ts</code>；<code>packages/coding-agent/src/main.ts</code> → <code>resolveSessionPath</code></td>
+			</tr>
+			<tr>
+					<td>导出</td>
+					<td><code>packages/coding-agent/src/core/session-export.ts</code>；<code>packages/coding-agent/src/core/export-html/index.ts</code></td>
+			</tr>
+			<tr>
+					<td>示例</td>
+					<td><code>packages/coding-agent/examples/sdk/11-sessions.ts</code>、<code>13-session-runtime.ts</code></td>
+			</tr>
+			<tr>
+					<td>官方说明</td>
+					<td><code>packages/coding-agent/docs/session-format.md</code>、<code>docs/sessions.md</code>、<code>docs/sdk.md</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>下一章</strong>：上下文压缩。看 pi 什么时候决定压缩、怎么挑出要总结的消息、摘要怎么生成，以及 <code>/tree</code> 的分支摘要和它的异同。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/15.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么"
+              class="lazyload"
+            /><a
+          href="/harness/pi/05-tools/"
+          aria-label="Prev:Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么"
+          title="Prev:Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--一条消息的全程">1 · 一条消息的全程</a></li>
+    <li><a href="#2--会话文件里有什么">2 · 会话文件里有什么</a>
+      <ul>
+        <li><a href="#21-文件和位置">2.1 文件和位置</a></li>
+        <li><a href="#22-11-种条目">2.2 11 种条目</a></li>
+        <li><a href="#23-什么时候写盘">2.3 什么时候写盘</a></li>
+        <li><a href="#24-版本与容错">2.4 版本与容错</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--树与分支">3 · 树与分支</a>
+      <ul>
+        <li><a href="#31-leaf-决定新条目挂在哪">3.1 leaf 决定新条目挂在哪</a></li>
+        <li><a href="#32-leaf-不写进文件">3.2 leaf 不写进文件</a></li>
+        <li><a href="#33-treeforkclone">3.3 /tree、/fork、/clone</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--从树到上下文">4 · 从树到上下文</a>
+      <ul>
+        <li><a href="#41-第一步走出当前分支">4.1 第一步：走出当前分支</a></li>
+        <li><a href="#42-第二步按最新的压缩条目裁剪">4.2 第二步：按最新的压缩条目裁剪</a></li>
+        <li><a href="#43-第三步逐条转消息套用-context_edit">4.3 第三步：逐条转消息，套用 context_edit</a></li>
+        <li><a href="#44-模型和思考级别">4.4 模型和思考级别</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--agentsession会话树是上下文的唯一来源">5 · AgentSession：会话树是上下文的唯一来源</a>
+      <ul>
+        <li><a href="#51-每次请求前重新投影">5.1 每次请求前重新投影</a></li>
+        <li><a href="#52-agentstatemessages-是副本">5.2 agent.state.messages 是副本</a></li>
+        <li><a href="#53-失败的尝试被编辑掉而不是删掉">5.3 失败的尝试被编辑掉，而不是删掉</a></li>
+        <li><a href="#54-打开会话和切换分支">5.4 打开会话和切换分支</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--会话从哪里被操作">6 · 会话从哪里被操作</a></li>
+    <li><a href="#7--用法">7 · 用法</a>
+      <ul>
+        <li><a href="#71-用-sdk-选择会话的保存方式">7.1 用 SDK 选择会话的保存方式</a></li>
+        <li><a href="#72-扩展只给模型看最近一轮的-read-输出">7.2 扩展：只给模型看最近一轮的 read 输出</a></li>
+        <li><a href="#73-离线读一个会话">7.3 离线读一个会话</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">40</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文",
+          url: "https:\/\/example.org\/harness\/pi\/06-session\/",
+          description: "接着第五章往下讲：coding-agent 的会话文件里有哪些条目、什么时候写盘，条目怎样用 parentId 连成一棵树，\/tree、\/fork、\/clone 分别动了什么，每次请求模型前上下文怎样从当前分支重新投影出来，压缩和 context_edit 怎样参与投影，以及 AgentSession 怎样让会话树成为上下文的唯一来源。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

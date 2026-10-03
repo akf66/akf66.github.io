@@ -1,0 +1,1682 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的 | AKF
+</title>
+<meta name="description" content="接着第七章往下讲：每次请求前，coding-agent 怎样把默认文字、工具说明、AGENTS.md、技能索引和工作目录拼成按名字分段的系统提示词，上下文文件和技能从哪些目录发现，/skill 和模板怎样展开，提示词的变化怎样写成 system 补丁，扩展的 input、before_agent_start、context、context_with_system、before_provider_request 各能改什么，以及这些安排和提示词缓存、缓存预热的关系。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的 | AKF" />
+  <meta
+    property="og:description"
+    content="接着第七章往下讲：每次请求前，coding-agent 怎样把默认文字、工具说明、AGENTS.md、技能索引和工作目录拼成按名字分段的系统提示词，上下文文件和技能从哪些目录发现，/skill 和模板怎样展开，提示词的变化怎样写成 system 补丁，扩展的 input、before_agent_start、context、context_with_system、before_provider_request 各能改什么，以及这些安排和提示词缓存、缓存预热的关系。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/08-context-engineering/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-04T01:30:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-04T01:30:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--一次请求前的拼装流水线">1 · 一次请求前的拼装流水线</a></li>
+    <li><a href="#2--系统提示词怎么拼">2 · 系统提示词怎么拼</a>
+      <ul>
+        <li><a href="#21-输入buildsystempromptoptions">2.1 输入：BuildSystemPromptOptions</a></li>
+        <li><a href="#22-八个段">2.2 八个段</a></li>
+        <li><a href="#23-自定义提示词和追加文字">2.3 自定义提示词和追加文字</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--上下文文件技能与提示词模板">3 · 上下文文件、技能与提示词模板</a>
+      <ul>
+        <li><a href="#31-上下文文件全文进-project_context">3.1 上下文文件：全文进 project_context</a></li>
+        <li><a href="#32-技能发现顺序">3.2 技能：发现顺序</a></li>
+        <li><a href="#33-技能怎样声明给模型只给索引">3.3 技能怎样声明给模型：只给索引</a></li>
+        <li><a href="#34-skillname-和-模板发送前展开">3.4 /skill:name 和 /模板：发送前展开</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--提示词怎么变system-补丁">4 · 提示词怎么变：system 补丁</a>
+      <ul>
+        <li><a href="#41-两个时机">4.1 两个时机</a></li>
+        <li><a href="#42-探针-p2三条补丁">4.2 探针 P2：三条补丁</a></li>
+        <li><a href="#43-补丁写进会话">4.3 补丁写进会话</a></li>
+        <li><a href="#44-强制提示词替换请求不写会话">4.4 强制提示词：替换请求，不写会话</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--请求前的改写链">5 · 请求前的改写链</a>
+      <ul>
+        <li><a href="#51-五个事件">5.1 五个事件</a></li>
+        <li><a href="#52-探针-p3两个扩展接力">5.2 探针 P3：两个扩展接力</a></li>
+        <li><a href="#53-选哪个事件">5.3 选哪个事件</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--和提示词缓存的关系">6 · 和提示词缓存的关系</a>
+      <ul>
+        <li><a href="#61-段的顺序与补丁的位置">6.1 段的顺序与补丁的位置</a></li>
+        <li><a href="#62-缓存断点cacheretention-和-sessionid">6.2 缓存断点、cacheRetention 和 sessionId</a></li>
+        <li><a href="#63-缓存预热">6.3 缓存预热</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--用法按条件注入一段-git-上下文">7 · 用法：按条件注入一段 git 上下文</a></li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.3cf30c7271bec63efd7f486bce6e5fb5d736af11ecc46b715600952e59d2bb1a.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的</p>
+</div>
+      </div>
+    </article><link rel="stylesheet" href="/css/immersive.min.2db92d937938ad74c3f0da9f094e4878ceeb590da6c1a4e7129c8e526ba57363.css" /><h1 class="immersive-title">Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><div class="immersive-side-row">
+  <button type="button" class="immersive-side" data-immersive-toggle>
+    <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+    <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
+    <span class="immersive-side-text-on">沉浸阅读</span>
+    <span class="immersive-side-text-off">退出沉浸</span>
+  </button>
+  <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+</div><button
+  type="button"
+  class="immersive-toggle"
+  data-immersive-toggle
+  data-label-on="进入沉浸阅读"
+  data-label-off="退出沉浸阅读"
+  title="进入沉浸阅读"
+  aria-label="进入沉浸阅读"
+  aria-pressed="false"
+>
+  <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </svg>
+  <span class="immersive-toggle-text-on">沉浸阅读</span>
+  <span class="immersive-toggle-text">退出沉浸阅读</span>
+  <kbd class="immersive-toggle-kbd">Esc</kbd>
+</button>
+<script>
+  (() => {
+    const KEY = "immersive-reading";
+    const root = document.documentElement;
+    const btn = document.querySelector(".immersive-toggle");
+    const entry = document.querySelector(".immersive-entry");
+
+    const apply = (on) => {
+      root.classList.toggle("immersive", on);
+      const label = on ? btn.dataset.labelOff : btn.dataset.labelOn;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", String(on));
+      const sideBtn = document.querySelector(".immersive-side");
+      if (sideBtn) sideBtn.title = label;
+      try {
+        localStorage.setItem(KEY, on ? "1" : "0");
+      } catch (e) {}
+    };
+
+    const nav = document.querySelector(".immersive-nav");
+    const side = document.querySelector(".immersive-side-row");
+
+    const title = document.querySelector(".immersive-title");
+
+    const placeEntry = () => {
+      const inner = document.querySelector("article.h-entry .article-inner");
+      if (inner) inner.prepend(title);
+      const date = document.querySelector(".article-meta .article-date");
+      if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
+      const sidebar = document.querySelector("#sidebar .sidebar-wrapper-container");
+      if (sidebar) {
+        sidebar.appendChild(side);
+        root.classList.add("immersive-has-side");
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", placeEntry);
+    } else {
+      placeEntry();
+    }
+
+    apply(root.classList.contains("immersive"));
+    document.querySelectorAll("[data-immersive-toggle]").forEach((el) =>
+      el.addEventListener("click", () => {
+        apply(!root.classList.contains("immersive"));
+        window.scrollTo({ top: 0 });
+      })
+    );
+    side.querySelector(".immersive-side-top").addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
+    });
+  })();
+</script>
+<article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-04 01:30:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-04</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-04</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.1-2-g83692682f（2026-10-03），commit <code>83692682f</code>。这个提交在 v1.0.1 之上只改了 CHANGELOG 和 Nix 工作流，代码与 v1.0.1 相同。文中所有行为、数字和代码均以该版本为准。</p>
+</blockquote>
+<p>前两章讲了消息怎么存进会话、怎么裁剪，本章讲每次请求前，系统提示词和上下文是怎么拼出来的。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>系统提示词是一组有名字的段</strong>：<code>buildSystemPromptSections</code> 产出 <code>preamble</code>、<code>tools</code>、<code>rules</code>、<code>docs</code>、<code>addendum</code>、<code>project_context</code>、<code>skills</code>、<code>cwd</code> 八段，扩展还可以在末尾追加自己的段。除 <code>preamble</code> 外，每段包在同名的 XML 标签里。默认提示词里没有日期、操作系统和 git 信息。</li>
+<li><strong>上下文文件全加载，技能只给索引</strong>：AGENTS.md 一类的文件从全局目录和从根到工作目录的每一层祖先收集，全文写进 <code>project_context</code>，没有大小上限，也不需要信任项目。技能只把名字、描述和文件路径写进 <code>skills</code>，模型要用时自己用 <code>read</code> 读。</li>
+<li><strong>提示词的变化写成 system 补丁</strong>：每次 prompt 和每轮开始前，pi 用当前选项重新算一遍各段，与会话里重放出的段比较，把变了的段（删除的段写 <code>null</code>）写成一条 system 消息，存进会话。</li>
+<li><strong>扩展的改写分两类</strong>：<code>input</code> 和 <code>before_agent_start</code> 的改动会写进会话；<code>context</code>、<code>context_with_system</code>、<code>before_provider_request</code> 只影响这一次请求。<code>before_agent_start</code> 返回的 <code>systemPrompt</code> 在整次运行里替换提示词全文，但不写进会话。</li>
+<li><strong>段的顺序服务于缓存</strong>：稳定的段在前，扩展的段在后。支持对话中途 system 消息的模型，提示词变化以补丁的形式排在对话后面，开头的提示词和缓存前缀保持不变。缓存预热只对带 <code>promptCache</code> 的模型生效，默认只在一次运行进行中时预热。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章只讲已发布的 <code>pi</code> 走的路径：pi-coding-agent 的 <code>AgentSession</code>、<code>system-prompt.ts</code>、资源加载和扩展运行器，以及 pi-ai 里与 system 消息、缓存相关的部分。</li>
+<li>引用前几章的结论，不再重复：
+<ul>
+<li>第三章：<code>prepareNextTurnWithContext</code>（每轮开始前的钩子）、<code>prepareRequest</code>（每次请求前的钩子）、<code>transformContext</code>（只改这一次请求的上下文）在一轮里的位置。</li>
+<li>第五章 3 节：system 消息上的 <code>sections</code>、<code>toolsAdded</code>、<code>toolsRemoved</code>，工具声明的三种发法；7.3 节的 <code>tool_search</code>。</li>
+<li>第六章 2.1 节：system 消息作为普通 <code>message</code> 条目存进会话；4.2 节：压缩条目里的检查点代替之前所有 system 消息；5.1 节：每次请求前从会话树重新投影。</li>
+<li>第七章 3.4 节：摘要请求用 <code>cacheRetention: &quot;none&quot;</code>，不触发缓存预热。</li>
+</ul>
+</li>
+<li>文中的行为都用探针实际跑过。探针用 npm 上的 1.0.1，用 <code>createAgentSession</code> 加 pi-ai 的 faux 供应商（从 <code>@earendil-works/pi-ai/compat</code> 导入 <code>registerFauxProvider</code>、<code>fauxAssistantMessage</code>），在临时目录里放几层 AGENTS.md、技能和提示词模板，把 <code>HOME</code> 也指向临时目录，记录每次发给模型的消息列表和会话文件。faux 的每个回复都用工厂函数在请求到达时才创建。faux 不触发 <code>before_provider_request</code>，所以涉及请求体的探针（P4）改用本地 mock 服务模拟 Anthropic 的流式接口。探针编号 P1–P8。</li>
+<li>术语：
+<ul>
+<li><strong>段</strong>：<code>SystemMessage.sections</code> 里的一项，键是段名，值是包好标签的文字。</li>
+<li><strong>补丁</strong>：对话中途的 system 消息，只带变了的段和工具增减。</li>
+<li><strong>强制提示词</strong>：<code>before_agent_start</code> 返回的 <code>systemPrompt</code>，请求时替换全部段。</li>
+<li><strong>基础选项 / 运行级选项</strong>：<code>_baseSystemPromptOptions</code>（由资源和激活工具算出）和 <code>_runSystemPromptOptions</code>（本次运行里扩展改过的那份）。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1--一次请求前的拼装流水线">
+<a class="header-anchor" href="#1--%e4%b8%80%e6%ac%a1%e8%af%b7%e6%b1%82%e5%89%8d%e7%9a%84%e6%8b%bc%e8%a3%85%e6%b5%81%e6%b0%b4%e7%ba%bf"></a>
+1 · 一次请求前的拼装流水线
+</h2><p><img src="/images/harness/pi/ch08/fig1-pipeline.png" alt="图 1 · 一次请求前的拼装流水线"></p>
+<p>用户输入的一段文字，到供应商收到的请求体之间要经过 12 步。第 1–7 步发生在 <code>AgentSession.prompt()</code> 和循环的第一轮里，结果写进会话；第 8–12 步在每次请求前运行，只影响这一次请求。</p>
+<table>
+	<thead>
+			<tr>
+					<th>步</th>
+					<th>发生了什么</th>
+					<th>扩展能做什么</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>01</td>
+					<td>以 <code>/</code> 开头、且名字是扩展注册的命令：直接执行，不发请求</td>
+					<td><code>pi.registerCommand</code></td>
+			</tr>
+			<tr>
+					<td>02</td>
+					<td><code>input</code> 事件，拿到展开之前的原文</td>
+					<td>改写文字和图片，或拦截</td>
+			</tr>
+			<tr>
+					<td>03</td>
+					<td><code>_expandSkillCommand</code>（展开 <code>/skill:name</code>），再 <code>expandPromptTemplate</code>（展开 <code>/模板名</code>）</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>04</td>
+					<td><code>before_agent_start</code> 事件，拿到展开后的文字和一份提示词选项</td>
+					<td>改选项；追加一条 custom 消息；强制替换提示词</td>
+			</tr>
+			<tr>
+					<td>05</td>
+					<td>组装新消息：user 消息、排队的 nextTurn 消息、扩展的 custom 消息</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>06</td>
+					<td><code>_preparePromptAndToolLoadout</code>（按选项设好工具，算出提示词补丁）</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>07</td>
+					<td>循环的 <code>declareToolChanges</code>（把工具增减写到同一条 system 消息上），随后 <code>message_end</code> 把这些消息写进会话</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>08</td>
+					<td><code>prepareRequest</code>：从会话树投影出这次请求的消息</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>09</td>
+					<td><code>transformContext</code>：<code>context</code> → <code>context_with_system</code> → 去掉隐藏的工具声明 → 套用强制提示词</td>
+					<td>改这次请求的消息</td>
+			</tr>
+			<tr>
+					<td>10</td>
+					<td><code>convertToLlm</code>（自定义消息转成 user），<code>streamFn</code> 带上 <code>sessionId</code> 并登记缓存预热</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>11</td>
+					<td>协议实现把 system 补丁渲染进对话或合并回开头，打缓存断点</td>
+					<td><code>before_provider_request</code> 改请求体</td>
+			</tr>
+			<tr>
+					<td>12</td>
+					<td>发出 HTTP 请求</td>
+					<td><code>before_provider_headers</code> 改请求头</td>
+			</tr>
+	</tbody>
+</table>
+<p>同一次运行里，模型回复、工具执行完之后的每一轮，由 <code>prepareNextTurnWithContext</code> 重新算一次选项，回到第 06 步：有变化就再写一条补丁，然后照常走 08–12。</p>
+<p>后面几节按这个顺序展开：第 2 节讲第 06 步算出的那组段，第 3 节讲段里的上下文文件和技能从哪来、第 03 步怎么展开，第 4 节讲补丁，第 5 节讲第 02、04、09、11 步的扩展事件，第 6 节讲第 10、11 步与缓存的关系。</p>
+<hr>
+<h2 id="2--系统提示词怎么拼">
+<a class="header-anchor" href="#2--%e7%b3%bb%e7%bb%9f%e6%8f%90%e7%a4%ba%e8%af%8d%e6%80%8e%e4%b9%88%e6%8b%bc"></a>
+2 · 系统提示词怎么拼
+</h2><p><img src="/images/harness/pi/ch08/fig2-sections.png" alt="图 2 · 系统提示词由哪些段组成"></p>
+<h3 id="21-输入buildsystempromptoptions">
+<a class="header-anchor" href="#21-%e8%be%93%e5%85%a5buildsystempromptoptions"></a>
+2.1 输入：BuildSystemPromptOptions
+</h3><p>拼提示词的函数都在 <code>core/system-prompt.ts</code>（216 行），输入是一个选项对象 <code>BuildSystemPromptOptions</code>：</p>
+<ul>
+<li><code>cwd</code>（工作目录，唯一的必填项）</li>
+<li><code>customPrompt</code>（自定义提示词，替换默认的开头）</li>
+<li><code>appendSystemPrompt</code>（追加的文字）</li>
+<li><code>contextFiles</code>（已读好的上下文文件，<code>{ path, content }</code> 数组）</li>
+<li><code>skills</code>（已加载的技能）</li>
+<li><code>selectedTools</code>（要写进提示词的工具名，默认 <code>[&quot;read&quot;, &quot;bash&quot;, &quot;edit&quot;, &quot;write&quot;]</code>）</li>
+<li><code>toolSnippets</code>（工具名 → 一行说明）</li>
+<li><code>toolGuidelines</code>（工具名 → 守则列表）</li>
+<li><code>promptGuidelines</code>（额外的守则）</li>
+<li><code>sections</code>（额外的段，段名 → 文字）</li>
+<li><code>forceSystemPrompt</code>（强制提示词）</li>
+</ul>
+<p><code>normalizeBuildSystemPromptOptions</code>（补齐默认值，并把每个数组和对象复制一份）把它变成字段齐全的 <code>NormalizedBuildSystemPromptOptions</code>。扩展在 <code>before_agent_start</code> 里拿到、直接修改的就是这个对象。</p>
+<p><code>AgentSession</code> 的 <code>_rebuildSystemPrompt</code>（算出基础选项）负责填这些字段，它只算选项，不渲染提示词：</p>
+<ul>
+<li><code>customPrompt</code>、<code>appendSystemPrompt</code>、<code>contextFiles</code>、<code>skills</code> 来自资源加载器（第 3 节）</li>
+<li><code>selectedTools</code> 是当前激活的工具</li>
+<li><code>toolSnippets</code> 和 <code>toolGuidelines</code> 来自每个工具定义的 <code>promptSnippet</code>、<code>promptGuidelines</code>；没有 <code>promptSnippet</code> 的工具、以及被 <code>prepareLoadout</code> 隐藏声明的工具不进列表</li>
+<li><code>promptGuidelines</code>、<code>sections</code>、<code>forceSystemPrompt</code> 留空，只有扩展会填</li>
+</ul>
+<p>它在这些时候运行：会话创建时、激活的工具变了（<code>setActiveToolsByName</code>、恢复会话时从记录里还原工具）、扩展在运行中注册了新工具、<code>/reload</code> 重建运行时之后、扩展通过 <code>resources_discover</code> 补充了技能或模板路径之后。</p>
+<h3 id="22-八个段">
+<a class="header-anchor" href="#22-%e5%85%ab%e4%b8%aa%e6%ae%b5"></a>
+2.2 八个段
+</h3><p><code>buildSystemPromptSections</code> 按固定顺序产出这些段：</p>
+<table>
+	<thead>
+			<tr>
+					<th>段</th>
+					<th>内容</th>
+					<th>什么时候有</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>preamble</code></td>
+					<td>默认是一句身份说明；有自定义提示词时就是那段文字</td>
+					<td>总有</td>
+			</tr>
+			<tr>
+					<td><code>tools</code></td>
+					<td>每个带说明的激活工具一行 <code>- 名字: 说明</code>，末尾一句固定的话</td>
+					<td>没有自定义提示词时</td>
+			</tr>
+			<tr>
+					<td><code>rules</code></td>
+					<td>一条按工具组合决定的文件操作建议、各工具的守则、扩展加的守则、两条固定守则</td>
+					<td>没有自定义提示词时</td>
+			</tr>
+			<tr>
+					<td><code>docs</code></td>
+					<td>pi 自带的 README、docs、examples 的绝对路径和阅读指引</td>
+					<td>没有自定义提示词时</td>
+			</tr>
+			<tr>
+					<td><code>addendum</code></td>
+					<td><code>APPEND_SYSTEM.md</code> 或 <code>--append-system-prompt</code> 的文字</td>
+					<td>有追加文字时</td>
+			</tr>
+			<tr>
+					<td><code>project_context</code></td>
+					<td>所有上下文文件的全文</td>
+					<td>有上下文文件时</td>
+			</tr>
+			<tr>
+					<td><code>skills</code></td>
+					<td>技能索引</td>
+					<td>有可由模型调用的技能，且 <code>read</code> 或 <code>bash</code> 处于激活状态</td>
+			</tr>
+			<tr>
+					<td><code>cwd</code></td>
+					<td>工作目录的绝对路径，反斜杠换成 <code>/</code></td>
+					<td>总有</td>
+			</tr>
+	</tbody>
+</table>
+<p>扩展通过 <code>sections</code> 加的段排在这八段之后。段名必须匹配 <code>^[a-z][a-z0-9_-]*$</code> 且不能是 <code>preamble</code>，否则直接抛错；值为空字符串的段被跳过。和内置段同名时，内容被替换，位置不变。</p>
+<p>除 <code>preamble</code> 外，每段包在同名标签里，例如 <code>&lt;cwd&gt;\n…\n&lt;/cwd&gt;</code>。源码注释说明了用意：模型可以按名字把后来的更新对应到这一段上。pi-ai 的 <code>getSystemMessageText</code>（把 system 消息渲染成文字）按顺序把各段用空行连起来，<code>buildSystemPrompt</code> 返回的字符串就是这样渲染出来的。</p>
+<p>探针 P1 在默认设置下的第一条 system 消息（<code>&lt;T&gt;</code> 是临时目录）。<code>preamble</code> 原文：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">You are an expert coding assistant operating inside pi, a coding agent harness. You help users by reading files, executing commands, editing code, and writing new files.
+</span></span></code></pre></div><p><code>tools</code> 和 <code>rules</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&lt;tools&gt;
+</span></span><span class="line"><span class="cl">- read: Read file contents
+</span></span><span class="line"><span class="cl">- bash: Execute bash commands (ls, grep, find, etc.)
+</span></span><span class="line"><span class="cl">- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call
+</span></span><span class="line"><span class="cl">- write: Create or overwrite files
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">In addition to the tools above, you may have access to other custom tools depending on the project.
+</span></span><span class="line"><span class="cl">&lt;/tools&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;rules&gt;
+</span></span><span class="line"><span class="cl">- Use bash for file operations like ls, rg, find
+</span></span><span class="line"><span class="cl">- Use read to examine files instead of cat or sed.
+</span></span><span class="line"><span class="cl">- You can inspect PI_* environment variables for current model and session details.
+</span></span><span class="line"><span class="cl">- Use edit for precise changes (edits[].oldText must match exactly)
+</span></span><span class="line"><span class="cl">- When changing multiple separate locations in one file, use one edit call with multiple entries in edits[] instead of multiple edit calls
+</span></span><span class="line"><span class="cl">- Each edits[].oldText is matched against the original file, not after earlier edits are applied. Do not emit overlapping or nested edits. Merge nearby changes into one edit.
+</span></span><span class="line"><span class="cl">- Keep edits[].oldText as small as possible while still being unique in the file. Do not pad with large unchanged regions.
+</span></span><span class="line"><span class="cl">- Use write only for new files or complete rewrites.
+</span></span><span class="line"><span class="cl">- Be concise in your responses
+</span></span><span class="line"><span class="cl">- Show file paths clearly when working with files
+</span></span><span class="line"><span class="cl">&lt;/rules&gt;
+</span></span></code></pre></div><p><code>rules</code> 的组成：</p>
+<ul>
+<li>第一条只在激活了 <code>bash</code> 或 <code>powershell</code>、而 <code>grep</code>、<code>find</code>、<code>ls</code> 一个都没激活时出现，让模型用 shell 做文件操作。三种工具组合各有一句。</li>
+<li>接着按工具顺序放各工具的 <code>promptGuidelines</code>。<code>PI_*</code> 环境变量那条来自 <code>bash</code>。</li>
+<li>然后是扩展加的 <code>promptGuidelines</code>。</li>
+<li>最后两条固定不变。</li>
+<li>所有条目去掉首尾空白后去重。</li>
+</ul>
+<p><code>docs</code> 段开头一句是 <code>Pi documentation (read only when the user asks about pi itself, its SDK, extensions, themes, skills, or TUI):</code>，后面列出 npm 包里 README、docs、examples 的绝对路径，以及&quot;问到扩展就读 docs/extensions.md&quot;这类主题对照表。它让模型在被问到 pi 本身时能找到文档，平时不必读。</p>
+<p>默认设置、4 个默认工具、没有上下文文件和技能时，整段提示词渲染出来是 371 个英文词、约 2800 个字符（P1 的环境是 2803 个），字符数随 <code>docs</code> 和 <code>cwd</code> 里路径的长度变化。</p>
+<h3 id="23-自定义提示词和追加文字">
+<a class="header-anchor" href="#23-%e8%87%aa%e5%ae%9a%e4%b9%89%e6%8f%90%e7%a4%ba%e8%af%8d%e5%92%8c%e8%bf%bd%e5%8a%a0%e6%96%87%e5%ad%97"></a>
+2.3 自定义提示词和追加文字
+</h3><p>整段换掉开头有三种来源，前一种存在时后面的不看：</p>
+<ol>
+<li>命令行 <code>--system-prompt &lt;文字或文件路径&gt;</code></li>
+<li><code>&lt;cwd&gt;/.pi/SYSTEM.md</code>（项目被信任时）</li>
+<li><code>~/.pi/agent/SYSTEM.md</code></li>
+</ol>
+<p><code>resolvePromptInput</code>（解析提示词参数）的规则是：参数是一个存在的文件路径就读文件，否则把参数本身当作文字。</p>
+<p>追加文字的来源是 <code>--append-system-prompt</code>（可以写多次），没有这个参数时用 <code>&lt;cwd&gt;/.pi/APPEND_SYSTEM.md</code>（需信任）或 <code>~/.pi/agent/APPEND_SYSTEM.md</code>，只取找到的第一个。多段追加文字用空行连接，进 <code>addendum</code> 段。</p>
+<p>探针 P6 用同一组文件（全局和项目各一份 <code>SYSTEM.md</code>、<code>APPEND_SYSTEM.md</code>，工作目录里一份 <code>AGENTS.md</code>，一个技能）跑了几种组合，只看第一条 system 消息：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">默认（项目已信任）      sections=[preamble,addendum,project_context,skills,cwd]  preamble=&#34;PROJECT SYSTEM.md persona&#34;  addendum=&#34;project append&#34;
+</span></span><span class="line"><span class="cl">项目未信任              同上                                                    preamble=&#34;GLOBAL SYSTEM.md persona&#34;   addendum=&#34;global append&#34;
+</span></span><span class="line"><span class="cl">--system-prompt 文字    同上                                                    preamble=&#34;You are a terse reviewer.&#34;
+</span></span><span class="line"><span class="cl">--system-prompt 文件    同上                                                    preamble=&#34;persona from a file path\n&#34;
+</span></span><span class="line"><span class="cl">--append-system-prompt ×2                                                       addendum=&#34;first append\n\nsecond append&#34;
+</span></span><span class="line"><span class="cl">--no-context-files      sections=[preamble,addendum,skills,cwd]
+</span></span><span class="line"><span class="cl">--no-skills             sections=[preamble,addendum,project_context,cwd]
+</span></span><span class="line"><span class="cl">--tools ls              sections=[preamble,addendum,project_context,cwd]        ← 没有 read 和 bash，技能段也没了
+</span></span></code></pre></div><p>自定义提示词只替换 <code>preamble</code>，同时去掉 <code>tools</code>、<code>rules</code>、<code>docs</code> 三段；上下文文件、技能、工作目录照常保留。所以写 <code>SYSTEM.md</code> 时，工具清单和守则要自己写；工具和扩展提供的 <code>promptGuidelines</code> 只进 <code>rules</code>，有自定义提示词时都不会出现。</p>
+<p>第四种来源是扩展的强制提示词，它替换的是全部段，第 4.4 节讲。</p>
+<hr>
+<h2 id="3--上下文文件技能与提示词模板">
+<a class="header-anchor" href="#3--%e4%b8%8a%e4%b8%8b%e6%96%87%e6%96%87%e4%bb%b6%e6%8a%80%e8%83%bd%e4%b8%8e%e6%8f%90%e7%a4%ba%e8%af%8d%e6%a8%a1%e6%9d%bf"></a>
+3 · 上下文文件、技能与提示词模板
+</h2><p><img src="/images/harness/pi/ch08/fig3-discovery.png" alt="图 3 · 上下文文件与技能的发现顺序"></p>
+<h3 id="31-上下文文件全文进-project_context">
+<a class="header-anchor" href="#31-%e4%b8%8a%e4%b8%8b%e6%96%87%e6%96%87%e4%bb%b6%e5%85%a8%e6%96%87%e8%bf%9b-project_context"></a>
+3.1 上下文文件：全文进 project_context
+</h3><p><code>loadProjectContextFiles</code>（收集上下文文件）在每个目录里依次找这 5 个文件名，只取第一个存在的：</p>
+<p><code>AGENTS.override.md</code> → <code>AGENTS.md</code> → <code>AGENTS.MD</code> → <code>CLAUDE.md</code> → <code>CLAUDE.MD</code></p>
+<p>目录的顺序：</p>
+<ol>
+<li>全局目录 <code>~/.pi/agent/</code></li>
+<li>从文件系统根一层层往下，直到工作目录。不在 git 根停下，工作目录的每一层祖先都看。</li>
+</ol>
+<p>同一个路径只取一次。在嵌套于主仓库内部的 git worktree 里，worktree 根目录有自己的上下文文件时，主仓库根目录的同名文件被跳过，避免同一份约定加载两次。</p>
+<p>探针 P1 的目录树和结果：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&lt;T&gt;/agent/AGENTS.md                  global: answer in English
+</span></span><span class="line"><span class="cl">&lt;T&gt;/agent/CLAUDE.md                  （同目录有 AGENTS.md，不取）
+</span></span><span class="line"><span class="cl">&lt;T&gt;/ws/CLAUDE.md                     ws: uses pnpm
+</span></span><span class="line"><span class="cl">&lt;T&gt;/ws/proj/AGENTS.md                （同目录有 AGENTS.override.md，不取）
+</span></span><span class="line"><span class="cl">&lt;T&gt;/ws/proj/AGENTS.override.md       proj: override wins
+</span></span><span class="line"><span class="cl">&lt;T&gt;/ws/proj/app/CLAUDE.md            app: tests live in test/      ← 工作目录
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">context files: [&lt;T&gt;/agent/AGENTS.md, &lt;T&gt;/ws/CLAUDE.md, &lt;T&gt;/ws/proj/AGENTS.override.md, &lt;T&gt;/ws/proj/app/CLAUDE.md]
+</span></span></code></pre></div><p>它们按这个顺序写进 <code>project_context</code> 段，原样放入全文：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&lt;project_context&gt;
+</span></span><span class="line"><span class="cl">Project-specific instructions and guidelines:
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;project_instructions path=&#34;&lt;T&gt;/agent/AGENTS.md&#34;&gt;
+</span></span><span class="line"><span class="cl">global: answer in English
+</span></span><span class="line"><span class="cl">&lt;/project_instructions&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;project_instructions path=&#34;&lt;T&gt;/ws/CLAUDE.md&#34;&gt;
+</span></span><span class="line"><span class="cl">ws: uses pnpm
+</span></span><span class="line"><span class="cl">&lt;/project_instructions&gt;
+</span></span><span class="line"><span class="cl">…
+</span></span><span class="line"><span class="cl">&lt;/project_context&gt;
+</span></span></code></pre></div><p>几个容易忽略的地方：</p>
+<ul>
+<li><strong>没有大小上限</strong>：文件多大就放多大，源码里没有截断。</li>
+<li><strong>不受项目信任控制</strong>：P1 把项目设成未信任再跑，4 个文件照样全部加载。需要信任的只有 <code>.pi/</code> 下的 <code>SYSTEM.md</code>、<code>APPEND_SYSTEM.md</code>、技能、模板、扩展这一类资源。</li>
+<li><strong>只在加载资源时读</strong>：探针 P7 在两次 prompt 之间把 <code>AGENTS.md</code> 从 <code>v1: use npm</code> 改成 <code>v2: use pnpm</code>，第二次请求里还是 v1；调用 <code>session.reload()</code>（交互界面里是 <code>/reload</code>）之后，下一次 prompt 前写进会话的是一条只含 <code>project_context</code> 段的补丁，内容是 v2。</li>
+<li><strong><code>--no-context-files</code></strong>（SDK 里是 <code>noContextFiles: true</code>）：整段 <code>project_context</code> 都没有，全局的 <code>AGENTS.md</code> 也不加载。<code>SYSTEM.md</code>、技能不受影响。</li>
+</ul>
+<h3 id="32-技能发现顺序">
+<a class="header-anchor" href="#32-%e6%8a%80%e8%83%bd%e5%8f%91%e7%8e%b0%e9%a1%ba%e5%ba%8f"></a>
+3.2 技能：发现顺序
+</h3><p>技能的候选路径由包管理器 <code>PackageManager.resolve</code> 收集，再按 <code>resourcePrecedenceRank</code>（资源优先级）排序，排名小的在前：</p>
+<table>
+	<thead>
+			<tr>
+					<th>排名</th>
+					<th>来源</th>
+					<th>需要信任项目</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>0</td>
+					<td>项目 <code>settings.json</code> 里 <code>skills</code> 列出的路径</td>
+					<td>是</td>
+			</tr>
+			<tr>
+					<td>1</td>
+					<td><code>&lt;cwd&gt;/.pi/skills</code>；从工作目录往上每层的 <code>.agents/skills</code>（有 git 仓库时到 git 根为止，没有时一直到文件系统根）</td>
+					<td>是</td>
+			</tr>
+			<tr>
+					<td>2</td>
+					<td>用户 <code>settings.json</code> 里 <code>skills</code> 列出的路径</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>3</td>
+					<td><code>~/.pi/agent/skills</code>、<code>~/.agents/skills</code></td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>4</td>
+					<td>pi 包提供的技能</td>
+					<td>项目 settings 里列的包需信任，用户 settings 里的不需要</td>
+			</tr>
+	</tbody>
+</table>
+<p>命令行 <code>--skill &lt;路径&gt;</code> 和扩展在 <code>resources_discover</code> 事件里返回的路径追加在最后。<code>--no-skills</code> 关掉上表的来源，但命令行显式给出的技能照样加载：<code>--skill</code> 的路径，以及命令行 <code>-e</code> 指定的扩展包带的技能（P6 里 <code>--no-skills --skill &lt;dir&gt;</code> 的技能段只有那一个技能）。</p>
+<p>目录里怎样算一个技能：</p>
+<ul>
+<li>含 <code>SKILL.md</code> 的目录就是一个技能，不再往下找。</li>
+<li><code>.pi/skills</code> 这类目录：顶层的 <code>.md</code> 文件也各算一个技能，子目录里只认 <code>SKILL.md</code>。<code>.agents/skills</code>：顶层的 <code>.md</code> 不算，子目录里任何带描述的 <code>.md</code> 都算。</li>
+<li>frontmatter 只读 <code>name</code>、<code>description</code>、<code>disable-model-invocation</code> 三个字段。<code>name</code> 缺省时用文件所在目录的名字（顶层 <code>.md</code> 文件就会叫 <code>skills</code>，两个这样的文件会重名）。</li>
+<li>名字超过 64 个字符、含小写字母数字和连字符以外的字符、描述超过 1024 个字符，名字以连字符开头或结尾、含连续连字符，都只给警告，技能照样加载。被跳过的是：缺少 <code>description</code> 的、frontmatter 解析失败或文件读不出来的，以及通过符号链接重复指向同一个文件的。</li>
+<li>同名技能先到先得，后来的记一条 <code>name &quot;…&quot; collision</code> 诊断。</li>
+</ul>
+<p>探针 P1 在工作目录、它的 git 根、git 根的上一层、<code>~/.pi/agent/skills</code>、<code>~/.agents/skills</code> 各放了一个技能：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">项目已信任：proj-skill（.pi/skills）、team（git 根的 .agents/skills）、release、secret（~/.pi/agent/skills）、home-skill（~/.agents/skills）
+</span></span><span class="line"><span class="cl">项目未信任：release、secret、home-skill
+</span></span></code></pre></div><p>P1 的 <code>ws/proj</code> 是 git 仓库，所以它上一层的 <code>above-git</code> 两种情况下都没有加载。<code>~/.agents/skills</code> 在未信任时照样加载。</p>
+<h3 id="33-技能怎样声明给模型只给索引">
+<a class="header-anchor" href="#33-%e6%8a%80%e8%83%bd%e6%80%8e%e6%a0%b7%e5%a3%b0%e6%98%8e%e7%bb%99%e6%a8%a1%e5%9e%8b%e5%8f%aa%e7%bb%99%e7%b4%a2%e5%bc%95"></a>
+3.3 技能怎样声明给模型：只给索引
+</h3><p><code>formatSkillsForPrompt</code>（把技能列表格式化成提示词）只写每个技能的名字、描述和文件路径。P1 的 <code>skills</code> 段（截取）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&lt;skills&gt;
+</span></span><span class="line"><span class="cl">The following skills provide specialized instructions for specific tasks.
+</span></span><span class="line"><span class="cl">Use the read tool to load a skill&#39;s file when the task matches its description.
+</span></span><span class="line"><span class="cl">When a skill file references a relative path, resolve it against the skill directory (parent of SKILL.md / dirname of the path) and use that absolute path in tool commands.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;available_skills&gt;
+</span></span><span class="line"><span class="cl">  &lt;skill&gt;
+</span></span><span class="line"><span class="cl">    &lt;name&gt;release&lt;/name&gt;
+</span></span><span class="line"><span class="cl">    &lt;description&gt;Cut a release of this repo&lt;/description&gt;
+</span></span><span class="line"><span class="cl">    &lt;location&gt;&lt;T&gt;/agent/skills/release/SKILL.md&lt;/location&gt;
+</span></span><span class="line"><span class="cl">  &lt;/skill&gt;
+</span></span><span class="line"><span class="cl">  …
+</span></span><span class="line"><span class="cl">&lt;/available_skills&gt;
+</span></span><span class="line"><span class="cl">&lt;/skills&gt;
+</span></span></code></pre></div><ul>
+<li>技能正文不进提示词。模型判断任务和描述相符时，用工具读 <code>location</code> 指向的文件，读到的内容作为工具结果进入对话。</li>
+<li>所以技能段要求能读文件的工具：<code>read</code> 激活时第二句写 &ldquo;Use the read tool…&quot;；只有 <code>bash</code> 时改成 &ldquo;Use bash to load a skill&rsquo;s file…&quot;；两者都没有，整段不出现。</li>
+<li>设了 <code>disable-model-invocation: true</code> 的技能不进索引（P1 的 <code>secret</code>），只能由用户用 <code>/skill:secret</code> 调用。</li>
+<li>描述里的 <code>&amp;</code>、<code>&lt;</code>、<code>'</code> 等字符做了 XML 转义。</li>
+</ul>
+<p>这和第五章的 <code>tool_search</code> 是同一个思路：平时只放一份目录，用到时再加载。两者的代码没有关系。<code>tool_search</code> 加载的是工具声明，写进 system 消息的 <code>toolsAdded</code>；技能加载靠模型调用 <code>read</code>，内容是一条普通的工具结果。技能也不会被 <code>tool_search</code> 搜到。</p>
+<h3 id="34-skillname-和-模板发送前展开">
+<a class="header-anchor" href="#34-skillname-%e5%92%8c-%e6%a8%a1%e6%9d%bf%e5%8f%91%e9%80%81%e5%89%8d%e5%b1%95%e5%bc%80"></a>
+3.4 /skill:name 和 /模板：发送前展开
+</h3><p>第 03 步先展开技能命令，再展开模板，两者都在 <code>input</code> 事件之后。</p>
+<p><strong><code>/skill:name 参数</code></strong>：</p>
+<ul>
+<li>按名字在已加载的技能里找，找不到就原样发出。</li>
+<li>读 <code>SKILL.md</code>，去掉 frontmatter，包成一个 <code>&lt;skill&gt;</code> 块。</li>
+<li>参数不做替换，空一行接在块后面。</li>
+<li><code>disable-model-invocation</code> 不影响这个命令。</li>
+</ul>
+<p>P1 发送 <code>/skill:secret ship it now</code>，模型收到的 user 消息是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&lt;skill name=&#34;secret&#34; location=&#34;&lt;T&gt;/agent/skills/secret/SKILL.md&#34;&gt;
+</span></span><span class="line"><span class="cl">References are relative to &lt;T&gt;/agent/skills/secret.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Only via /skill:secret
+</span></span><span class="line"><span class="cl">&lt;/skill&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">ship it now
+</span></span></code></pre></div><p><strong>提示词模板</strong>：</p>
+<ul>
+<li>来自 <code>&lt;cwd&gt;/.pi/prompts</code>（需信任）、<code>~/.pi/agent/prompts</code>、settings 和 pi 包，只看目录顶层的 <code>.md</code> 文件。</li>
+<li>文件名就是命令名。</li>
+<li>frontmatter 有 <code>description</code>（缺省时取正文第一个非空行，超过 60 个字符就截断并加 <code>...</code>）和 <code>argument-hint</code>。</li>
+<li>参数按 shell 的引号规则切分，模板里可以用：
+<ul>
+<li><code>$1</code>、<code>$2</code>…（第几个参数）</li>
+<li><code>$@</code> 或 <code>$ARGUMENTS</code>（全部参数）</li>
+<li><code>${2:-默认值}</code>（缺省值）</li>
+<li><code>${@:2}</code> 和 <code>${@:2:1}</code>（从第几个参数开始取几个）</li>
+</ul>
+</li>
+</ul>
+<p>P1 的模板 <code>review.md</code> 是 <code>Review $1 with focus on ${2:-correctness}. All args: $@</code>。发送 <code>/review &quot;src/a b.ts&quot; perf extra</code>，得到：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Review src/a b.ts with focus on perf. All args: src/a b.ts perf extra
+</span></span></code></pre></div><p>几点规则：</p>
+<ul>
+<li>会话里存的是展开后的文字，不是 <code>/review …</code>。</li>
+<li>名字没有对应的模板时原样发出（P3 的 <code>/missing-template arg</code> 就是这样进了对话）。</li>
+<li>扩展命令优先于技能和模板。</li>
+<li>RPC 和 print 模式同样调用 <code>session.prompt()</code>，所以也会展开。</li>
+<li>扩展的 <code>pi.sendUserMessage</code> 默认不展开。</li>
+</ul>
+<hr>
+<h2 id="4--提示词怎么变system-补丁">
+<a class="header-anchor" href="#4--%e6%8f%90%e7%a4%ba%e8%af%8d%e6%80%8e%e4%b9%88%e5%8f%98system-%e8%a1%a5%e4%b8%81"></a>
+4 · 提示词怎么变：system 补丁
+</h2><p><img src="/images/harness/pi/ch08/fig4-patches.png" alt="图 4 · 提示词变化怎样落成 system 补丁"></p>
+<h3 id="41-两个时机">
+<a class="header-anchor" href="#41-%e4%b8%a4%e4%b8%aa%e6%97%b6%e6%9c%ba"></a>
+4.1 两个时机
+</h3><p>提示词在两个地方重新计算，都调用 <code>_preparePromptAndToolLoadout</code>：</p>
+<ol>
+<li><strong>每次 prompt</strong>：<code>before_agent_start</code> 处理完之后，用它改过的选项计算。这份选项存为运行级选项 <code>_runSystemPromptOptions</code>，补丁插在本次新消息的最前面。</li>
+<li><strong>同一次运行的后续每一轮</strong>：<code>AgentSession</code> 包在 <code>prepareNextTurnWithContext</code> 外面的那层，取运行级选项，把 <code>selectedTools</code> 换成当前激活的工具，再算一次，补丁作为这一轮的新消息交给循环。</li>
+</ol>
+<p><code>_preparePromptAndToolLoadout</code> 做三件事：</p>
+<ul>
+<li>按 <code>selectedTools</code> 设好可执行的工具，这一步会运行各工具的 <code>prepareLoadout</code>（第五章）。</li>
+<li>从工具说明里去掉被隐藏声明的工具。</li>
+<li>用 <code>buildSystemPromptSections</code> 算出目标段，再与会话里重放出的当前段比较。</li>
+</ul>
+<p>比较用 <code>diffSystemPromptSections</code>（逐段比较）：内容变了的段写进补丁，当前有、目标里没有的段写 <code>null</code>，什么都没变就不产生补丁。补丁是 <code>{ role: &quot;system&quot;, content: &quot;&quot;, sections: {…} }</code>，随后由循环的 <code>declareToolChanges</code> 把工具增减也写到这条消息上。所以一条 system 消息可以同时带段的变化和工具的变化。</p>
+<p>第一次 prompt 时会话里还没有任何段，比较的对象是空集，补丁就是完整的提示词。第六章探针里&quot;第一条 system 消息带全部段和 <code>toolsAdded</code>&ldquo;就是这样来的。</p>
+<p>运行结束时（<code>_runAgentPrompt</code> 的 <code>finally</code>）运行级选项被清空。下一次 prompt 又从基础选项开始，<code>before_agent_start</code> 要重新加一遍。扩展这次没有加的段，会被补丁以 <code>null</code> 删除。</p>
+<h3 id="42-探针-p2三条补丁">
+<a class="header-anchor" href="#42-%e6%8e%a2%e9%92%88-p2%e4%b8%89%e6%9d%a1%e8%a1%a5%e4%b8%81"></a>
+4.2 探针 P2：三条补丁
+</h3><p>P2 的扩展做了三件事：</p>
+<ul>
+<li>注册一个带 <code>promptSnippet</code> 的工具 <code>enable_grep</code>，执行时调用 <code>pi.setActiveTools([...当前, &quot;grep&quot;])</code>。</li>
+<li>在 <code>before_agent_start</code> 里，prompt 含 <code>#ticket</code> 时加一个 <code>ticket</code> 段和一条守则，并返回一条 custom 消息。</li>
+<li>prompt 含 <code>#force</code> 时返回 <code>systemPrompt</code>。</li>
+</ul>
+<p>依次发送 <code>first #ticket</code>（模型先调 <code>enable_grep</code> 再回答）、<code>second plain</code>、<code>third #force</code>、<code>fourth plain</code>。会话文件：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">message system sections={preamble,tools,rules,docs,cwd,ticket} toolsAdded=[read,bash,edit,write,enable_grep]
+</span></span><span class="line"><span class="cl">message user(&#34;first #ticket&#34;)
+</span></span><span class="line"><span class="cl">custom_message ticket-note &#34;Loaded ticket PI-42&#34;
+</span></span><span class="line"><span class="cl">message assistant(&#34;enable_grep({})&#34;)
+</span></span><span class="line"><span class="cl">message toolResult(&#34;grep enabled&#34;)
+</span></span><span class="line"><span class="cl">message system sections={tools,rules} toolsAdded=[grep]
+</span></span><span class="line"><span class="cl">message assistant(&#34;done 1&#34;)
+</span></span><span class="line"><span class="cl">message system sections={rules,ticket:null}
+</span></span><span class="line"><span class="cl">message user(&#34;second plain&#34;)
+</span></span><span class="line"><span class="cl">message assistant(&#34;done 2&#34;)
+</span></span><span class="line"><span class="cl">message user(&#34;third #force&#34;)
+</span></span><span class="line"><span class="cl">message assistant(&#34;done 3&#34;)
+</span></span><span class="line"><span class="cl">message user(&#34;fourth plain&#34;)
+</span></span><span class="line"><span class="cl">message assistant(&#34;done 4&#34;)
+</span></span></code></pre></div><ul>
+<li><strong>第二条 system</strong>：工具执行时改了激活集合，下一轮开始前重算。<code>tools</code> 段多了一行 <code>- grep: Search file contents for patterns (respects .gitignore)</code>；<code>rules</code> 段少了 <code>Use bash for file operations like ls, rg, find</code>，因为现在有了 <code>grep</code>。这条补丁和 <code>toolsAdded=[grep]</code> 在同一条消息上。</li>
+<li><strong>第三条 system</strong>：第二次 prompt 时运行级选项已清空，扩展没加 <code>ticket</code>，于是 <code>ticket: null</code>；它加的守则也没了，<code>rules</code> 跟着变。</li>
+<li><strong>第三、四次 prompt 之间没有补丁</strong>：强制提示词不改变结构化的段，见 4.4 节。</li>
+</ul>
+<h3 id="43-补丁写进会话">
+<a class="header-anchor" href="#43-%e8%a1%a5%e4%b8%81%e5%86%99%e8%bf%9b%e4%bc%9a%e8%af%9d"></a>
+4.3 补丁写进会话
+</h3><p>补丁和其他新消息一样，在循环发出 <code>message_end</code> 时由 <code>AgentSession</code> 写进会话文件，时间早于这次请求发出。之后它就是会话树上的普通节点：</p>
+<ul>
+<li>投影时按顺序参与重放（第六章）。</li>
+<li>压缩时被检查点代替（第六、七章）。</li>
+<li>在 <code>/tree</code> 上切到别的分支时，那条分支上没有这条补丁，提示词自然回到那条分支的样子。</li>
+</ul>
+<p><code>session.systemPrompt</code> 和扩展的 <code>ctx.getSystemPrompt()</code> 返回的是&quot;当前生效的提示词&rdquo;：运行中用运行级选项渲染，运行结束后用基础选项渲染。P2 在第一次运行结束后读 <code>session.systemPrompt</code>，里面已经没有 <code>&lt;ticket&gt;</code>，而会话里最后一次写进去的段仍然包含它，要等下一次 prompt 的补丁才删掉。</p>
+<h3 id="44-强制提示词替换请求不写会话">
+<a class="header-anchor" href="#44-%e5%bc%ba%e5%88%b6%e6%8f%90%e7%a4%ba%e8%af%8d%e6%9b%bf%e6%8d%a2%e8%af%b7%e6%b1%82%e4%b8%8d%e5%86%99%e4%bc%9a%e8%af%9d"></a>
+4.4 强制提示词：替换请求，不写会话
+</h3><p><code>before_agent_start</code> 返回 <code>{ systemPrompt }</code> 时，<code>emitBeforeAgentStart</code> 把它记在选项的 <code>forceSystemPrompt</code> 上。<code>buildSystemPromptState</code> 遇到它就只返回这段文字，不带段。它的效果：</p>
+<ul>
+<li><strong>会话里不记</strong>：补丁仍按结构化的段计算，所以 P2 的第三次 prompt 没有写任何 system 消息。</li>
+<li><strong>请求里替换</strong>：<code>_installAgentForcedPromptProjection</code> 装在 <code>transformContext</code> 的最外层，把所有 system 消息合并成一条开头的 system 消息，内容是强制文字，工具取当前的完整集合。</li>
+<li><strong>整次运行有效</strong>：探针 P2b 让强制提示词所在的运行调用一次工具，两次请求的开头都是 <code>FORCED PROMPT</code>；下一次 prompt 恢复成结构化的段。类型注释里写的是 &ldquo;for this turn&rdquo;，实际生效范围是整次运行，因为运行级选项要到运行结束才清空。</li>
+<li><strong><code>context_with_system</code> 看不到它</strong>：P2b 里三次 <code>context_with_system</code> 拿到的开头都是 <code>sections=[preamble,tools,rules,docs,cwd]</code>，强制文字在它们之后才套上。</li>
+</ul>
+<p>同一次 prompt 里有多个扩展返回 <code>systemPrompt</code> 时，后面的覆盖前面的；后面的处理函数从 <code>event.systemPrompt</code> 读到的就是前面那段强制文字。</p>
+<hr>
+<h2 id="5--请求前的改写链">
+<a class="header-anchor" href="#5--%e8%af%b7%e6%b1%82%e5%89%8d%e7%9a%84%e6%94%b9%e5%86%99%e9%93%be"></a>
+5 · 请求前的改写链
+</h2><p><img src="/images/harness/pi/ch08/fig5-chain.png" alt="图 5 · 扩展改写链"></p>
+<h3 id="51-五个事件">
+<a class="header-anchor" href="#51-%e4%ba%94%e4%b8%aa%e4%ba%8b%e4%bb%b6"></a>
+5.1 五个事件
+</h3><p><strong><code>input</code></strong></p>
+<ul>
+<li>拿到：<code>text</code>、<code>images</code>、<code>source</code>（<code>interactive</code>、<code>rpc</code> 或 <code>extension</code>）、<code>streamingBehavior</code>。拿不到提示词和对话。</li>
+<li>返回：<code>{ action: &quot;transform&quot;, text, images? }</code> 改写；<code>{ action: &quot;handled&quot; }</code> 拦截，后面的扩展和整个 prompt 都不再执行；<code>continue</code> 或不返回表示不改。</li>
+<li>多个扩展：依次执行，后一个拿到前一个改写后的文字。</li>
+<li>结果：改写后的文字经过展开，成为写进会话的 user 消息。排队的 steer 和 follow-up 消息也经过 <code>input</code>。</li>
+</ul>
+<p><strong><code>before_agent_start</code></strong></p>
+<ul>
+<li>拿到：<code>prompt</code>（展开后的文字）、<code>images</code>、<code>systemPrompt</code>（按当前选项渲染的提示词，只读）、<code>systemPromptOptions</code>（可修改的选项对象）。</li>
+<li>改法：直接修改 <code>systemPromptOptions</code> 的字段，例如 <code>sections</code>、<code>promptGuidelines</code>、<code>appendSystemPrompt</code>、<code>contextFiles</code>、<code>skills</code>、<code>selectedTools</code>。</li>
+<li>返回：<code>{ message }</code> 追加一条 custom 消息，<code>{ systemPrompt }</code> 设强制提示词。</li>
+<li>多个扩展：所有处理函数共用同一个选项对象，后面的能看到前面的修改（P3 里扩展 B 读到的 <code>sectionsSoFar</code> 已经有扩展 A 加的 <code>ext_a</code>，<code>event.systemPrompt</code> 里也有 <code>&lt;ext_a&gt;</code>）。</li>
+<li>结果：
+<ul>
+<li>段的变化按第 4 节写成补丁。</li>
+<li>custom 消息写成 <code>custom_message</code> 条目，排在 user 消息之后，发给模型时转成 user 消息。</li>
+<li>改了 <code>selectedTools</code> 的，以修改为准；没改的，以当前激活的工具为准，处理函数里调用 <code>setActiveTools()</code> 的效果不会被冲掉。</li>
+</ul>
+</li>
+</ul>
+<p><strong><code>context</code></strong></p>
+<ul>
+<li>拿到：这次请求的消息副本，<strong>去掉了所有 system 消息</strong>。</li>
+<li>返回：<code>{ messages }</code>，或者直接修改 <code>event.messages</code>（包括替换其中的元素）。</li>
+<li>多个扩展：依次接力。</li>
+<li>结果：只用于这一次请求，不写会话（第六章 5.1 节）。</li>
+<li>对话没改时，system 消息留在原位。对话改了时，<code>restoreSystemMessages</code>（把 system 状态放回去）把所有 system 消息重放成一条，放在最前面：中途的补丁合并进开头，这一次请求的开头提示词因此变化。</li>
+<li>这样设计是为了让裁剪、开窗、从压缩摘要处切片这类改动不会把提示词和工具声明弄丢。</li>
+</ul>
+<p><strong><code>context_with_system</code></strong></p>
+<ul>
+<li>拿到：完整的消息列表，包括开头的 system 消息和中途的补丁。</li>
+<li>返回：<code>{ messages }</code>，原样使用；也可以直接修改 <code>event.messages</code>，它就是要发出的那个数组。</li>
+<li>多个扩展：依次接力。</li>
+<li>结果：只影响这一次请求。</li>
+<li>返回的列表开头不再是 system 消息时，运行器报一条错误（<code>Handler removed the leading system message; …</code>），但仍然使用这个列表，此时请求里没有提示词和初始工具声明。有强制提示词时例外：之后那一层会补回一条只含强制文字、不带工具声明的开头。</li>
+</ul>
+<p><strong><code>before_provider_request</code></strong></p>
+<ul>
+<li>拿到：<code>payload</code>，即协议实现拼好的供应商原生请求体。此时提示词已经渲染进去，例如 Anthropic 的 <code>system</code> 数组。</li>
+<li>返回：返回值替换请求体；返回 <code>undefined</code> 表示不改。</li>
+<li>多个扩展：依次接力。</li>
+<li>结果：只影响这一次 HTTP 请求。</li>
+</ul>
+<p>请求头另有 <code>before_provider_headers</code>：直接修改 <code>event.headers</code>，设为 <code>null</code> 表示删除这个头。</p>
+<h3 id="52-探针-p3两个扩展接力">
+<a class="header-anchor" href="#52-%e6%8e%a2%e9%92%88-p3%e4%b8%a4%e4%b8%aa%e6%89%a9%e5%b1%95%e6%8e%a5%e5%8a%9b"></a>
+5.2 探针 P3：两个扩展接力
+</h3><p>P3 装了两个扩展 A、B，各自在四个事件上记录收到的内容：</p>
+<ul>
+<li>A 在 <code>input</code> 里给以 <code>hi</code> 开头的文字加上 <code> +A</code>，第一次 prompt 时还在 <code>before_agent_start</code> 里加一个 <code>ext_a</code> 段。</li>
+<li>B 在 <code>context_with_system</code> 里往末尾追加一条 user 消息 <code>[B: request-only reminder]</code>。</li>
+</ul>
+<p>依次发送 <code>hi 1</code>、<code>hi 2</code>、<code>/noop</code>（A 返回 <code>handled</code>）、<code>/missing-template arg</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">[A] input text=&#34;hi 1&#34; source=interactive
+</span></span><span class="line"><span class="cl">[B] input text=&#34;hi 1 +A&#34; source=interactive
+</span></span><span class="line"><span class="cl">[A] before_agent_start prompt=&#34;hi 1 +A&#34; sectionsSoFar=[] systemPrompt has &lt;ext_a&gt;? false
+</span></span><span class="line"><span class="cl">[B] before_agent_start prompt=&#34;hi 1 +A&#34; sectionsSoFar=[ext_a] systemPrompt has &lt;ext_a&gt;? true
+</span></span><span class="line"><span class="cl">[A] context      sees: user
+</span></span><span class="line"><span class="cl">[A] context_with_system sees: system{preamble,tools,rules,docs,cwd,ext_a} user
+</span></span><span class="line"><span class="cl">---- run 2
+</span></span><span class="line"><span class="cl">[A] context      sees: user assistant user
+</span></span><span class="line"><span class="cl">[A] context_with_system sees: system{preamble,tools,rules,docs,cwd,ext_a} user assistant system{ext_a} user
+</span></span><span class="line"><span class="cl">---- /noop
+</span></span><span class="line"><span class="cl">[A] input text=&#34;/noop&#34; source=interactive          ← B 没有收到，也没有请求
+</span></span></code></pre></div><p>第二次请求实际发出的消息，和会话文件对照：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">请求 #2                                        会话文件
+</span></span><span class="line"><span class="cl">system {preamble,tools,rules,docs,cwd,ext_a}   message system {preamble,tools,rules,docs,cwd,ext_a}
+</span></span><span class="line"><span class="cl">user &#34;hi 1 +A&#34;                                 message user &#34;hi 1 +A&#34;
+</span></span><span class="line"><span class="cl">assistant &#34;r1&#34;                                 message assistant &#34;r1&#34;
+</span></span><span class="line"><span class="cl">system {ext_a: null}                           message system {ext_a: null}
+</span></span><span class="line"><span class="cl">user &#34;hi 2 +A&#34;                                 message user &#34;hi 2 +A&#34;
+</span></span><span class="line"><span class="cl">user &#34;[B: request-only reminder]&#34;              （没有）
+</span></span></code></pre></div><p>再加一个开关，让 A 在 <code>context</code> 里删掉所有 assistant 消息：第二次请求变成 <code>system{preamble,tools,rules,docs,cwd} user user [B 的提醒]</code>，那条 <code>{ext_a: null}</code> 补丁已经合并进开头，开头那条消息里没有 <code>ext_a</code> 段了。</p>
+<h3 id="53-选哪个事件">
+<a class="header-anchor" href="#53-%e9%80%89%e5%93%aa%e4%b8%aa%e4%ba%8b%e4%bb%b6"></a>
+5.3 选哪个事件
+</h3><table>
+	<thead>
+			<tr>
+					<th>想做的事</th>
+					<th>用哪个</th>
+					<th>留在会话里吗</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>把用户的缩写展开、拦截某些输入</td>
+					<td><code>input</code></td>
+					<td>改后的文字留下</td>
+			</tr>
+			<tr>
+					<td>给提示词加一段随会话保存的上下文</td>
+					<td><code>before_agent_start</code> 改 <code>sections</code></td>
+					<td>补丁留下</td>
+			</tr>
+			<tr>
+					<td>给这次 prompt 附一条可见的说明</td>
+					<td><code>before_agent_start</code> 返回 <code>message</code></td>
+					<td><code>custom_message</code> 留下</td>
+			</tr>
+			<tr>
+					<td>每次请求临时裁剪对话</td>
+					<td><code>context</code></td>
+					<td>不留</td>
+			</tr>
+			<tr>
+					<td>临时调整提示词或在对话里插 system 消息</td>
+					<td><code>context_with_system</code></td>
+					<td>不留</td>
+			</tr>
+			<tr>
+					<td>改供应商参数（metadata、采样参数等）</td>
+					<td><code>before_provider_request</code></td>
+					<td>不留</td>
+			</tr>
+	</tbody>
+</table>
+<p><code>input</code> 和 <code>before_agent_start</code> 的改动会被压缩、分支、恢复会话继承下去；<code>context</code>、<code>context_with_system</code>、<code>before_provider_request</code> 的改动每次请求都要重新做，压缩读的是会话树，也看不到它们（第七章 5.5 节）。</p>
+<hr>
+<h2 id="6--和提示词缓存的关系">
+<a class="header-anchor" href="#6--%e5%92%8c%e6%8f%90%e7%a4%ba%e8%af%8d%e7%bc%93%e5%ad%98%e7%9a%84%e5%85%b3%e7%b3%bb"></a>
+6 · 和提示词缓存的关系
+</h2><h3 id="61-段的顺序与补丁的位置">
+<a class="header-anchor" href="#61-%e6%ae%b5%e7%9a%84%e9%a1%ba%e5%ba%8f%e4%b8%8e%e8%a1%a5%e4%b8%81%e7%9a%84%e4%bd%8d%e7%bd%ae"></a>
+6.1 段的顺序与补丁的位置
+</h3><p>供应商的提示词缓存按前缀命中：请求开头有多长一段和上次相同，就有多少能读缓存。Pi 的安排是：</p>
+<ul>
+<li><strong>稳定的段在前</strong>：<code>preamble</code>、<code>tools</code>、<code>rules</code>、<code>docs</code> 几乎不变；<code>addendum</code>、<code>project_context</code>、<code>skills</code> 只在 <code>/reload</code> 时变；<code>cwd</code> 在一个会话里不变；扩展的段排在最后。</li>
+<li><strong>变化以补丁的形式排在后面</strong>：开头那条 system 消息写进会话之后就不再改动，之后的变化都是追加的补丁。</li>
+</ul>
+<p>补丁最后能不能保住缓存，取决于协议实现怎么发它（第五章 3.3 节讲过工具声明的三种发法，段的补丁走同一套判断）：</p>
+<ul>
+<li>模型声明了 <code>supportsMidConvoSystemMessages</code> 时，补丁由 <code>renderSystemMessageUpdate</code> 渲染成文字，作为对话中途的 system 消息发出，格式是 <code>Updated system prompt section &quot;名字&quot;:\n\n&lt;新内容&gt;</code> 或 <code>Removed system prompt section &quot;名字&quot;.</code>。</li>
+<li>否则所有 system 消息合并回开头，开头的提示词跟着变，缓存从开头失效。</li>
+</ul>
+<p>探针 P4 用 mock 的 Anthropic 接口跑两次 prompt，第一次 <code>before_agent_start</code> 加了 <code>ticket</code> 段，第二次没加：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">claude-fable-5（支持中途 system 消息）
+</span></span><span class="line"><span class="cl">  req1 system[0] cache_control=ephemeral len=3068
+</span></span><span class="line"><span class="cl">       tools=[read,bash,edit,write*,__pi_deferred_placeholder__(deferred)]
+</span></span><span class="line"><span class="cl">       user: text*:&#34;first&#34;
+</span></span><span class="line"><span class="cl">  req2 system[0] cache_control=ephemeral len=3068          ← 开头不变
+</span></span><span class="line"><span class="cl">       user: &#34;first&#34; | assistant: &#34;one&#34; | user: &#34;second&#34;
+</span></span><span class="line"><span class="cl">       system: text*:&#34;Removed system prompt section \&#34;ticket\&#34;.&#34;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">claude-haiku-4-5（不支持）
+</span></span><span class="line"><span class="cl">  req2 system[0] cache_control=ephemeral len=3035          ← 开头变短，缓存从这里失效
+</span></span><span class="line"><span class="cl">       user: &#34;first&#34; | assistant: &#34;one&#34; | user: text*:&#34;second&#34;
+</span></span></code></pre></div><p>（<code>*</code> 表示带 <code>cache_control</code> 的块。）在 Anthropic 的实现里，中途的 system 消息挪到下一条 assistant 消息之前，所以补丁出现在 <code>user &quot;second&quot;</code> 后面。</p>
+<p>内置模型目录里显式声明 <code>supportsMidConvoSystemMessages</code> 的有 85 个，分布在 Anthropic、OpenAI Responses 一系和部分走 OpenAI Completions 的模型上；这个标记只能在模型的 compat 里显式打开，没有自动判断。其中 12 个还能在对话中途改工具：第五章 3.3 节的 6 个 Anthropic 模型（原生增删），和 6 个走 OpenAI Completions 的 kimi-k3（只能新增）。用其他模型时，要尽量少让提示词变化，一次变化就是一次从开头开始的缓存失效。</p>
+<h3 id="62-缓存断点cacheretention-和-sessionid">
+<a class="header-anchor" href="#62-%e7%bc%93%e5%ad%98%e6%96%ad%e7%82%b9cacheretention-%e5%92%8c-sessionid"></a>
+6.2 缓存断点、cacheRetention 和 sessionId
+</h3><p><strong>断点</strong>：Anthropic 的协议实现打三个缓存断点：</p>
+<ul>
+<li>整段提示词作为一个文本块，块上一个断点。没有按段分别打断点。</li>
+<li>最后一个初始工具上一个断点（除非模型的 compat 把 <code>supportsCacheControlOnTools</code> 关掉，默认打开）。</li>
+<li>最后一条 user 或 system 消息的最后一个块上一个断点。</li>
+</ul>
+<p>用 OAuth 登录时，提示词前面多一个固定的身份块，两块各一个断点。</p>
+<p><strong><code>cacheRetention</code></strong>：coding-agent 没有这个设置项，正常请求不传它，由协议实现决定：</p>
+<ul>
+<li>环境变量 <code>PI_CACHE_RETENTION=long</code> 时用 <code>long</code>，否则用 <code>short</code>。</li>
+<li>Anthropic 的 <code>long</code> 对应 <code>ttl: &quot;1h&quot;</code>（除非模型的 compat 把 <code>supportsLongCacheRetention</code> 关掉，默认打开）。P4 设了这个环境变量后，断点变成 <code>{&quot;type&quot;:&quot;ephemeral&quot;,&quot;ttl&quot;:&quot;1h&quot;}</code>。</li>
+<li>显式传值的只有 <code>completeSummarization</code>（摘要请求共用的发送函数），传 <code>&quot;none&quot;</code>。压缩、分支摘要（第七章）和错误报告的会话摘要都经过它。</li>
+</ul>
+<p><strong><code>sessionId</code></strong>：<code>createAgentSession</code> 把会话 id 交给 <code>Agent</code>，每次请求都带上（P5 记录的三次请求都是会话自己的 id）：</p>
+<ul>
+<li>Anthropic 在 <code>cacheRetention</code> 不为 <code>none</code>、且模型的 compat 打开了 <code>sendSessionAffinityHeaders</code>（<code>baseUrl</code> 是 OpenRouter 时默认打开）时，用它设置会话亲和的请求头：OpenRouter 是 <code>x-session-id</code>，其他是 <code>x-session-affinity</code>。GitHub Copilot 和 OAuth 登录走另外的分支，不发这个头。</li>
+<li>OpenAI Responses 用它作 <code>prompt_cache_key</code>。</li>
+<li>faux 供应商按 <code>sessionId</code> 记住上一次的请求文本，按公共前缀估算 <code>cacheRead</code>。P5 第二次请求在开头之后多了一条 <code>{late}</code> 补丁，usage 是 <code>input=16 cacheRead=1454 cacheWrite=17</code>，第一次请求的 1454 个估算 token 全部命中。</li>
+</ul>
+<h3 id="63-缓存预热">
+<a class="header-anchor" href="#63-%e7%bc%93%e5%ad%98%e9%a2%84%e7%83%ad"></a>
+6.3 缓存预热
+</h3><p><code>CacheWarmer</code>（缓存预热器）在缓存快过期时，用 <code>maxTokens: 1</code> 原样重发上一次请求，让缓存续期。</p>
+<p><strong>什么时候启动</strong>：<code>streamFn</code> 收到 <code>sessionId</code> 等于会话 id 的请求时，就把这次请求（模型、上下文、选项）交给预热器。压缩和分支摘要用的是新的 <code>sessionId</code>，不会启动它。错误报告的会话摘要用的是会话自己的 id，它会启动预热器，但因为带着 <code>cacheRetention: &quot;none&quot;</code>，预热器随即停止。</p>
+<p><strong>什么时候不预热</strong>：</p>
+<ul>
+<li>设置 <code>cacheWarming</code> 为 <code>off</code>（只能写在全局设置里，源码注释说明的理由是每次续期都要花钱）。</li>
+<li>模型没有 <code>promptCache</code>（各档缓存的有效期）。内置目录 1536 个对话模型里只有 16 个声明了它，全部是 <code>anthropic</code> 供应商的 Claude 模型，<code>short</code> 300 秒、<code>long</code> 3600 秒。</li>
+<li>请求用了 <code>cacheRetention: &quot;none&quot;</code>。</li>
+<li>有效期不超过 10 秒。</li>
+<li>请求不能安全重放：开了思考的请求发给 Anthropic 按预算思考的模型（没有 <code>forceAdaptiveThinking</code>）时，<code>budget_tokens</code> 从 <code>max_tokens</code> 算出来，重放时这个值会变，缓存键也跟着变。</li>
+<li>会话的模型换了，或者当前消息不再以那次请求的消息为前缀。</li>
+</ul>
+<p><strong>什么时候发</strong>：</p>
+<ul>
+<li>在有效期的 90% 处发送，并且至少提前 10 秒。默认 300 秒的缓存在第 270 秒续期。</li>
+<li>定时器晚到、迟到的时间超过原定提前量的一半（300 秒的缓存是 15 秒）时，放弃这一次，因为这时多半已经过期，发出去也是全价写缓存。</li>
+<li>都从那次真实请求算起：运行进行中最多续到 60 分钟，进入空闲阶段后最多续到 30 分钟。</li>
+</ul>
+<p><strong>值不值得发</strong>：每次续期前算一笔账：</p>
+<ul>
+<li><code>warmCost</code>：读一次缓存加 1 个输出 token 的价格。</li>
+<li><code>missCost</code>：缓存丢了以后，下一次请求多付的钱，即写缓存（或全价输入）减去读缓存。</li>
+<li>下一次真实请求在过期前到来的概率：运行进行中取 1，空闲时取 0.15（源码注释说这个常数来自他们自己的使用统计）。</li>
+<li>期望节省 = 概率 × <code>missCost</code> − <code>warmCost</code>，不低于 0.05 美元才发。</li>
+</ul>
+<p>以 <code>claude-opus-5</code>（每百万 token：读缓存 0.5 美元、写缓存 6.25 美元）、10 万 token 的提示词为例：<code>warmCost</code> ≈ 0.050，<code>missCost</code> = 0.625 − 0.05 = 0.575。运行进行中，期望节省 0.525，发；空闲时 0.15 × 0.575 − 0.050 ≈ 0.036，不发。</p>
+<p><strong>三种模式</strong>：设置 <code>cacheWarming</code> 取 <code>off</code>、<code>streaming</code>、<code>idle</code>，默认 <code>streaming</code>。</p>
+<ul>
+<li><code>streaming</code>：运行一结束（<code>agent_settled</code>）就停。实际起作用的场景是一次运行里有很久没有新请求的时候，例如一个工具执行了五分钟。</li>
+<li><code>idle</code>：运行结束后按空闲时的概率继续算账。</li>
+</ul>
+<p>扩展可以在 <code>cache_warming_decision</code> 事件里看到 pi 的决定和这几个数，返回 <code>{ action: &quot;warm&quot; | &quot;stop&quot; }</code> 推翻它。</p>
+<p>探针 P5 给 faux 模型加上 <code>promptCache: { short: 12 }</code> 和一组很高的价格，让续期在 2 秒后发生：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">idle 模式
+</span></span><span class="line"><span class="cl">  request #1: sessionId=session cacheRetention=(unset) maxTokens=-  msgs=system,user
+</span></span><span class="line"><span class="cl">  request #2: sessionId=session cacheRetention=(unset) maxTokens=-  msgs=system,user,assistant,system,user
+</span></span><span class="line"><span class="cl">  request #3: sessionId=session cacheRetention=(unset) maxTokens=1  msgs=system,user,assistant,system,user   ← 续期
+</span></span><span class="line"><span class="cl">  cache_warming_decision action=warm warmCost=0.4611 missCost=5.1302 p=0.15
+</span></span><span class="line"><span class="cl">  会话文件末尾：usage {&#34;kind&#34;:&#34;cache_warm&#34;,&#34;provider&#34;:&#34;faux&#34;,…,&#34;cacheRead&#34;:1470,…}
+</span></span><span class="line"><span class="cl">streaming 模式  运行结束时状态 {&#34;state&#34;:&#34;inactive&#34;,&#34;reason&#34;:&#34;agent run settled&#34;}，没有第三次请求
+</span></span><span class="line"><span class="cl">off 模式        {&#34;state&#34;:&#34;inactive&#34;,&#34;reason&#34;:&#34;cache warming disabled&#34;}
+</span></span></code></pre></div><p>续期请求的消息和第二次请求完全一样，结果写成一条 <code>usage</code> 条目（<code>kind: &quot;cache_warm&quot;</code>），计入会话成本，不产生消息。faux 不执行 <code>maxTokens</code> 限制，所以这里的 output 不是 1。</p>
+<hr>
+<h2 id="7--用法按条件注入一段-git-上下文">
+<a class="header-anchor" href="#7--%e7%94%a8%e6%b3%95%e6%8c%89%e6%9d%a1%e4%bb%b6%e6%b3%a8%e5%85%a5%e4%b8%80%e6%ae%b5-git-%e4%b8%8a%e4%b8%8b%e6%96%87"></a>
+7 · 用法：按条件注入一段 git 上下文
+</h2><p>下面这个扩展在每次 prompt 前查一下当前分支和未提交的文件数，作为一个 <code>git</code> 段放进提示词：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">execFileSync</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;node:child_process&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span> <span class="nx">ExtensionAPI</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">git</span><span class="p">(</span><span class="nx">cwd</span>: <span class="kt">string</span><span class="p">,</span> <span class="nx">args</span>: <span class="kt">string</span><span class="p">[])</span><span class="o">:</span> <span class="kt">string</span> <span class="o">|</span> <span class="kc">undefined</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">try</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="nx">execFileSync</span><span class="p">(</span><span class="s2">&#34;git&#34;</span><span class="p">,</span> <span class="nx">args</span><span class="p">,</span> <span class="p">{</span> <span class="nx">cwd</span><span class="p">,</span> <span class="nx">encoding</span><span class="o">:</span> <span class="s2">&#34;utf8&#34;</span><span class="p">,</span> <span class="nx">stdio</span><span class="o">:</span> <span class="p">[</span><span class="s2">&#34;ignore&#34;</span><span class="p">,</span> <span class="s2">&#34;pipe&#34;</span><span class="p">,</span> <span class="s2">&#34;ignore&#34;</span><span class="p">]</span> <span class="p">}).</span><span class="nx">trim</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span> <span class="k">catch</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">undefined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">pi</span>: <span class="kt">ExtensionAPI</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;before_agent_start&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">branch</span> <span class="o">=</span> <span class="nx">git</span><span class="p">(</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">cwd</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;branch&#34;</span><span class="p">,</span> <span class="s2">&#34;--show-current&#34;</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// Not a git repo: add nothing. A section from an earlier prompt is then removed by a null patch.
+</span></span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">branch</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">dirty</span> <span class="o">=</span> <span class="p">(</span><span class="nx">git</span><span class="p">(</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">cwd</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;status&#34;</span><span class="p">,</span> <span class="s2">&#34;--porcelain&#34;</span><span class="p">])</span> <span class="o">??</span> <span class="s2">&#34;&#34;</span><span class="p">).</span><span class="nx">split</span><span class="p">(</span><span class="s2">&#34;\n&#34;</span><span class="p">).</span><span class="nx">filter</span><span class="p">(</span><span class="nb">Boolean</span><span class="p">).</span><span class="nx">length</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// Keep the text stable: every change becomes a new system patch in the session.
+</span></span></span><span class="line"><span class="cl">		<span class="nx">event</span><span class="p">.</span><span class="nx">systemPromptOptions</span><span class="p">.</span><span class="nx">sections</span><span class="p">.</span><span class="nx">git</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">			<span class="sb">`Current branch: </span><span class="si">${</span><span class="nx">branch</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">dirty</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="sb">`Uncommitted changes in </span><span class="si">${</span><span class="nx">dirty</span><span class="si">}</span><span class="sb"> file(s)`</span> <span class="o">:</span> <span class="s2">&#34;Working tree clean&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="p">].</span><span class="nx">join</span><span class="p">(</span><span class="s2">&#34;\n&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>这段代码里的几个选择：</p>
+<ul>
+<li><strong>用 <code>sections</code> 而不是 <code>appendSystemPrompt</code></strong>：独立的段可以单独更新、单独删除，排在内置段之后，变化只影响这一段的补丁。</li>
+<li><strong>不用返回值</strong>：直接改 <code>event.systemPromptOptions</code>，同一个 prompt 里的其他扩展能看到这一段。</li>
+<li><strong>不在仓库里就什么都不加</strong>：运行级选项每次 prompt 都从基础选项重新开始，这一次不加，上一次加的段就会被 <code>null</code> 补丁删掉，不需要自己清理。</li>
+<li><strong>只放变化少的事实</strong>：段的内容每变一次，会话里就多一条补丁，不支持中途 system 消息的模型就从开头失效一次缓存。所以这里只写&quot;有几个文件没提交&rdquo;，不写文件列表或时间。</li>
+</ul>
+<p>这段代码在 <code>tsc --strict</code>（加 <code>skipLibCheck</code>）下通过。探针 P8 把它放进 <code>DefaultResourceLoader</code> 的 <code>extensionFactories</code>，再把加载器交给 <code>createAgentSession</code>，在一个刚初始化的 git 仓库里依次发五次 prompt：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">p1 clean main          → 第一条 system 消息末尾：&lt;cwd&gt;…&lt;/cwd&gt; &lt;git&gt;Current branch: main / Working tree clean&lt;/git&gt;
+</span></span><span class="line"><span class="cl">p2 nothing changed     → 没有补丁
+</span></span><span class="line"><span class="cl">p3 （新建 new.txt）     → patch: {&#34;git&#34;:&#34;&lt;git&gt;\nCurrent branch: main\nUncommitted changes in 1 file(s)\n&lt;/git&gt;&#34;}
+</span></span><span class="line"><span class="cl">p4 （git switch -c feature）→ patch: {&#34;git&#34;:&#34;&lt;git&gt;\nCurrent branch: feature\nUncommitted changes in 1 file(s)\n&lt;/git&gt;&#34;}
+</span></span><span class="line"><span class="cl">p5 （删掉 .git）        → patch: {&#34;git&#34;:null}
+</span></span></code></pre></div><p>会话文件里一共 4 条 system 消息：开头的完整提示词，加三条只含 <code>git</code> 段的补丁。没有 custom 消息，user 消息保持原样。恢复这个会话、或者压缩之后，检查点里的 <code>git</code> 段就是最后一次补丁后的值。</p>
+<p>如果只想让模型在这一次请求里看到，不想留在会话里，可以改用 <code>context_with_system</code>，在开头那条 system 消息的 <code>sections</code> 里加一段。代价是每次请求都要重新加，而且开头的提示词每次都可能和上一次不同，前缀缓存从开头失效。</p>
+<hr>
+<h2 id="8--三个可以带走的方法">
+<a class="header-anchor" href="#8--%e4%b8%89%e4%b8%aa%e5%8f%af%e4%bb%a5%e5%b8%a6%e8%b5%b0%e7%9a%84%e6%96%b9%e6%b3%95"></a>
+8 · 三个可以带走的方法
+</h2><ol>
+<li><strong>把提示词拆成有名字的段</strong>。每段有固定位置和标签，变化时只发变了的那一段，删除也有明确的表示。拼提示词的代码、扩展、会话记录、协议实现说的是同一份结构。</li>
+<li><strong>提示词的变化作为对话的一部分记录下来</strong>。开头写一次完整的，之后每次变化都是追加的补丁。重放会话就能还原任何时刻模型看到的提示词，也不需要修改已经发给模型的前缀。</li>
+<li><strong>区分&quot;写进会话&quot;和&quot;只改这一次&rdquo;</strong>。前者被压缩、分支、恢复继承，后者每次请求重做。扩展作者按需要选择事件，不必自己处理持久化。</li>
+</ol>
+<hr>
+<h2 id="9--关键数字">
+<a class="header-anchor" href="#9--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+9 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>数量</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>内置段</td>
+					<td>8 个（另有扩展段，排在最后）</td>
+			</tr>
+			<tr>
+					<td>自定义提示词去掉的段</td>
+					<td>3 个（<code>tools</code>、<code>rules</code>、<code>docs</code>）</td>
+			</tr>
+			<tr>
+					<td>默认提示词（4 个默认工具，无上下文文件和技能）</td>
+					<td>371 个英文词，约 2800 个字符</td>
+			</tr>
+			<tr>
+					<td>每个目录的上下文文件候选名</td>
+					<td>5 个，只取第一个</td>
+			</tr>
+			<tr>
+					<td>上下文文件大小上限</td>
+					<td>无</td>
+			</tr>
+			<tr>
+					<td>技能名最长 / 描述最长（超出只警告）</td>
+					<td>64 / 1024 个字符</td>
+			</tr>
+			<tr>
+					<td>技能 frontmatter 读取的字段</td>
+					<td>3 个</td>
+			</tr>
+			<tr>
+					<td>请求前的扩展改写事件</td>
+					<td>5 个（另有 <code>before_provider_headers</code>）</td>
+			</tr>
+			<tr>
+					<td>内置目录中声明 <code>promptCache</code> 的模型</td>
+					<td>16 个（全部是 <code>anthropic</code> 供应商），<code>short</code> 300 秒、<code>long</code> 3600 秒</td>
+			</tr>
+			<tr>
+					<td>缓存续期时机</td>
+					<td>有效期的 90%，至少提前 10 秒</td>
+			</tr>
+			<tr>
+					<td>续期的期望节省门槛</td>
+					<td>0.05 美元</td>
+			</tr>
+			<tr>
+					<td>空闲时的续用概率</td>
+					<td>0.15</td>
+			</tr>
+			<tr>
+					<td>续期上限</td>
+					<td>运行中 60 分钟，空闲 30 分钟</td>
+			</tr>
+			<tr>
+					<td>本章相关文件的提交（北京时间 2026-08-01 至 2026-10-01，不含合并提交）</td>
+					<td><code>system-prompt.ts</code>、<code>resource-loader.ts</code>、<code>skills.ts</code>、<code>prompt-templates.ts</code>、<code>cache-warmer.ts</code> 合计 16 次</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="10--术语表">
+<a class="header-anchor" href="#10--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+10 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>含义</th>
+					<th>别和它混淆</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>段（section）</strong></td>
+					<td>系统提示词里有名字的一部分，<code>SystemMessage.sections</code> 的一项</td>
+					<td>第七章摘要模板里的 <code>## Goal</code> 这类标题</td>
+			</tr>
+			<tr>
+					<td><strong>补丁</strong></td>
+					<td>对话中途的 system 消息，只带变了的段和工具增减</td>
+					<td>压缩条目里的检查点（完整的 system 消息）</td>
+			</tr>
+			<tr>
+					<td><strong>基础选项</strong></td>
+					<td>由资源和激活工具算出的提示词选项，<code>_baseSystemPromptOptions</code></td>
+					<td>运行级选项：本次运行里扩展改过的那份</td>
+			</tr>
+			<tr>
+					<td><strong>强制提示词</strong></td>
+					<td><code>before_agent_start</code> 返回的 <code>systemPrompt</code>，请求时替换全部段</td>
+					<td>自定义提示词：<code>SYSTEM.md</code> / <code>--system-prompt</code>，只替换 <code>preamble</code></td>
+			</tr>
+			<tr>
+					<td><strong>上下文文件</strong></td>
+					<td>AGENTS.md / CLAUDE.md 一类的文件，全文进 <code>project_context</code></td>
+					<td>技能：只进索引，用时再读</td>
+			</tr>
+			<tr>
+					<td><strong>技能索引</strong></td>
+					<td><code>skills</code> 段里的名字、描述、路径列表</td>
+					<td><code>/skill:name</code> 展开的 <code>&lt;skill&gt;</code> 块（全文，进 user 消息）</td>
+			</tr>
+			<tr>
+					<td><strong>缓存预热</strong></td>
+					<td>快过期时用 <code>maxTokens: 1</code> 重发上一次请求</td>
+					<td><code>cacheRetention</code>：缓存要保留多久</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="11--源码导航">
+<a class="header-anchor" href="#11--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+11 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>段的组成与渲染</td>
+					<td><code>packages/coding-agent/src/core/system-prompt.ts</code> → <code>buildSystemPromptSections</code>、<code>buildSystemPromptState</code>、<code>diffSystemPromptSections</code>；<code>packages/ai/src/utils/text.ts</code> → <code>getSystemMessageText</code>、<code>renderSystemMessageUpdate</code></td>
+			</tr>
+			<tr>
+					<td>选项从哪来、何时重算</td>
+					<td><code>packages/coding-agent/src/core/agent-session.ts</code> → <code>_rebuildSystemPrompt</code>、<code>_preparePromptAndToolLoadout</code>、<code>_installAgentNextTurnRefresh</code>、<code>prompt</code></td>
+			</tr>
+			<tr>
+					<td>强制提示词</td>
+					<td><code>agent-session.ts</code> → <code>_installAgentForcedPromptProjection</code>；<code>core/extensions/runner.ts</code> → <code>emitBeforeAgentStart</code></td>
+			</tr>
+			<tr>
+					<td>上下文文件、SYSTEM.md</td>
+					<td><code>packages/coding-agent/src/core/resource-loader.ts</code> → <code>loadContextFileFromDir</code>、<code>loadProjectContextFiles</code>、<code>discoverSystemPromptFile</code>、<code>resolvePromptInput</code></td>
+			</tr>
+			<tr>
+					<td>技能</td>
+					<td><code>packages/coding-agent/src/core/skills.ts</code> → <code>loadSkills</code>、<code>formatSkillsForPrompt</code>；<code>core/package-manager.ts</code> → <code>resourcePrecedenceRank</code>、<code>collectAncestorAgentsSkillDirs</code>；<code>agent-session.ts</code> → <code>_expandSkillCommand</code></td>
+			</tr>
+			<tr>
+					<td>提示词模板</td>
+					<td><code>packages/coding-agent/src/core/prompt-templates.ts</code> → <code>substituteArgs</code>、<code>expandPromptTemplate</code></td>
+			</tr>
+			<tr>
+					<td>扩展事件</td>
+					<td><code>packages/coding-agent/src/core/extensions/runner.ts</code> → <code>emitInput</code>、<code>emitBeforeAgentStart</code>、<code>emitContext</code>、<code>restoreSystemMessages</code>、<code>emitBeforeProviderRequest</code>；<code>core/extensions/types.ts</code></td>
+			</tr>
+			<tr>
+					<td>工具增减与补丁合在一条消息</td>
+					<td><code>packages/agent/src/agent-loop.ts</code> → <code>declareToolChanges</code></td>
+			</tr>
+			<tr>
+					<td>补丁怎样发给 Anthropic、缓存断点</td>
+					<td><code>packages/ai/src/api/anthropic-messages.ts</code> → <code>buildParams</code>、<code>convertMessages</code></td>
+			</tr>
+			<tr>
+					<td>缓存预热</td>
+					<td><code>packages/coding-agent/src/core/cache-warmer.ts</code>；<code>core/sdk.ts</code> 里 <code>streamFn</code> 的接线</td>
+			</tr>
+			<tr>
+					<td>官方说明</td>
+					<td><code>packages/coding-agent/docs/skills.md</code>、<code>prompt-templates.md</code>、<code>extensions.md</code>、<code>environment-variables.md</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>下一章</strong>：扩展与事件。看扩展从哪里加载、能注册哪些东西，以及本章之外的其他事件。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/12.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的"
+              class="lazyload"
+            /><a
+          href="/harness/pi/07-compaction/"
+          aria-label="Prev:Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的"
+          title="Prev:Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--一次请求前的拼装流水线">1 · 一次请求前的拼装流水线</a></li>
+    <li><a href="#2--系统提示词怎么拼">2 · 系统提示词怎么拼</a>
+      <ul>
+        <li><a href="#21-输入buildsystempromptoptions">2.1 输入：BuildSystemPromptOptions</a></li>
+        <li><a href="#22-八个段">2.2 八个段</a></li>
+        <li><a href="#23-自定义提示词和追加文字">2.3 自定义提示词和追加文字</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--上下文文件技能与提示词模板">3 · 上下文文件、技能与提示词模板</a>
+      <ul>
+        <li><a href="#31-上下文文件全文进-project_context">3.1 上下文文件：全文进 project_context</a></li>
+        <li><a href="#32-技能发现顺序">3.2 技能：发现顺序</a></li>
+        <li><a href="#33-技能怎样声明给模型只给索引">3.3 技能怎样声明给模型：只给索引</a></li>
+        <li><a href="#34-skillname-和-模板发送前展开">3.4 /skill:name 和 /模板：发送前展开</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--提示词怎么变system-补丁">4 · 提示词怎么变：system 补丁</a>
+      <ul>
+        <li><a href="#41-两个时机">4.1 两个时机</a></li>
+        <li><a href="#42-探针-p2三条补丁">4.2 探针 P2：三条补丁</a></li>
+        <li><a href="#43-补丁写进会话">4.3 补丁写进会话</a></li>
+        <li><a href="#44-强制提示词替换请求不写会话">4.4 强制提示词：替换请求，不写会话</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--请求前的改写链">5 · 请求前的改写链</a>
+      <ul>
+        <li><a href="#51-五个事件">5.1 五个事件</a></li>
+        <li><a href="#52-探针-p3两个扩展接力">5.2 探针 P3：两个扩展接力</a></li>
+        <li><a href="#53-选哪个事件">5.3 选哪个事件</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--和提示词缓存的关系">6 · 和提示词缓存的关系</a>
+      <ul>
+        <li><a href="#61-段的顺序与补丁的位置">6.1 段的顺序与补丁的位置</a></li>
+        <li><a href="#62-缓存断点cacheretention-和-sessionid">6.2 缓存断点、cacheRetention 和 sessionId</a></li>
+        <li><a href="#63-缓存预热">6.3 缓存预热</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--用法按条件注入一段-git-上下文">7 · 用法：按条件注入一段 git 上下文</a></li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的",
+          url: "https:\/\/example.org\/harness\/pi\/08-context-engineering\/",
+          description: "接着第七章往下讲：每次请求前，coding-agent 怎样把默认文字、工具说明、AGENTS.md、技能索引和工作目录拼成按名字分段的系统提示词，上下文文件和技能从哪些目录发现，\/skill 和模板怎样展开，提示词的变化怎样写成 system 补丁，扩展的 input、before_agent_start、context、context_with_system、before_provider_request 各能改什么，以及这些安排和提示词缓存、缓存预热的关系。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

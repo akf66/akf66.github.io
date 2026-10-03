@@ -1,0 +1,1790 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的 | AKF
+</title>
+<meta name="description" content="接着第六章往下讲：coding-agent 在一次运行里的哪几个时机检查上下文、阈值怎么算，切点怎样从最新的消息往回选，摘要请求由什么组成、增量摘要和文件列表怎么带下去，失败、中止和重试会发出哪些事件，扩展能在哪里取消或接管压缩，以及 /tree 的分支摘要和压缩有什么异同。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的 | AKF" />
+  <meta
+    property="og:description"
+    content="接着第六章往下讲：coding-agent 在一次运行里的哪几个时机检查上下文、阈值怎么算，切点怎样从最新的消息往回选，摘要请求由什么组成、增量摘要和文件列表怎么带下去，失败、中止和重试会发出哪些事件，扩展能在哪里取消或接管压缩，以及 /tree 的分支摘要和压缩有什么异同。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/07-compaction/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-04T00:30:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-04T00:30:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--什么时候压缩">1 · 什么时候压缩</a>
+      <ul>
+        <li><a href="#11-阈值和设置">1.1 阈值和设置</a></li>
+        <li><a href="#12-四个检查点">1.2 四个检查点</a></li>
+        <li><a href="#13-用什么数-token">1.3 用什么数 token</a></li>
+        <li><a href="#14-溢出压缩后重试一次">1.4 溢出：压缩后重试一次</a></li>
+        <li><a href="#15-手动压缩">1.5 手动压缩</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--切在哪里">2 · 切在哪里</a>
+      <ul>
+        <li><a href="#21-估算-token">2.1 估算 token</a></li>
+        <li><a href="#22-选切点">2.2 选切点</a></li>
+        <li><a href="#23-切在回合中间">2.3 切在回合中间</a></li>
+        <li><a href="#24-写进条目的几个数">2.4 写进条目的几个数</a></li>
+        <li><a href="#25-什么时候切不出来">2.5 什么时候切不出来</a></li>
+        <li><a href="#26-一条不留">2.6 一条不留</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--摘要怎么生成">3 · 摘要怎么生成</a>
+      <ul>
+        <li><a href="#31-请求的组成">3.1 请求的组成</a></li>
+        <li><a href="#32-增量摘要">3.2 增量摘要</a></li>
+        <li><a href="#33-回合前缀">3.3 回合前缀</a></li>
+        <li><a href="#34-模型和请求选项">3.4 模型和请求选项</a></li>
+        <li><a href="#35-检查回复">3.5 检查回复</a></li>
+        <li><a href="#36-文件列表">3.6 文件列表</a></li>
+        <li><a href="#37-写入">3.7 写入</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--失败中止与重试">4 · 失败、中止与重试</a>
+      <ul>
+        <li><a href="#41-事件">4.1 事件</a></li>
+        <li><a href="#42-失败之后">4.2 失败之后</a></li>
+        <li><a href="#43-摘要请求的重试">4.3 摘要请求的重试</a></li>
+        <li><a href="#44-中止">4.4 中止</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--扩展怎么插手">5 · 扩展怎么插手</a>
+      <ul>
+        <li><a href="#51-session_before_compact取消或接管">5.1 session_before_compact：取消或接管</a></li>
+        <li><a href="#52-session_compact-和-session_compact_failed">5.2 session_compact 和 session_compact_failed</a></li>
+        <li><a href="#53-ctxcompact从扩展发起">5.3 ctx.compact()：从扩展发起</a></li>
+        <li><a href="#54-回合边界的-compaction-草稿">5.4 回合边界的 compaction 草稿</a></li>
+        <li><a href="#55-只影响一次请求的改写">5.5 只影响一次请求的改写</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--分支摘要tree-的另一种摘要">6 · 分支摘要：/tree 的另一种摘要</a>
+      <ul>
+        <li><a href="#61-流程">6.1 流程</a></li>
+        <li><a href="#62-和压缩的异同">6.2 和压缩的异同</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--用法一个不调用模型的压缩扩展">7 · 用法：一个不调用模型的压缩扩展</a></li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.3cf30c7271bec63efd7f486bce6e5fb5d736af11ecc46b715600952e59d2bb1a.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的</p>
+</div>
+      </div>
+    </article><link rel="stylesheet" href="/css/immersive.min.2db92d937938ad74c3f0da9f094e4878ceeb590da6c1a4e7129c8e526ba57363.css" /><h1 class="immersive-title">Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><div class="immersive-side-row">
+  <button type="button" class="immersive-side" data-immersive-toggle>
+    <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+    <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
+    <span class="immersive-side-text-on">沉浸阅读</span>
+    <span class="immersive-side-text-off">退出沉浸</span>
+  </button>
+  <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+</div><button
+  type="button"
+  class="immersive-toggle"
+  data-immersive-toggle
+  data-label-on="进入沉浸阅读"
+  data-label-off="退出沉浸阅读"
+  title="进入沉浸阅读"
+  aria-label="进入沉浸阅读"
+  aria-pressed="false"
+>
+  <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </svg>
+  <span class="immersive-toggle-text-on">沉浸阅读</span>
+  <span class="immersive-toggle-text">退出沉浸阅读</span>
+  <kbd class="immersive-toggle-kbd">Esc</kbd>
+</button>
+<script>
+  (() => {
+    const KEY = "immersive-reading";
+    const root = document.documentElement;
+    const btn = document.querySelector(".immersive-toggle");
+    const entry = document.querySelector(".immersive-entry");
+
+    const apply = (on) => {
+      root.classList.toggle("immersive", on);
+      const label = on ? btn.dataset.labelOff : btn.dataset.labelOn;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", String(on));
+      const sideBtn = document.querySelector(".immersive-side");
+      if (sideBtn) sideBtn.title = label;
+      try {
+        localStorage.setItem(KEY, on ? "1" : "0");
+      } catch (e) {}
+    };
+
+    const nav = document.querySelector(".immersive-nav");
+    const side = document.querySelector(".immersive-side-row");
+
+    const title = document.querySelector(".immersive-title");
+
+    const placeEntry = () => {
+      const inner = document.querySelector("article.h-entry .article-inner");
+      if (inner) inner.prepend(title);
+      const date = document.querySelector(".article-meta .article-date");
+      if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
+      const sidebar = document.querySelector("#sidebar .sidebar-wrapper-container");
+      if (sidebar) {
+        sidebar.appendChild(side);
+        root.classList.add("immersive-has-side");
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", placeEntry);
+    } else {
+      placeEntry();
+    }
+
+    apply(root.classList.contains("immersive"));
+    document.querySelectorAll("[data-immersive-toggle]").forEach((el) =>
+      el.addEventListener("click", () => {
+        apply(!root.classList.contains("immersive"));
+        window.scrollTo({ top: 0 });
+      })
+    );
+    side.querySelector(".immersive-side-top").addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
+    });
+  })();
+</script>
+<article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-04 00:30:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-04</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-04</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.1-1-g4c6fb7cfe（2026-10-03），commit <code>4c6fb7cfe</code>。这个提交在 v1.0.1 之上只加了 CHANGELOG 的空标题，代码与 v1.0.1 相同。文中所有行为、数字和代码均以该版本为准。</p>
+</blockquote>
+<p>第六章讲了压缩条目写进会话后怎样参与投影，本章讲压缩条目是怎么产生的：pi 什么时候决定压缩，切在哪里，摘要怎么生成，失败了怎么办，扩展能在哪里插手，以及 <code>/tree</code> 的分支摘要和它有什么不同。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>一个阈值，四个检查点</strong>：上下文超过 <code>contextWindow − reserveTokens</code>（默认留 16384）就压缩。一次 prompt 里有四个地方会检查：发送新提示词之前、虚拟模型路由之后、两轮之间、运行结束之后。上下文溢出由运行结束后的检查处理，做法是压缩后重试一次；发送前的补查也会识别溢出，但只压缩、不重试。</li>
+<li><strong>从新往旧数，够了就切</strong>：从最新的条目往回累加估算的 token，累加到 <code>keepRecentTokens</code>（默认 20000）就停下，切点只能落在 user、assistant 这类消息上，不会落在工具结果上。切点落在一个回合中间时，回合的前半段单独总结。</li>
+<li><strong>摘要是一次独立的请求</strong>：一条 system 消息加一条 user 消息，对话被序列化成纯文本放进 <code>&lt;conversation&gt;</code>，不带工具，不写提示词缓存。上一次的摘要放进 <code>&lt;previous-summary&gt;</code>，换成&quot;更新摘要&quot;的指令。读过和改过的文件列表附在摘要末尾，并跨压缩累积。</li>
+<li><strong>失败不写压缩条目</strong>：摘要请求按 <code>retry</code> 设置重试。失败、被取消或被中止时，只发一个带原因的 <code>compaction_end</code>，不写压缩条目；两轮之间的压缩失败时，运行带着原来的上下文继续。</li>
+<li><strong>扩展有三种插手方式</strong>：<code>session_before_compact</code> 可以取消或替换摘要；<code>ctx.compact()</code> 发起一次手动压缩；回合边界返回的 <code>compaction</code> 草稿直接写入条目，绕过整条流水线和所有压缩事件。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章讲已发布的 <code>pi</code> 用的压缩实现：pi-coding-agent 的 <code>core/compaction/</code> 三个文件（<code>compaction.ts</code>、<code>branch-summarization.ts</code>、<code>utils.ts</code>）和 <code>AgentSession</code> 里接线的部分。</li>
+<li>引用前几章的结论，不再重复：
+<ul>
+<li>第二章 3.2 节：<code>compactionSummary</code>、<code>branchSummary</code> 两种消息怎样变成 user 消息。</li>
+<li>第三章：<code>prepareNextTurn</code>（下一轮开始前的钩子）、<code>prepareRequest</code>（每次请求前的钩子）在一轮里的位置。</li>
+<li>第四章 5.3 节：pi-ai 的三层重试，其中消息级的 <code>retryAssistantCall</code> 在本章用于摘要请求。</li>
+<li>第六章 4.2 节：投影怎样按最新的压缩条目裁剪、检查点 <code>systemMessage</code> 的作用；5.3 节：<code>_omitRecoveryAttempt</code> 怎样用 <code>context_edit</code> 隐藏失败的尝试。</li>
+</ul>
+</li>
+<li>文中的行为都用探针实际跑过。探针用 npm 上的 1.0.1，用 <code>createAgentSession</code> 加 pi-ai 的 faux 供应商（从 <code>@earendil-works/pi-ai/compat</code> 导入 <code>registerFauxProvider</code>、<code>fauxAssistantMessage</code>），把模型的 <code>contextWindow</code> 设成 8000，<code>reserveTokens</code> 设成 2000，<code>keepRecentTokens</code> 设成 600，阈值就是 6000，几轮对话就能稳定触发压缩。faux 按请求文本长度的 1/4 估算 usage，探针里的 token 数只用于比较大小。探针记录了每次发给模型的请求和压缩前后的会话文件，编号 P1–P7。</li>
+<li>术语：
+<ul>
+<li><strong>切点</strong>：保留区间的第一个条目，存在压缩条目的 <code>firstKeptEntryId</code> 里。</li>
+<li><strong>保留区间</strong>：切点及之后的条目，压缩后仍以原文进入上下文。</li>
+<li><strong>回合前缀</strong>：切点落在一个回合中间时，这个回合从 user 消息到切点之前的部分。</li>
+<li><strong>检查点</strong>：压缩条目里保存的完整 system 消息（第六章 4.2 节）。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1--什么时候压缩">
+<a class="header-anchor" href="#1--%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e5%8e%8b%e7%bc%a9"></a>
+1 · 什么时候压缩
+</h2><p><img src="/images/harness/pi/ch07/fig1-triggers.png" alt="图 1 · 一次 prompt 里的四个自动检查点"></p>
+<h3 id="11-阈值和设置">
+<a class="header-anchor" href="#11-%e9%98%88%e5%80%bc%e5%92%8c%e8%ae%be%e7%bd%ae"></a>
+1.1 阈值和设置
+</h3><p>判断是否超过阈值只有一个函数：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">export</span> <span class="kd">function</span> <span class="nx">shouldCompact</span><span class="p">(</span><span class="nx">contextTokens</span>: <span class="kt">number</span><span class="p">,</span> <span class="nx">contextWindow</span>: <span class="kt">number</span><span class="p">,</span> <span class="nx">settings</span>: <span class="kt">CompactionSettings</span><span class="p">)</span><span class="o">:</span> <span class="kr">boolean</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">settings</span><span class="p">.</span><span class="nx">enabled</span><span class="p">)</span> <span class="k">return</span> <span class="kc">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">contextTokens</span> <span class="o">&gt;</span> <span class="nx">contextWindow</span> <span class="o">-</span> <span class="nx">settings</span><span class="p">.</span><span class="nx">reserveTokens</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>三项设置都在 <code>settings.json</code> 的 <code>compaction</code> 下：</p>
+<table>
+	<thead>
+			<tr>
+					<th>设置</th>
+					<th>默认值</th>
+					<th>作用</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>enabled</code></td>
+					<td><code>true</code></td>
+					<td>是否自动压缩；关掉后仍可以 <code>/compact</code></td>
+			</tr>
+			<tr>
+					<td><code>reserveTokens</code></td>
+					<td>16384</td>
+					<td>给回复留的空间；也决定摘要请求的输出上限（3.4 节）</td>
+			</tr>
+			<tr>
+					<td><code>keepRecentTokens</code></td>
+					<td>20000</td>
+					<td>压缩后至少保留多少最近的上下文</td>
+			</tr>
+	</tbody>
+</table>
+<p><code>reserveTokens</code> 和 <code>keepRecentTokens</code> 可以按模型覆盖：<code>compaction.modelOverrides</code> 的键是精确的 <code>provider/modelId</code>，每一项分别按&quot;模型覆盖 → 普通设置 → 内置默认值&quot;取值。<code>enabled</code> 只有全局一份。以 200K 窗口的模型为例，默认阈值是 200000 − 16384 = 183616。</p>
+<p>① 和 ④ 用产生那条回复的模型的 <code>contextWindow</code>；回复来自别的模型（用户中途换过模型）时，改用当前模型的窗口，而且不做溢出处理（1.4 节）。</p>
+<h3 id="12-四个检查点">
+<a class="header-anchor" href="#12-%e5%9b%9b%e4%b8%aa%e6%a3%80%e6%9f%a5%e7%82%b9"></a>
+1.2 四个检查点
+</h3><p>图 1 左列是 <code>session.prompt()</code> 的执行顺序，右列是四个检查点：</p>
+<table>
+	<thead>
+			<tr>
+					<th>检查点</th>
+					<th>位置</th>
+					<th>能触发的原因</th>
+					<th>探针</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>① 发送前补查</td>
+					<td><code>prompt()</code> 检查完模型和凭据、发出新提示词之前，用上一条 assistant 回复判断</td>
+					<td>threshold、overflow（都不接着重试）</td>
+					<td>P4</td>
+			</tr>
+			<tr>
+					<td>② 路由之后</td>
+					<td><code>prepareRequest</code> 里，只对虚拟模型：路由到具体模型后，按那个模型的窗口判断</td>
+					<td>threshold</td>
+					<td>代码</td>
+			</tr>
+			<tr>
+					<td>③ 两轮之间</td>
+					<td><code>prepareNextTurnWithContext</code>，第 2 轮起每轮开始前，只对实体模型</td>
+					<td>threshold</td>
+					<td>P2</td>
+			</tr>
+			<tr>
+					<td>④ 运行结束后</td>
+					<td><code>agent.prompt()</code> 返回后的 <code>_handlePostAgentRun</code>，用最后一条 assistant 回复判断</td>
+					<td>overflow（可重试）、overflow（不重试）、threshold</td>
+					<td>P1、P3</td>
+			</tr>
+	</tbody>
+</table>
+<p>压缩事件的 <code>reason</code> 只有三个值：<code>manual</code>、<code>threshold</code>、<code>overflow</code>。图 1 里的四个检查点决定的是&quot;什么时候看一眼&quot;，<code>reason</code> 说明&quot;为什么压缩&quot;。</p>
+<p>几个细节：</p>
+<ul>
+<li>
+<p><strong>第 1 轮之前没有检查</strong>。<code>agentLoop</code> 只在已经完成一轮之后才调用 <code>prepareNextTurn</code>。实体模型在第 1 轮之前只有 ① 一次检查，用的是上一条回复的 usage，不算新提示词本身的长度。</p>
+</li>
+<li>
+<p><strong>③ 在工具结果写进会话树之后、下一次模型回复之前</strong>。探针 P2 让模型连续读三个大文件，时间线节选如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">event turn_end
+</span></span><span class="line"><span class="cl">event compaction_start reason=threshold
+</span></span><span class="line"><span class="cl">REQUEST #5 [summary] msgs=system,user maxTokens=1600
+</span></span><span class="line"><span class="cl">REQUEST #6 [summary] msgs=system,user maxTokens=1000
+</span></span><span class="line"><span class="cl">event compaction_end reason=threshold aborted=false willRetry=false tokensBefore=7524 …
+</span></span><span class="line"><span class="cl">event turn_start
+</span></span><span class="line"><span class="cl">REQUEST #7 msgs=system,user,assistant,toolResult
+</span></span></code></pre></div><p>压缩发生在两轮之间，下一次请求直接用压缩后的上下文。准备工作可能很慢，所以 <code>agentLoop</code> 在 <code>prepareNextTurn</code> 返回后会再取一次插队消息（第三章）。</p>
+</li>
+<li>
+<p><strong>② 只对虚拟模型</strong>。实体模型的 <code>prepareRequest</code> 在投影之后直接返回。虚拟模型要等路由之后才知道这次请求落到哪个具体模型，所以在这里按那个模型的窗口再判断一次，压缩后重新投影，这次请求就用压缩后的上下文。</p>
+</li>
+<li>
+<p><strong>① 能补上运行结束时漏掉的情况</strong>。运行结束时，用户中止的回复不参与判断；发送下一条提示词之前会把它也算进去。探针 P4 里，一条被中止的回复 usage 是 7963，运行结束时没有压缩，下一次 <code>prompt()</code> 在发出新消息之前先压缩，然后才写入新的 user 消息。</p>
+</li>
+<li>
+<p><strong>④ 压缩完如果有排队的消息</strong>，会再调一次 <code>agent.continue()</code> 把它们送出去。</p>
+</li>
+</ul>
+<h3 id="13-用什么数-token">
+<a class="header-anchor" href="#13-%e7%94%a8%e4%bb%80%e4%b9%88%e6%95%b0-token"></a>
+1.3 用什么数 token
+</h3><p>两类检查点用不同的计数方式：</p>
+<ul>
+<li><strong>③ 和 ②</strong> 用 <code>estimateProjectedContextTokens</code>（估算当前投影的大小）：取投影里最后一条有效 assistant 回复的 usage，加上它之后各条消息的估算。如果这条回复之后会话里出现过 <code>context_edit</code> 或压缩条目，usage 已经不能代表当前上下文，就整份按估算重新数：当前完整的 system 消息加上其余所有消息。</li>
+<li><strong>① 和 ④</strong> 在 <code>_checkCompaction</code> 里，按情况选一种：
+<ul>
+<li>投影里有 <code>context_edit</code>：同上，用 <code>estimateProjectedContextTokens</code></li>
+<li>回复出错，或 usage 全为 0：用 <code>estimateContextTokens</code>（最后一次有效 usage 加之后的估算）</li>
+<li>其他情况：直接用这条回复的 usage</li>
+</ul>
+</li>
+</ul>
+<p>usage 用 <code>calculateContextTokens</code> 换算：有 <code>totalTokens</code> 就用它，否则把 input、output、cacheRead、cacheWrite 相加。出错、被中止、全为 0 的 usage 都不算有效。</p>
+<p>另有一道防线：如果用来判断的回复比最新的压缩条目还早，① 和 ④ 都直接跳过。压缩之后保留区间里的旧回复带着压缩前的大 usage，不跳过的话，压缩刚结束就会再压一次。</p>
+<h3 id="14-溢出压缩后重试一次">
+<a class="header-anchor" href="#14-%e6%ba%a2%e5%87%ba%e5%8e%8b%e7%bc%a9%e5%90%8e%e9%87%8d%e8%af%95%e4%b8%80%e6%ac%a1"></a>
+1.4 溢出：压缩后重试一次
+</h3><p>④ 先判断溢出，再判断阈值。以下三种情况算溢出：</p>
+<ul>
+<li><strong>报错里写着超长</strong>：pi-ai 的 <code>isContextOverflow</code> 用 25 个正则匹配各家的报错（<code>prompt is too long</code>、<code>exceeds the context window</code>、<code>maximum context length is N tokens</code> 等），先排除限流类报错，Cerebras 另有一条专门的规则。</li>
+<li><strong>静默溢出</strong>：回复成功，但 <code>input + cacheRead</code> 超过了窗口。</li>
+<li><strong>可恢复的截断</strong>：<code>stopReason</code> 是 <code>length</code>，而输出 token 还没达到模型原本的 <code>maxTokens</code>。说明是上下文挤占了输出空间，而不是回复本身太长。</li>
+</ul>
+<p>处理方式取决于回复是否成功：</p>
+<table>
+	<thead>
+			<tr>
+					<th>情况</th>
+					<th>做法</th>
+					<th><code>willRetry</code></th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>报错或可恢复的截断</td>
+					<td>用 <code>context_edit</code> 隐藏失败的回复和它的工具结果（第六章 5.3 节），压缩，然后 <code>agent.continue()</code> 重试</td>
+					<td><code>true</code></td>
+			</tr>
+			<tr>
+					<td>成功回复但 usage 超过窗口</td>
+					<td>只压缩，不重试，保留这条回复</td>
+					<td><code>false</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>探针 P3 让模型在第三轮返回 <code>400 prompt is too long: 9100 tokens &gt; 8000 maximum</code>，时间线节选如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">event message_end assistant() stop=error
+</span></span><span class="line"><span class="cl">event agent_end
+</span></span><span class="line"><span class="cl">event entry_appended context_edit
+</span></span><span class="line"><span class="cl">event compaction_start reason=overflow
+</span></span><span class="line"><span class="cl">REQUEST #4 [summary] msgs=system,user maxTokens=1600
+</span></span><span class="line"><span class="cl">event compaction_end reason=overflow aborted=false willRetry=true …
+</span></span><span class="line"><span class="cl">REQUEST #5 msgs=system,user,user,assistant,user
+</span></span><span class="line"><span class="cl">event message_end assistant(recovered) stop=stop
+</span></span></code></pre></div><p>重试只有一次。<code>_overflowRecoveryAttempted</code> 标记在压缩前置上，等到出现新的 user 消息，或者某条回复的 <code>stopReason</code> 不是 <code>error</code> 也不是 <code>length</code> 时才清除。如果重试后再次溢出，pi 不再压缩，只发一个 <code>compaction_end</code>（扩展另外收到 <code>session_compact_failed</code>），<code>errorMessage</code> 是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Context overflow recovery failed after one compact-and-retry attempt. Try reducing context or switching to a larger-context model.
+</span></span></code></pre></div><p>截断的情况对应另一句：<code>Truncated response recovery failed after one compact-and-retry attempt.</code>。探针 P3 第二组确认，这时事件流里只有 <code>compaction_end</code>，前面没有 <code>compaction_start</code>。</p>
+<p>溢出不走普通的自动重试：<code>_isRetryableError</code> 先排除溢出，再判断是不是过载、限流这类错误。</p>
+<h3 id="15-手动压缩">
+<a class="header-anchor" href="#15-%e6%89%8b%e5%8a%a8%e5%8e%8b%e7%bc%a9"></a>
+1.5 手动压缩
+</h3><p>手动入口有三个，最后都调用 <code>AgentSession.compact(customInstructions?)</code>：</p>
+<ul>
+<li>交互界面的 <code>/compact [说明]</code>，空格后面的文字作为摘要的额外要求</li>
+<li>RPC 命令 <code>{ &quot;type&quot;: &quot;compact&quot;, &quot;customInstructions&quot;: &quot;…&quot; }</code></li>
+<li>扩展的 <code>ctx.compact()</code>（5.3 节）</li>
+</ul>
+<p>和自动压缩相比：</p>
+<ul>
+<li>先调用 <code>abort()</code> 中止当前运行，再开始压缩。</li>
+<li><code>reason</code> 是 <code>manual</code>，不重试，也不会接着运行。</li>
+<li>没法压缩时抛错：最后一个条目已经是压缩条目时是 <code>Already compacted</code>，没有可总结的内容时是 <code>Nothing to compact (session too small)</code>。这两种情况也会发出 <code>compaction_start</code> 和带 <code>errorMessage</code> 的 <code>compaction_end</code>。</li>
+<li>手动压缩进行中调用 <code>prompt()</code> 会被拒绝：<code>Cannot submit a prompt while compaction is in progress. Wait for compaction to finish and retry.</code>（探针 P4 确认）。这条检查只看手动压缩，自动压缩进行时不会因此拒绝。</li>
+</ul>
+<p>自动压缩可以在设置里关掉（<code>compaction.enabled</code>，RPC 命令 <code>set_auto_compaction</code>）。关掉后四个检查点都不再压缩，溢出也不再压缩重试，手动压缩不受影响。</p>
+<hr>
+<h2 id="2--切在哪里">
+<a class="header-anchor" href="#2--%e5%88%87%e5%9c%a8%e5%93%aa%e9%87%8c"></a>
+2 · 切在哪里
+</h2><p><img src="/images/harness/pi/ch07/fig2-cutpoint.png" alt="图 2 · 切点的选择"></p>
+<h3 id="21-估算-token">
+<a class="header-anchor" href="#21-%e4%bc%b0%e7%ae%97-token"></a>
+2.1 估算 token
+</h3><p>切点选择和大部分阈值判断都靠 <code>estimateTokens</code>（按字符数估算一条消息的 token）：字符数除以 4，向上取整。各种消息数的内容不同：</p>
+<table>
+	<thead>
+			<tr>
+					<th>消息</th>
+					<th>计入的字符</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>user、toolResult、custom</td>
+					<td>文本；每张图片按 4800 个字符算</td>
+			</tr>
+			<tr>
+					<td>assistant</td>
+					<td>文本、思考内容、工具名加参数的 JSON</td>
+			</tr>
+			<tr>
+					<td>system</td>
+					<td>文本、各个 <code>sections</code>、<code>toolsAdded</code> 的 JSON</td>
+			</tr>
+			<tr>
+					<td>bashExecution</td>
+					<td>命令加输出</td>
+			</tr>
+			<tr>
+					<td>branchSummary、compactionSummary</td>
+					<td>摘要文本</td>
+			</tr>
+	</tbody>
+</table>
+<p>源码注释说这种估算偏保守，倾向于高估。</p>
+<h3 id="22-选切点">
+<a class="header-anchor" href="#22-%e9%80%89%e5%88%87%e7%82%b9"></a>
+2.2 选切点
+</h3><p><code>prepareCompaction</code>（算出这次压缩要用的全部输入）先对当前分支做一次投影（第六章 4.3 节），在投影出的条目上选切点。所以被 <code>context_edit</code> 隐藏的条目不占预算，被替换的条目按替换后的内容估算。</p>
+<p><strong>范围</strong>：投影以上一个压缩条目开头时，范围从它后面开始。上一次压缩保留的原文排在投影里压缩条目之后，所以它们这一次会进入总结。</p>
+<p><strong>往回累加</strong>：<code>findProjectedCutPoint</code> 从最后一个条目往前，逐条累加估算的 token。累加值第一次达到 <code>keepRecentTokens</code> 时停下，切点取停下位置或之后的第一个合法切点；之后没有合法切点，就取最后一个合法切点。</p>
+<p><strong>合法切点</strong>由消息的角色决定：</p>
+<ul>
+<li>可以：user、assistant、bashExecution、custom、branchSummary（<code>compactionSummary</code> 也在名单里，但它只来自压缩条目，而压缩条目在这里一律跳过）</li>
+<li>不可以：toolResult</li>
+</ul>
+<p>工具结果总跟在发起调用的 assistant 后面，切点只能落在 assistant 上，所以一次工具调用和它的结果总在切点同一侧。图 2 是探针 P2 第一次压缩时的情形：</p>
+<ul>
+<li>最后一条 <code>read b.txt</code> 的结果单独就有 2000 token，超过 600，在这里停下。</li>
+<li>它后面没有合法切点，退回到发起这次调用的 assistant。</li>
+<li>保留区间是 <code>assistant(read b)</code> 和它的结果，压缩条目的 <code>firstKeptEntryId</code> 指向这条 assistant。</li>
+</ul>
+<p><strong>两处微调</strong>：</p>
+<ul>
+<li>切点前面紧挨着的、不产生消息的条目（比如 <code>label</code>、<code>model_change</code>）一起划进保留区间。</li>
+<li>溢出恢复时，如果切点后面只剩下被隐藏的失败回复，切点再往后挪一格。这时最后那条用户输入也进入总结。探针 P3e 用一条约 5000 token 的 user 消息触发溢出：这条消息进了回合前缀摘要，重试请求里只剩 system 和摘要两条消息。</li>
+</ul>
+<h3 id="23-切在回合中间">
+<a class="header-anchor" href="#23-%e5%88%87%e5%9c%a8%e5%9b%9e%e5%90%88%e4%b8%ad%e9%97%b4"></a>
+2.3 切在回合中间
+</h3><p>切点不是一条&quot;回合开始&quot;的消息（user、bashExecution、custom 或 branchSummary）时，这个回合就被切成两半。<code>prepareCompaction</code> 往回找到这个回合开头的消息，把输入分成两份：</p>
+<ul>
+<li><code>messagesToSummarize</code>（历史）：从范围起点到这个回合开头之前</li>
+<li><code>turnPrefixMessages</code>（回合前缀）：从回合开头到切点之前</li>
+</ul>
+<p>两份分别发请求总结（3.3 节），再拼成一份摘要。图 2 里，u2 这一回合被切开：u1 那一回合是历史，<code>u2 → read a.txt → 结果</code> 是回合前缀。</p>
+<h3 id="24-写进条目的几个数">
+<a class="header-anchor" href="#24-%e5%86%99%e8%bf%9b%e6%9d%a1%e7%9b%ae%e7%9a%84%e5%87%a0%e4%b8%aa%e6%95%b0"></a>
+2.4 写进条目的几个数
+</h3><ul>
+<li><code>tokensBefore</code>：压缩前投影的大小，用 <code>estimateProjectedContextTokens</code> 算出。P2 里是上一条回复的 usage 5524 加上之后那条工具结果的估算 2000，共 7524。</li>
+<li>压缩完成后，<code>compaction_end</code> 的结果里还有 <code>estimatedTokensAfter</code>：对压缩后的投影逐条估算再相加。这个值只出现在事件里，不写进条目。</li>
+</ul>
+<h3 id="25-什么时候切不出来">
+<a class="header-anchor" href="#25-%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e5%88%87%e4%b8%8d%e5%87%ba%e6%9d%a5"></a>
+2.5 什么时候切不出来
+</h3><p><code>prepareCompaction</code> 在以下情况返回空，这次不压缩：</p>
+<ul>
+<li>当前分支的最后一个条目已经是压缩条目</li>
+<li>切点之前没有任何要总结的消息，比如整段上下文都在 <code>keepRecentTokens</code> 以内，或者上一次压缩之后只多了很少的内容</li>
+</ul>
+<p>自动压缩遇到这种情况时什么事件都不发；手动压缩报 1.5 节的两种错误。</p>
+<h3 id="26-一条不留">
+<a class="header-anchor" href="#26-%e4%b8%80%e6%9d%a1%e4%b8%8d%e7%95%99"></a>
+2.6 一条不留
+</h3><p>压缩条目的 <code>firstKeptEntryId</code> 等于它自己的 id 时，压缩之前的条目一条也不保留（第六章 4.2 节）。pi 自己的压缩不会产生这种条目，因为切点总有一个。它只来自扩展在回合边界提交的 <code>compaction</code> 草稿：草稿的 <code>firstKeptEntryId</code> 可以是 <code>null</code>，<code>appendCompaction</code> 把 <code>null</code> 换成新条目自己的 id（5.4 节）。</p>
+<p>另外，如果 <code>firstKeptEntryId</code> 指向一个不在当前分支上的条目，投影时找不到它，效果和一条不留一样。<code>appendCompaction</code> 不检查这个 id。</p>
+<hr>
+<h2 id="3--摘要怎么生成">
+<a class="header-anchor" href="#3--%e6%91%98%e8%a6%81%e6%80%8e%e4%b9%88%e7%94%9f%e6%88%90"></a>
+3 · 摘要怎么生成
+</h2><p><img src="/images/harness/pi/ch07/fig3-request.png" alt="图 3 · 摘要请求的组成"></p>
+<h3 id="31-请求的组成">
+<a class="header-anchor" href="#31-%e8%af%b7%e6%b1%82%e7%9a%84%e7%bb%84%e6%88%90"></a>
+3.1 请求的组成
+</h3><p>一次摘要请求只有两条消息。system 消息是固定的 <code>SUMMARIZATION_SYSTEM_PROMPT</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">You are a context summarization assistant. Your task is to read a conversation between a user and an AI assistant, then produce a structured summary following the exact format specified.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Do NOT continue the conversation. Do NOT respond to any questions in the conversation. ONLY output the structured summary.
+</span></span></code></pre></div><p>user 消息由三部分拼成：</p>
+<ol>
+<li><strong><code>&lt;conversation&gt;</code></strong>：要总结的消息先经过 <code>convertToLlm</code>（把自定义消息转成 user 消息），再由 <code>serializeConversation</code>（把消息写成纯文本）写成下面这种格式。写成纯文本是为了不让模型把它当成一段要接着往下说的对话。工具结果只保留前 2000 个字符，后面加一句 <code>[... N more characters truncated]</code>。
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">[User]: u1 please write notes.md
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">[Assistant tool calls]: write(path=&#34;notes.md&#34;, content=&#34;hello&#34;)
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">[Tool result]: Successfully wrote to notes.md
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">[Assistant]: wrote notes
+</span></span></code></pre></div>以上取自探针 P2。另有 <code>[Assistant thinking]:</code> 一种，用来放思考内容。</li>
+<li><strong><code>&lt;previous-summary&gt;</code></strong>：上一次压缩的摘要，有才加（3.2 节）。</li>
+<li><strong>指令</strong>：第一次压缩用 <code>SUMMARIZATION_PROMPT</code>，原文是：</li>
+</ol>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">The messages above are a conversation to summarize. Create a structured context checkpoint summary that another LLM will use to continue the work.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Use this EXACT format:
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Goal
+</span></span><span class="line"><span class="cl">[What is the user trying to accomplish? Can be multiple items if the session covers different tasks.]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Constraints &amp; Preferences
+</span></span><span class="line"><span class="cl">- [Any constraints, preferences, or requirements mentioned by user]
+</span></span><span class="line"><span class="cl">- [Or &#34;(none)&#34; if none were mentioned]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Progress
+</span></span><span class="line"><span class="cl">### Done
+</span></span><span class="line"><span class="cl">- [x] [Completed tasks/changes]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">### In Progress
+</span></span><span class="line"><span class="cl">- [ ] [Current work]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">### Blocked
+</span></span><span class="line"><span class="cl">- [Issues preventing progress, if any]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Key Decisions
+</span></span><span class="line"><span class="cl">- **[Decision]**: [Brief rationale]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Next Steps
+</span></span><span class="line"><span class="cl">1. [Ordered list of what should happen next]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Critical Context
+</span></span><span class="line"><span class="cl">- [Any data, examples, or references needed to continue]
+</span></span><span class="line"><span class="cl">- [Or &#34;(none)&#34; if not applicable]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Keep each section concise. Preserve exact file paths, function names, and error messages.
+</span></span></code></pre></div><p><code>/compact</code> 后面带的说明追加在指令末尾，形式是 <code>Additional focus: &lt;说明&gt;</code>。探针 P4 用 <code>/compact focus on the x characters</code> 的等价调用，请求末尾是 <code>…error messages.\n\nAdditional focus: focus on the x characters</code>。自动压缩没有这一段。</p>
+<h3 id="32-增量摘要">
+<a class="header-anchor" href="#32-%e5%a2%9e%e9%87%8f%e6%91%98%e8%a6%81"></a>
+3.2 增量摘要
+</h3><p>上一个压缩条目存在时，它的 <code>summary</code> 作为 <code>previousSummary</code> 带进这一次：放在 <code>&lt;previous-summary&gt;</code> 里，指令换成 <code>UPDATE_SUMMARIZATION_PROMPT</code>。开头两段是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">The messages above are NEW conversation messages to incorporate into the existing summary provided in &lt;previous-summary&gt; tags.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Update the existing structured summary with new information. RULES:
+</span></span><span class="line"><span class="cl">- PRESERVE all existing information from the previous summary
+</span></span><span class="line"><span class="cl">- ADD new progress, decisions, and context from the new messages
+</span></span><span class="line"><span class="cl">- UPDATE the Progress section: move items from &#34;In Progress&#34; to &#34;Done&#34; when completed
+</span></span><span class="line"><span class="cl">- UPDATE &#34;Next Steps&#34; based on what was accomplished
+</span></span><span class="line"><span class="cl">- PRESERVE exact file paths, function names, and error messages
+</span></span><span class="line"><span class="cl">- If something is no longer relevant, you may remove it
+</span></span></code></pre></div><p>后面是同样的六个小节，大多数小节的占位说明改成了&quot;保留原有的，再补上新的&quot;；In Progress、Blocked、Next Steps 改成按进展更新、已解决的删掉。</p>
+<p>探针 P1 连续压缩了三次。第二次请求的 <code>&lt;conversation&gt;</code> 里只有 <code>u3</code> 和 <code>a3</code>，正是第一次压缩保留下来的那段原文，<code>&lt;previous-summary&gt;</code> 里是第一次的摘要。每次压缩都在上一次的摘要之上更新，而不是把整个历史重新总结一遍；上一次保留的原文在这一次进入总结。</p>
+<h3 id="33-回合前缀">
+<a class="header-anchor" href="#33-%e5%9b%9e%e5%90%88%e5%89%8d%e7%bc%80"></a>
+3.3 回合前缀
+</h3><p>切在回合中间时（2.3 节），历史和回合前缀各发一次请求：</p>
+<ul>
+<li>历史部分照常用 3.1、3.2 节的格式。历史为空时不发请求，用上一次的摘要代替；连上一次的摘要也没有时，写 <code>No prior history.</code>。</li>
+<li>回合前缀用另一种格式：<code># Conversation</code> 下面是序列化的消息，<code># Instructions</code> 下面是 <code>TURN_PREFIX_SUMMARIZATION_PROMPT</code>：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">The messages above are earlier context from an ongoing conversation. Later messages are stored separately and do not need to be reconstructed.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Create a concise checkpoint of the user&#39;s request and the progress shown above. This checkpoint will be placed before the later messages so the conversation can continue with the necessary context.
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Original Request
+</span></span><span class="line"><span class="cl">[What did the user ask for?]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Progress So Far
+</span></span><span class="line"><span class="cl">- [Key decisions and work completed in these messages]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">## Context Needed to Continue
+</span></span><span class="line"><span class="cl">- [Information from these messages needed to understand the later work]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">Only summarize information explicitly present above. Do not infer or recreate later messages.
+</span></span></code></pre></div><p>两份结果用一条分隔线拼起来：<code>&lt;历史摘要&gt;\n\n---\n\n**Turn Context (split turn):**\n\n&lt;回合前缀摘要&gt;</code>。探针 P2 的第一个压缩条目就是这种形状。</p>
+<h3 id="34-模型和请求选项">
+<a class="header-anchor" href="#34-%e6%a8%a1%e5%9e%8b%e5%92%8c%e8%af%b7%e6%b1%82%e9%80%89%e9%a1%b9"></a>
+3.4 模型和请求选项
+</h3><ul>
+<li><strong>模型</strong>：当前选中的模型。选中的是虚拟模型时，先以 <code>reason: &quot;direct&quot;</code> 路由一次，用路由到的具体模型。思考级别沿用当前设置，模型支持推理且级别不是 <code>off</code> 时才传。</li>
+<li><strong>输出上限</strong>：<code>min(⌊0.8 × reserveTokens⌋, model.maxTokens)</code>；回合前缀用 0.5。探针里 <code>reserveTokens</code> 是 2000，两种请求的 <code>maxTokens</code> 分别是 1600 和 1000。</li>
+<li><strong>缓存</strong>：<code>cacheRetention: &quot;none&quot;</code>，<code>sessionId</code> 换成一个新的 uuidv7。一次性的摘要请求不值得写缓存，也不应该占用会话的缓存路由。coding-agent 的缓存预热只认会话自己的 <code>sessionId</code>，所以摘要请求不会触发预热。</li>
+<li><strong>发送方式</strong>：<code>completeSummarization</code>（所有摘要请求共用的发送函数）优先用传进来的 <code>streamFn</code> 发请求再取最终结果，没有时才用 pi-ai 的 <code>completeSimple</code>（发一次请求、等完整回复）。<code>AgentSession</code> 总是传 <code>Agent</code> 的 <code>streamFunction</code>，和普通请求走同一个发送函数；API key 和请求头由 <code>_getSummarizationRequestAuth</code>（为摘要请求取模型和凭据）单独取一次。</li>
+<li><strong>不带工具</strong>：请求里没有工具声明。</li>
+<li><strong>不经过 <code>agentLoop</code></strong>：不发消息事件，不写进会话，扩展的 <code>context</code> 事件也不参与。探针 P7 跑了三次普通请求和一次摘要请求，<code>context</code> 事件只触发了三次。</li>
+</ul>
+<h3 id="35-检查回复">
+<a class="header-anchor" href="#35-%e6%a3%80%e6%9f%a5%e5%9b%9e%e5%a4%8d"></a>
+3.5 检查回复
+</h3><p>回复有以下任一情况都算失败，不写入任何条目：</p>
+<ul>
+<li><code>stopReason</code> 是 <code>error</code></li>
+<li><code>stopReason</code> 是 <code>length</code>：摘要被截断，不完整</li>
+<li>回复里有工具调用</li>
+</ul>
+<p>失败时报错：前两种的错误信息以 <code>Summarization failed:</code> 或 <code>Turn prefix summarization failed:</code> 开头，含工具调用时是 <code>Summarization attempted to call a tool</code>（回合前缀请求是 <code>Turn prefix summarization attempted to call a tool</code>），交给第 4 节的流程处理。</p>
+<h3 id="36-文件列表">
+<a class="header-anchor" href="#36-%e6%96%87%e4%bb%b6%e5%88%97%e8%a1%a8"></a>
+3.6 文件列表
+</h3><p>摘要文本后面还要附上两份文件列表，同样的内容也存进条目的 <code>details</code>：</p>
+<ul>
+<li>
+<p><strong>从工具调用里收集</strong>：<code>read</code>、<code>write</code>、<code>edit</code> 三个工具，取参数里的 <code>path</code>。codemode 脚本里嵌套的调用记在工具结果的 <code>nestedCalls</code> 上（第五章 5.4 节），也一起收集。工具名必须正好是这三个，其他工具（比如 <code>bash</code>）里碰到的文件不算。</p>
+</li>
+<li>
+<p><strong>从上一个压缩条目继承</strong>：上一个条目的 <code>details.readFiles</code>、<code>details.modifiedFiles</code> 并进来。只继承 pi 自己生成的条目，<code>fromHook</code> 为真的不继承。</p>
+</li>
+<li>
+<p><strong>分类</strong>：写过或改过的进 <code>modifiedFiles</code>；只读过、没改过的进 <code>readFiles</code>。两份都按字母排序。</p>
+</li>
+<li>
+<p><strong>附在摘要后面</strong>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&lt;read-files&gt;
+</span></span><span class="line"><span class="cl">a.txt
+</span></span><span class="line"><span class="cl">&lt;/read-files&gt;
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&lt;modified-files&gt;
+</span></span><span class="line"><span class="cl">notes.md
+</span></span><span class="line"><span class="cl">&lt;/modified-files&gt;
+</span></span></code></pre></div></li>
+</ul>
+<p>只统计要总结的消息，保留区间里的不算。探针 P2 里：</p>
+<ul>
+<li>第一次压缩时，<code>b.txt</code> 的读取还在保留区间里，<code>readFiles</code> 只有 <code>a.txt</code>。</li>
+<li>第二次压缩时，<code>b.txt</code> 进入总结，列表变成 <code>a.txt</code>、<code>b.txt</code>。<code>a.txt</code> 是从上一个条目继承来的。</li>
+</ul>
+<h3 id="37-写入">
+<a class="header-anchor" href="#37-%e5%86%99%e5%85%a5"></a>
+3.7 写入
+</h3><p>摘要生成后：</p>
+<ol>
+<li>再检查一次中止信号。</li>
+<li><code>appendCompaction</code> 写入条目：<code>summary</code>（摘要文本）、<code>firstKeptEntryId</code>（切点）、<code>tokensBefore</code>（压缩前的大小）、<code>details</code>（文件列表）、<code>usage</code>（摘要请求的用量）、<code>fromHook</code>（是否来自扩展），以及当时完整的 system 消息作为检查点（第六章 4.2 节）。</li>
+<li><code>_refreshFinalizedContext</code> 用新的投影覆盖 <code>agent.state.messages</code>。</li>
+<li>发 <code>session_compact</code> 给扩展，再发 <code>compaction_end</code> 给会话的订阅者。</li>
+</ol>
+<p>下一次请求时，摘要变成一条 user 消息：开头是 <code>COMPACTION_SUMMARY_PREFIX</code>，即 <code>The conversation history before this point was compacted into the following summary:</code> 加上换行和 <code>&lt;summary&gt;</code>，然后是摘要，最后以 <code>&lt;/summary&gt;</code> 结尾（第二章 3.2 节）。</p>
+<hr>
+<h2 id="4--失败中止与重试">
+<a class="header-anchor" href="#4--%e5%a4%b1%e8%b4%a5%e4%b8%ad%e6%ad%a2%e4%b8%8e%e9%87%8d%e8%af%95"></a>
+4 · 失败、中止与重试
+</h2><h3 id="41-事件">
+<a class="header-anchor" href="#41-%e4%ba%8b%e4%bb%b6"></a>
+4.1 事件
+</h3><table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>发给</th>
+					<th>字段</th>
+					<th>什么时候</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>compaction_start</code></td>
+					<td>会话订阅者</td>
+					<td><code>reason</code></td>
+					<td>开始压缩</td>
+			</tr>
+			<tr>
+					<td><code>compaction_end</code></td>
+					<td>会话订阅者</td>
+					<td><code>reason</code>、<code>result</code>、<code>aborted</code>、<code>willRetry</code>、<code>errorMessage?</code></td>
+					<td>结束，成功或失败</td>
+			</tr>
+			<tr>
+					<td><code>summarization_retry_scheduled</code></td>
+					<td>会话订阅者</td>
+					<td><code>attempt</code>、<code>maxAttempts</code>、<code>delayMs</code>、<code>errorMessage</code></td>
+					<td>摘要请求失败，排了一次重试</td>
+			</tr>
+			<tr>
+					<td><code>summarization_retry_attempt_start</code></td>
+					<td>会话订阅者</td>
+					<td><code>source</code>（<code>compaction</code> 时还有 <code>reason</code>）</td>
+					<td>等待结束，重发</td>
+			</tr>
+			<tr>
+					<td><code>summarization_retry_finished</code></td>
+					<td>会话订阅者</td>
+					<td>无</td>
+					<td>重试序列结束</td>
+			</tr>
+			<tr>
+					<td><code>session_compact</code></td>
+					<td>扩展</td>
+					<td><code>compactionEntry</code>、<code>fromExtension</code>、<code>reason</code>、<code>willRetry</code></td>
+					<td>条目写入之后</td>
+			</tr>
+			<tr>
+					<td><code>session_compact_failed</code></td>
+					<td>扩展</td>
+					<td><code>reason</code>、<code>errorMessage?</code>、<code>aborted</code>、<code>willRetry</code>、<code>fromExtension</code></td>
+					<td>失败、取消或中止</td>
+			</tr>
+	</tbody>
+</table>
+<p><code>compaction_end</code> 的几种结果：</p>
+<ul>
+<li><strong>成功</strong>：<code>result</code> 是 <code>CompactionResult</code>，包含 <code>summary</code>（摘要）、<code>firstKeptEntryId</code>（切点）、<code>tokensBefore</code>（压缩前大小）、<code>estimatedTokensAfter</code>（压缩后估算）、<code>usage</code>（用量）、<code>details</code>（文件列表），<code>aborted</code> 为假。</li>
+<li><strong>失败</strong>：<code>result</code> 为空，<code>errorMessage</code> 按来源加前缀：自动的阈值压缩是 <code>Auto-compaction failed: …</code>，溢出恢复是 <code>Context overflow recovery failed: …</code>，手动是 <code>Compaction failed: …</code>。</li>
+<li><strong>取消或中止</strong>：<code>aborted</code> 为真，没有 <code>errorMessage</code>。扩展取消（5.1 节）也算这一种。</li>
+<li><strong><code>willRetry</code></strong>：溢出压缩时，失败的回复是报错或截断就为真，表示这条回复已被隐藏、按计划要重试；任何失败时都为假。在 ④ 里为真时，运行确实会重试；在 ① 里同样为真，但新提示词会取代这次重试，不会接着重发。</li>
+</ul>
+<h3 id="42-失败之后">
+<a class="header-anchor" href="#42-%e5%a4%b1%e8%b4%a5%e4%b9%8b%e5%90%8e"></a>
+4.2 失败之后
+</h3><ul>
+<li>自动压缩失败只发事件，不抛错。② 和 ③ 失败时，运行带着原来的上下文继续，下一个检查点还会再试。④ 发生在运行结束之后：溢出恢复失败时不会重试，被隐藏的失败回复也保持隐藏。</li>
+<li>手动压缩失败在发完事件后把错误抛给调用者。交互界面的 <code>/compact</code> 吞掉这个错误，只靠事件显示。</li>
+</ul>
+<h3 id="43-摘要请求的重试">
+<a class="header-anchor" href="#43-%e6%91%98%e8%a6%81%e8%af%b7%e6%b1%82%e7%9a%84%e9%87%8d%e8%af%95"></a>
+4.3 摘要请求的重试
+</h3><p>摘要请求用 pi-ai 的 <code>retryAssistantCall</code>（第四章 5.3 节的消息级重试），复用 coding-agent 的 <code>retry</code> 设置，和普通回复的自动重试共用同一套参数：</p>
+<table>
+	<thead>
+			<tr>
+					<th>设置</th>
+					<th>默认值</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>retry.enabled</code></td>
+					<td><code>true</code></td>
+			</tr>
+			<tr>
+					<td><code>retry.maxRetries</code></td>
+					<td>3</td>
+			</tr>
+			<tr>
+					<td><code>retry.baseDelayMs</code></td>
+					<td>2000，每次翻倍</td>
+			</tr>
+			<tr>
+					<td><code>retry.maxAgentDelayMs</code></td>
+					<td>60000，单次等待的上限</td>
+			</tr>
+	</tbody>
+</table>
+<p>只有过载、5xx 这类可重试的错误才会重试；被中止的回复和不可重试的错误立即返回。探针 P4 让第一次摘要请求返回 <code>529 overloaded_error: Overloaded</code>，时间线节选如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">event compaction_start reason=threshold
+</span></span><span class="line"><span class="cl">REQUEST #3 [summary]
+</span></span><span class="line"><span class="cl">event summarization_retry_scheduled {&#34;attempt&#34;:1,&#34;maxAttempts&#34;:2,&#34;delayMs&#34;:10,&#34;errorMessage&#34;:&#34;529 overloaded_error: Overloaded&#34;}
+</span></span><span class="line"><span class="cl">event summarization_retry_attempt_start {&#34;source&#34;:&#34;compaction&#34;,&#34;reason&#34;:&#34;threshold&#34;}
+</span></span><span class="line"><span class="cl">REQUEST #4 [summary]
+</span></span><span class="line"><span class="cl">event summarization_retry_finished {}
+</span></span><span class="line"><span class="cl">event compaction_end reason=threshold aborted=false willRetry=false …
+</span></span></code></pre></div><p>（探针把 <code>maxRetries</code> 设成 2，<code>baseDelayMs</code> 设成 10。）</p>
+<h3 id="44-中止">
+<a class="header-anchor" href="#44-%e4%b8%ad%e6%ad%a2"></a>
+4.4 中止
+</h3><ul>
+<li><code>abortCompaction()</code>（中止正在进行的压缩）同时中止手动和自动压缩。交互界面里，压缩进行中按 Esc 调用的就是它。</li>
+<li><code>session.abort()</code>（中止当前运行）和 <code>dispose()</code>（释放会话）也会顺带调用它。</li>
+<li>中止后，摘要请求以 <code>aborted</code> 结束，pi 在写入前检查到信号，按&quot;取消&quot;处理：不写条目，<code>compaction_end</code> 的 <code>aborted</code> 为真。</li>
+</ul>
+<p>探针 P4 在一次手动压缩进行中调用 <code>abortCompaction()</code>：<code>compact()</code> 以 <code>Compaction cancelled</code> 拒绝，事件是 <code>compaction_end reason=manual aborted=true</code>。</p>
+<hr>
+<h2 id="5--扩展怎么插手">
+<a class="header-anchor" href="#5--%e6%89%a9%e5%b1%95%e6%80%8e%e4%b9%88%e6%8f%92%e6%89%8b"></a>
+5 · 扩展怎么插手
+</h2><p><img src="/images/harness/pi/ch07/fig4-extensions.png" alt="图 4 · 扩展能插手的地方"></p>
+<p>手动压缩和自动压缩共用一条流水线：<code>prepareCompaction</code> → <code>session_before_compact</code> → 默认摘要 → <code>appendCompaction</code> → <code>session_compact</code>。扩展有三种方式插手。</p>
+<h3 id="51-session_before_compact取消或接管">
+<a class="header-anchor" href="#51-session_before_compact%e5%8f%96%e6%b6%88%e6%88%96%e6%8e%a5%e7%ae%a1"></a>
+5.1 session_before_compact：取消或接管
+</h3><p>事件字段：</p>
+<ul>
+<li><code>preparation</code>：<code>prepareCompaction</code> 的结果，包括 <code>firstKeptEntryId</code>（切点）、<code>messagesToSummarize</code>（历史）、<code>turnPrefixMessages</code>（回合前缀）、<code>isSplitTurn</code>（是否切在回合中间）、<code>tokensBefore</code>（压缩前大小）、<code>previousSummary</code>（上一份摘要）、<code>fileOps</code>（三个集合：read、written、edited）、<code>settings</code>（这次用的压缩设置）</li>
+<li><code>branchEntries</code>：当前分支的全部条目</li>
+<li><code>customInstructions</code>：<code>/compact</code> 的说明，自动压缩时为空</li>
+<li><code>reason</code>、<code>willRetry</code>：同第 4 节</li>
+<li><code>signal</code>：中止信号</li>
+</ul>
+<p>返回值有两种用法：</p>
+<ul>
+<li><code>{ cancel: true }</code>：取消这次压缩，按&quot;取消&quot;处理（4.1 节）。探针 P5 里，扩展取消了一次阈值压缩，事件是 <code>compaction_end reason=threshold aborted=true</code>，接着扩展收到 <code>session_compact_failed</code>，其中 <code>aborted</code> 为真。</li>
+<li><code>{ compaction: { summary, firstKeptEntryId, tokensBefore, details?, usage? } }</code>：跳过 pi 自己的摘要，直接用这份内容写条目，条目的 <code>fromHook</code> 为真。</li>
+</ul>
+<p>几条规则：</p>
+<ul>
+<li><strong>多个扩展都处理这个事件时</strong>，第一个返回 <code>cancel</code> 的立刻生效；否则以最后一个返回值为真的为准。返回 <code>{}</code> 也算，会把前面扩展给的 <code>compaction</code> 覆盖掉，结果是 pi 自己生成摘要。处理函数抛出的异常只报告，不中断，继续交给下一个扩展。</li>
+<li><strong>pi 不校验扩展给的内容</strong>：<code>firstKeptEntryId</code> 不检查是否在当前分支上（不在时效果是一条不留，2.6 节），<code>tokensBefore</code> 原样写入。最稳妥的做法是直接沿用 <code>preparation</code> 里的这两个值。</li>
+<li><strong><code>fromHook</code> 的条目不继承文件列表</strong>：下一次由 pi 生成摘要时，不会从它的 <code>details</code> 里取文件列表（3.6 节）。探针 P5 里，扩展接管了两次自动压缩之后，再用 <code>/compact</code> 让 pi 自己总结，新条目的 <code>details</code> 是两个空列表。扩展的摘要仍会作为 <code>previousSummary</code> 带进去，所以如果扩展在摘要文本里写了文件，这些信息还能保留下来。</li>
+</ul>
+<h3 id="52-session_compact-和-session_compact_failed">
+<a class="header-anchor" href="#52-session_compact-%e5%92%8c-session_compact_failed"></a>
+5.2 session_compact 和 session_compact_failed
+</h3><p>两者都只是通知，返回值不起作用：</p>
+<ul>
+<li><code>session_compact</code> 带着刚写入的条目，<code>fromExtension</code> 表示摘要是否来自扩展。</li>
+<li><code>session_compact_failed</code> 在压缩失败、被取消或被中止时发出。自动压缩在 <code>prepareCompaction</code> 返回空时没有开始，不发这个事件。</li>
+</ul>
+<h3 id="53-ctxcompact从扩展发起">
+<a class="header-anchor" href="#53-ctxcompact%e4%bb%8e%e6%89%a9%e5%b1%95%e5%8f%91%e8%b5%b7"></a>
+5.3 ctx.compact()：从扩展发起
+</h3><p><code>ctx.compact({ customInstructions, onComplete, onError })</code> 发起一次手动压缩，调用后立即返回，结果通过回调交回。它走的是 <code>AgentSession.compact()</code>，所以会先中止当前运行。示例扩展 <code>trigger-compact.ts</code> 在 <code>turn_end</code> 里检查用量，用量从 100000 token 以下涨过这条线的那一轮调用它。在 <code>turn_end</code> 里调用时，当前运行同样会被中止。</p>
+<h3 id="54-回合边界的-compaction-草稿">
+<a class="header-anchor" href="#54-%e5%9b%9e%e5%90%88%e8%be%b9%e7%95%8c%e7%9a%84-compaction-%e8%8d%89%e7%a8%bf"></a>
+5.4 回合边界的 compaction 草稿
+</h3><p>第六章 7.2 节讲过，<code>turn_end</code> 和 <code>agent_before_settle</code> 的处理函数可以返回条目草稿，其中一种是 <code>compaction</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="p">{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;compaction&#34;</span><span class="p">,</span> <span class="nx">summary</span>: <span class="kt">string</span><span class="p">,</span> <span class="nx">firstKeptEntryId</span>: <span class="kt">string</span> <span class="o">|</span> <span class="kc">null</span><span class="p">,</span> <span class="nx">details?</span>: <span class="kt">unknown</span><span class="p">,</span> <span class="nx">usage?</span>: <span class="kt">Usage</span> <span class="p">}</span>
+</span></span></code></pre></div><p>它和上面的流水线完全分开：</p>
+<ul>
+<li>草稿在内存里预览合法后，直接调用 <code>appendCompaction</code> 写入，<code>fromHook</code> 固定为真。</li>
+<li><code>tokensBefore</code> 由 pi 用 <code>estimateProjectedContextTokens</code> 估算，草稿里不能指定。</li>
+<li><code>firstKeptEntryId</code> 可以是 <code>null</code>，表示一条不留（2.6 节）。</li>
+<li>不发 <code>compaction_start</code> / <code>compaction_end</code>，也不触发 <code>session_before_compact</code> / <code>session_compact</code>，只发 <code>entry_appended</code>。</li>
+</ul>
+<p>探针 P5 在第二轮的 <code>turn_end</code> 返回一个 <code>firstKeptEntryId: null</code> 的草稿。写入的条目 <code>firstKeptEntryId</code> 等于自己的 id，下一次请求只剩 system、摘要和新的 user 消息三条；整个过程中只出现了一次 <code>entry_appended compaction</code>。</p>
+<h3 id="55-只影响一次请求的改写">
+<a class="header-anchor" href="#55-%e5%8f%aa%e5%bd%b1%e5%93%8d%e4%b8%80%e6%ac%a1%e8%af%b7%e6%b1%82%e7%9a%84%e6%94%b9%e5%86%99"></a>
+5.5 只影响一次请求的改写
+</h3><p><code>context</code> 和 <code>context_with_system</code> 事件（第六章 5.1 节）只改写一次请求要发出的消息，不写会话。压缩读的是会话树，所以这两个事件改不了压缩的输入，摘要请求本身也不经过它们（3.4 节）。</p>
+<hr>
+<h2 id="6--分支摘要tree-的另一种摘要">
+<a class="header-anchor" href="#6--%e5%88%86%e6%94%af%e6%91%98%e8%a6%81tree-%e7%9a%84%e5%8f%a6%e4%b8%80%e7%a7%8d%e6%91%98%e8%a6%81"></a>
+6 · 分支摘要：/tree 的另一种摘要
+</h2><p><img src="/images/harness/pi/ch07/fig5-branch.png" alt="图 5 · 两种摘要在会话树上的位置"></p>
+<h3 id="61-流程">
+<a class="header-anchor" href="#61-%e6%b5%81%e7%a8%8b"></a>
+6.1 流程
+</h3><p>在 <code>/tree</code> 里选一个位置时，交互界面会问 <code>Summarize branch?</code>，选项有 <code>No summary</code>、<code>Summarize</code>、<code>Summarize with custom prompt</code>。设置 <code>branchSummary.skipPrompt</code> 为真时不问，默认不总结。之后 <code>navigateTree</code> 依次：</p>
+<ol>
+<li><strong>收集</strong>：<code>collectEntriesForBranchSummary</code> 找出旧 leaf 和目标位置最深的共同祖先，收集从旧 leaf 往回走到共同祖先之前的全部条目。</li>
+<li><strong>扩展</strong>：发 <code>session_before_tree</code>。扩展可以取消导航，可以提供自己的摘要（用户选了总结时才用），也可以改写 <code>customInstructions</code>（额外说明）、<code>replaceInstructions</code>（是否整个替换默认指令）、<code>label</code>（给条目加的标签）。</li>
+<li><strong>生成</strong>：<code>generateBranchSummary</code> 发一次摘要请求。</li>
+<li><strong>写入</strong>：<code>branchWithSummary</code> 在新 leaf 的位置写一条 <code>branch_summary</code>，<code>fromId</code> 记下离开时的 leaf（第六章 3.1 节）。</li>
+<li><strong>通知</strong>：发 <code>session_tree</code>。</li>
+</ol>
+<p>图 5 右侧是探针 P6：</p>
+<ul>
+<li>选中的是 user 消息 <code>u2</code>，所以共同祖先就是 <code>u2</code>，收集的是它后面那几个条目，<code>u2</code> 本身不在其中。</li>
+<li>新 leaf 是 <code>u2</code> 的父节点 <code>a1</code>，<code>u2</code> 的原文回到输入框。</li>
+<li>摘要条目挂在 <code>a1</code> 下面，下一次请求是 <code>u1 · a1 · 分支摘要 · u3</code>。</li>
+</ul>
+<h3 id="62-和压缩的异同">
+<a class="header-anchor" href="#62-%e5%92%8c%e5%8e%8b%e7%bc%a9%e7%9a%84%e5%bc%82%e5%90%8c"></a>
+6.2 和压缩的异同
+</h3><p>相同点：</p>
+<ul>
+<li>system 消息同是 <code>SUMMARIZATION_SYSTEM_PROMPT</code>，对话同样用 <code>&lt;conversation&gt;</code> 包住序列化后的纯文本</li>
+<li>同样走 <code>completeSummarization</code>：<code>cacheRetention: &quot;none&quot;</code>、新的 <code>sessionId</code>、不带工具，同样复用 <code>retry</code> 设置</li>
+<li>文件列表的格式相同，同样从 assistant 的 <code>read</code>、<code>write</code>、<code>edit</code> 调用里收集</li>
+<li>回复是 <code>error</code>、<code>length</code> 或含工具调用时同样不写入</li>
+</ul>
+<p>不同点：</p>
+<table>
+	<thead>
+			<tr>
+					<th></th>
+					<th>压缩</th>
+					<th>分支摘要</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>总结什么</td>
+					<td>当前分支切点之前的部分</td>
+					<td>离开的那段分支</td>
+			</tr>
+			<tr>
+					<td>消息来源</td>
+					<td>投影：<code>context_edit</code> 生效</td>
+					<td>原始条目：<code>context_edit</code> 不生效</td>
+			</tr>
+			<tr>
+					<td>工具结果</td>
+					<td>序列化时截到 2000 字符</td>
+					<td>整条丢掉，只留 assistant 里的调用</td>
+			</tr>
+			<tr>
+					<td>预算</td>
+					<td>往回保留 <code>keepRecentTokens</code>，其余全部总结</td>
+					<td>从最新的往回装，最多装 <code>contextWindow − branchSummary.reserveTokens</code>（默认 16384）</td>
+			</tr>
+			<tr>
+					<td>指令</td>
+					<td><code>SUMMARIZATION_PROMPT</code> 或 <code>UPDATE_…</code>，六个小节</td>
+					<td><code>BRANCH_SUMMARY_PROMPT</code>，五个小节，没有 Critical Context</td>
+			</tr>
+			<tr>
+					<td>增量</td>
+					<td>有 <code>&lt;previous-summary&gt;</code></td>
+					<td>没有；路径上的旧摘要作为普通消息放进 <code>&lt;conversation&gt;</code></td>
+			</tr>
+			<tr>
+					<td>自定义说明</td>
+					<td>只能追加</td>
+					<td>可以追加，也可以 <code>replaceInstructions</code> 整个替换</td>
+			</tr>
+			<tr>
+					<td>思考级别</td>
+					<td>模型支持推理时沿用当前级别</td>
+					<td>不传</td>
+			</tr>
+			<tr>
+					<td>文件列表</td>
+					<td>也收集 codemode 的 <code>nestedCalls</code>；继承上一个压缩条目</td>
+					<td>工具结果整条丢掉，收不到 <code>nestedCalls</code>；只继承路径上 <code>fromHook</code> 为假的旧分支摘要</td>
+			</tr>
+			<tr>
+					<td>输出上限</td>
+					<td><code>min(⌊0.8 × reserveTokens⌋, model.maxTokens)</code></td>
+					<td><code>min(4096, model.maxTokens)</code></td>
+			</tr>
+			<tr>
+					<td>写在哪</td>
+					<td>当前 leaf 下</td>
+					<td>新 leaf（目标位置）下</td>
+			</tr>
+			<tr>
+					<td>事件</td>
+					<td><code>compaction_start</code> / <code>end</code></td>
+					<td>没有开始和结束事件；重试时同样发 <code>summarization_retry_*</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>几点补充：</p>
+<ul>
+<li>探针 P6 在离开前给 <code>a2</code> 追加了一条 <code>context_edit</code>，把内容换成 <code>a2-EDITED</code>；分支摘要请求里出现的仍是原文 <code>a2-original</code>。</li>
+<li>预算装不下时，从最新的往旧的装，装满即停。停下的那一条如果是旧的压缩条目或分支摘要，只要已装的还不到预算的 90%，就把它也装进去。</li>
+<li>分支摘要的文本前面会加一段固定的开头：<code>The user explored a different conversation branch before returning here.\nSummary of that exploration:</code>。投影时它再被包一层：前面是 <code>BRANCH_SUMMARY_PREFIX</code>（<code>The following is a summary of a branch that this conversation came back from:</code> 加上换行和 <code>&lt;summary&gt;</code>），后面是 <code>&lt;/summary&gt;</code>。</li>
+</ul>
+<hr>
+<h2 id="7--用法一个不调用模型的压缩扩展">
+<a class="header-anchor" href="#7--%e7%94%a8%e6%b3%95%e4%b8%80%e4%b8%aa%e4%b8%8d%e8%b0%83%e7%94%a8%e6%a8%a1%e5%9e%8b%e7%9a%84%e5%8e%8b%e7%bc%a9%e6%89%a9%e5%b1%95"></a>
+7 · 用法：一个不调用模型的压缩扩展
+</h2><p>下面这个扩展接管自动压缩：不调用模型，把每次被总结掉的用户请求和文件操作记成一份清单，跨压缩累积。<code>/compact</code> 仍交给 pi 用模型总结。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span> <span class="nx">ExtensionAPI</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">type</span> <span class="nx">Notes</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">requests</span>: <span class="kt">string</span><span class="p">[];</span> <span class="nx">readFiles</span>: <span class="kt">string</span><span class="p">[];</span> <span class="nx">modifiedFiles</span>: <span class="kt">string</span><span class="p">[]</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">textOf</span> <span class="o">=</span> <span class="p">(</span><span class="nx">content</span>: <span class="kt">unknown</span><span class="p">)</span><span class="o">:</span> <span class="kt">string</span> <span class="o">=&gt;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">typeof</span> <span class="nx">content</span> <span class="o">===</span> <span class="s2">&#34;string&#34;</span>
+</span></span><span class="line"><span class="cl">		<span class="o">?</span> <span class="nx">content</span>
+</span></span><span class="line"><span class="cl">		: <span class="kt">Array.isArray</span><span class="p">(</span><span class="nx">content</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="o">?</span> <span class="nx">content</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">block</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">(</span><span class="nx">block</span><span class="o">?</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;text&#34;</span> <span class="o">?</span> <span class="nx">block</span><span class="p">.</span><span class="nx">text</span> <span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">)).</span><span class="nx">join</span><span class="p">(</span><span class="s2">&#34;&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">pi</span>: <span class="kt">ExtensionAPI</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;session_before_compact&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="p">{</span> <span class="nx">preparation</span><span class="p">,</span> <span class="nx">reason</span><span class="p">,</span> <span class="nx">branchEntries</span> <span class="p">}</span> <span class="o">=</span> <span class="nx">event</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="c1">// /compact keeps Pi&#39;s model-written summary; only automatic compaction is replaced.
+</span></span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="nx">reason</span> <span class="o">===</span> <span class="s2">&#34;manual&#34;</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="c1">// Carry the previous notes forward: a fromHook compaction is skipped by Pi&#39;s own file tracking.
+</span></span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">previous</span> <span class="o">=</span> <span class="nx">branchEntries</span><span class="p">.</span><span class="nx">findLast</span><span class="p">((</span><span class="nx">entry</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">entry</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;compaction&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">notes</span>: <span class="kt">Notes</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">requests</span><span class="o">:</span> <span class="p">[],</span> <span class="nx">readFiles</span><span class="o">:</span> <span class="p">[],</span> <span class="nx">modifiedFiles</span><span class="o">:</span> <span class="p">[]</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="nx">previous</span><span class="o">?</span><span class="p">.</span><span class="nx">fromHook</span> <span class="o">&amp;&amp;</span> <span class="nx">previous</span><span class="p">.</span><span class="nx">details</span><span class="p">)</span> <span class="nb">Object</span><span class="p">.</span><span class="nx">assign</span><span class="p">(</span><span class="nx">notes</span><span class="p">,</span> <span class="nx">previous</span><span class="p">.</span><span class="nx">details</span> <span class="kr">as</span> <span class="nx">Notes</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">message</span> <span class="k">of</span> <span class="p">[...</span><span class="nx">preparation</span><span class="p">.</span><span class="nx">messagesToSummarize</span><span class="p">,</span> <span class="p">...</span><span class="nx">preparation</span><span class="p">.</span><span class="nx">turnPrefixMessages</span><span class="p">])</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">(</span><span class="nx">message</span><span class="p">.</span><span class="nx">role</span> <span class="o">===</span> <span class="s2">&#34;user&#34;</span><span class="p">)</span> <span class="nx">notes</span><span class="p">.</span><span class="nx">requests</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">textOf</span><span class="p">(</span><span class="nx">message</span><span class="p">.</span><span class="nx">content</span><span class="p">).</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">200</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">modified</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Set</span><span class="p">([...</span><span class="nx">notes</span><span class="p">.</span><span class="nx">modifiedFiles</span><span class="p">,</span> <span class="p">...</span><span class="nx">preparation</span><span class="p">.</span><span class="nx">fileOps</span><span class="p">.</span><span class="nx">edited</span><span class="p">,</span> <span class="p">...</span><span class="nx">preparation</span><span class="p">.</span><span class="nx">fileOps</span><span class="p">.</span><span class="nx">written</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">read</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Set</span><span class="p">([...</span><span class="nx">notes</span><span class="p">.</span><span class="nx">readFiles</span><span class="p">,</span> <span class="p">...</span><span class="nx">preparation</span><span class="p">.</span><span class="nx">fileOps</span><span class="p">.</span><span class="nx">read</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">notes</span><span class="p">.</span><span class="nx">modifiedFiles</span> <span class="o">=</span> <span class="p">[...</span><span class="nx">modified</span><span class="p">].</span><span class="nx">sort</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">notes</span><span class="p">.</span><span class="nx">readFiles</span> <span class="o">=</span> <span class="p">[...</span><span class="nx">read</span><span class="p">].</span><span class="nx">filter</span><span class="p">((</span><span class="nx">path</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="o">!</span><span class="nx">modified</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">path</span><span class="p">)).</span><span class="nx">sort</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">summary</span> <span class="o">=</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">			<span class="s2">&#34;## User requests so far&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="p">...</span><span class="nx">notes</span><span class="p">.</span><span class="nx">requests</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">request</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="sb">`- </span><span class="si">${</span><span class="nx">request</span><span class="si">}</span><span class="sb">`</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">			<span class="s2">&#34;## Files read&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="p">...</span><span class="nx">notes</span><span class="p">.</span><span class="nx">readFiles</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">path</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="sb">`- </span><span class="si">${</span><span class="nx">path</span><span class="si">}</span><span class="sb">`</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">			<span class="s2">&#34;## Files modified&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="p">...</span><span class="nx">notes</span><span class="p">.</span><span class="nx">modifiedFiles</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">path</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="sb">`- </span><span class="si">${</span><span class="nx">path</span><span class="si">}</span><span class="sb">`</span><span class="p">),</span>
+</span></span><span class="line"><span class="cl">		<span class="p">].</span><span class="nx">join</span><span class="p">(</span><span class="s2">&#34;\n&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">		<span class="nx">ctx</span><span class="p">.</span><span class="nx">ui</span><span class="p">.</span><span class="nx">notify</span><span class="p">(</span><span class="sb">`compacted </span><span class="si">${</span><span class="nx">preparation</span><span class="p">.</span><span class="nx">tokensBefore</span><span class="si">}</span><span class="sb"> tokens without a model call (</span><span class="si">${</span><span class="nx">reason</span><span class="si">}</span><span class="sb">)`</span><span class="p">,</span> <span class="s2">&#34;info&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">compaction</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">summary</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">firstKeptEntryId</span>: <span class="kt">preparation.firstKeptEntryId</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">tokensBefore</span>: <span class="kt">preparation.tokensBefore</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">details</span>: <span class="kt">notes</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">			<span class="p">},</span>
+</span></span><span class="line"><span class="cl">		<span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>这段代码对应前面的几条规则：</p>
+<ul>
+<li><strong><code>firstKeptEntryId</code> 和 <code>tokensBefore</code> 直接用 <code>preparation</code> 里的</strong>：pi 不校验扩展给的值（5.1 节），沿用它算好的切点最稳妥。</li>
+<li><strong>自己继承上一份清单</strong>：<code>fromHook</code> 的条目不会被 pi 的文件追踪继承（3.6 节），所以扩展从 <code>branchEntries</code> 里找到上一个压缩条目，从它的 <code>details</code> 接着往下记。</li>
+<li><strong><code>turnPrefixMessages</code> 也要算进去</strong>：切在回合中间时，回合开头那条 user 消息在回合前缀里（2.3 节）。</li>
+<li><strong><code>reason === &quot;manual&quot;</code> 时返回空</strong>：不返回结果，pi 照常走默认流程。</li>
+</ul>
+<p>这段代码用 <code>tsc --strict</code> 检查过类型（<code>--skipLibCheck</code>，target ES2023）。探针 P5 把它编译成 JavaScript 后，用 faux 供应商跑了十轮对话，第一轮读 <code>a.txt</code>，第三轮改 <code>b.txt</code>：</p>
+<ul>
+<li>第五轮和第九轮之后各触发一次阈值压缩，扩展都接管了。两个条目的 <code>fromHook</code> 为真，第二个条目的清单列出了 u1 到 u8 八条请求，<code>Files read</code> 是 <code>a.txt</code>，<code>Files modified</code> 是 <code>b.txt</code>。</li>
+<li>这两次压缩都没有发出摘要请求。</li>
+<li>最后用 <code>/compact</code> 手动压缩时，扩展让出，pi 发了一次摘要请求，新条目 <code>fromHook</code> 为假，<code>details</code> 是两个空列表（5.1 节）。</li>
+</ul>
+<hr>
+<h2 id="8--三个可以带走的方法">
+<a class="header-anchor" href="#8--%e4%b8%89%e4%b8%aa%e5%8f%af%e4%bb%a5%e5%b8%a6%e8%b5%b0%e7%9a%84%e6%96%b9%e6%b3%95"></a>
+8 · 三个可以带走的方法
+</h2><ol>
+<li><strong>只在固定的位置检查</strong>。上下文大小只在四个确定的时机检查：发送前、路由后、两轮之间、运行结束后。每个检查点都处在两次模型请求之间，这时上下文已经稳定，压缩完可以直接换掉下一次请求的输入，不用打断进行中的流。</li>
+<li><strong>在投影上切，在原文上留</strong>。切点在投影上选，所以编辑过、隐藏过的内容按它们在上下文里的样子计数。条目本身只追加不删，压缩失败时什么都不写，压缩成功也只是多了一个改变投影的条目。</li>
+<li><strong>摘要是滚动的检查点</strong>。每次只总结新增的部分，把上一份摘要作为输入交给模型更新；文件列表这类确定性的信息不交给模型去记，由代码从工具调用里收集、累积，再附在摘要后面。</li>
+</ol>
+<hr>
+<h2 id="9--关键数字">
+<a class="header-anchor" href="#9--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+9 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>数量</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>compaction.ts</code> / <code>branch-summarization.ts</code> / <code>utils.ts</code></td>
+					<td>1119 / 382 / 163 行</td>
+			</tr>
+			<tr>
+					<td><code>reserveTokens</code> / <code>keepRecentTokens</code> 默认值</td>
+					<td>16384 / 20000</td>
+			</tr>
+			<tr>
+					<td><code>branchSummary.reserveTokens</code> 默认值</td>
+					<td>16384</td>
+			</tr>
+			<tr>
+					<td>压缩的 <code>reason</code></td>
+					<td>3 种（manual、threshold、overflow）</td>
+			</tr>
+			<tr>
+					<td>自动检查点</td>
+					<td>4 个</td>
+			</tr>
+			<tr>
+					<td>溢出后压缩重试</td>
+					<td>最多 1 次</td>
+			</tr>
+			<tr>
+					<td>识别溢出报错的正则</td>
+					<td>25 个（另有 Cerebras 一条专门规则、3 个排除限流的正则）</td>
+			</tr>
+			<tr>
+					<td>token 估算</td>
+					<td>字符数 ÷ 4；图片按 4800 字符</td>
+			</tr>
+			<tr>
+					<td>摘要里工具结果保留的字符</td>
+					<td>2000</td>
+			</tr>
+			<tr>
+					<td>摘要输出上限</td>
+					<td>0.8 × reserveTokens；回合前缀 0.5 ×；分支摘要 4096</td>
+			</tr>
+			<tr>
+					<td>摘要请求重试</td>
+					<td>最多 3 次，2 秒起翻倍，单次最长 60 秒</td>
+			</tr>
+			<tr>
+					<td>压缩摘要的小节 / 分支摘要的小节</td>
+					<td>6 / 5</td>
+			</tr>
+			<tr>
+					<td><code>core/compaction/</code> 的提交（北京时间 2026-08-01 至 2026-10-01，不含合并提交）</td>
+					<td>17 次</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="10--术语表">
+<a class="header-anchor" href="#10--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+10 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>含义</th>
+					<th>别和它混淆</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>阈值压缩</strong>（threshold）</td>
+					<td>上下文超过 <code>contextWindow − reserveTokens</code> 时的压缩</td>
+					<td>溢出压缩：供应商已经报错或截断之后的补救</td>
+			</tr>
+			<tr>
+					<td><strong>溢出压缩</strong>（overflow）</td>
+					<td>回复报超长、被截断或 usage 超过窗口之后的压缩，报错和截断时会重试一次</td>
+					<td>普通的自动重试：只处理过载、限流这类错误</td>
+			</tr>
+			<tr>
+					<td><strong>切点</strong></td>
+					<td>保留区间的第一个条目，即 <code>firstKeptEntryId</code></td>
+					<td>回合开头：切点可以落在回合中间</td>
+			</tr>
+			<tr>
+					<td><strong>回合前缀</strong></td>
+					<td>切在回合中间时，这个回合在切点之前的部分，单独总结</td>
+					<td>历史：回合开头之前的全部内容</td>
+			</tr>
+			<tr>
+					<td><strong><code>previousSummary</code></strong></td>
+					<td>上一个压缩条目的摘要，作为增量摘要的输入</td>
+					<td>分支摘要：不走增量，旧摘要只是普通消息</td>
+			</tr>
+			<tr>
+					<td><strong><code>fromHook</code></strong></td>
+					<td>条目的摘要来自扩展</td>
+					<td><code>fromExtension</code>：<code>session_compact</code> 事件里的同一个意思</td>
+			</tr>
+			<tr>
+					<td><strong><code>tokensBefore</code></strong></td>
+					<td>压缩前投影的估算大小</td>
+					<td><code>estimatedTokensAfter</code>：只在事件里，不写进条目</td>
+			</tr>
+			<tr>
+					<td><strong>一条不留</strong>（retain-none）</td>
+					<td><code>firstKeptEntryId</code> 等于压缩条目自己的 id</td>
+					<td>投影找不到切点：效果相同，但通常是 id 写错了</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="11--源码导航">
+<a class="header-anchor" href="#11--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+11 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>阈值、token 估算</td>
+					<td><code>packages/coding-agent/src/core/compaction/compaction.ts</code> → <code>shouldCompact</code>、<code>estimateTokens</code>、<code>estimateContextTokens</code>、<code>estimateProjectedContextTokens</code></td>
+			</tr>
+			<tr>
+					<td>切点</td>
+					<td><code>compaction.ts</code> → <code>prepareCompaction</code>、<code>findProjectedCutPoint</code>（包里另外导出的 <code>findCutPoint</code> 在原始条目上切，<code>AgentSession</code> 不用它）</td>
+			</tr>
+			<tr>
+					<td>提示词、摘要请求</td>
+					<td><code>compaction.ts</code> → <code>SUMMARIZATION_PROMPT</code>、<code>UPDATE_SUMMARIZATION_PROMPT</code>、<code>TURN_PREFIX_SUMMARIZATION_PROMPT</code>、<code>compact</code>、<code>completeSummarization</code></td>
+			</tr>
+			<tr>
+					<td>序列化、文件列表</td>
+					<td><code>packages/coding-agent/src/core/compaction/utils.ts</code> → <code>serializeConversation</code>、<code>extractFileOpsFromMessage</code>、<code>computeFileLists</code>、<code>SUMMARIZATION_SYSTEM_PROMPT</code></td>
+			</tr>
+			<tr>
+					<td>分支摘要</td>
+					<td><code>packages/coding-agent/src/core/compaction/branch-summarization.ts</code></td>
+			</tr>
+			<tr>
+					<td>四个检查点</td>
+					<td><code>packages/coding-agent/src/core/agent-session.ts</code> → <code>prompt</code>、<code>_installAgentRequestProjection</code>、<code>_compactBeforeNextAssistantResponse</code>、<code>_handlePostAgentRun</code>、<code>_checkCompaction</code></td>
+			</tr>
+			<tr>
+					<td>自动和手动压缩</td>
+					<td><code>agent-session.ts</code> → <code>_runAutoCompaction</code>、<code>compact</code>、<code>_runDefaultCompaction</code>、<code>_getSummarizationRequestAuth</code>、<code>abortCompaction</code></td>
+			</tr>
+			<tr>
+					<td>回合边界草稿</td>
+					<td><code>agent-session.ts</code> → <code>_applyBoundaryDrafts</code></td>
+			</tr>
+			<tr>
+					<td>/tree</td>
+					<td><code>agent-session.ts</code> → <code>navigateTree</code></td>
+			</tr>
+			<tr>
+					<td>设置</td>
+					<td><code>packages/coding-agent/src/core/settings-manager.ts</code> → <code>getCompactionSettings</code>、<code>getBranchSummarySettings</code>、<code>getRetrySettings</code></td>
+			</tr>
+			<tr>
+					<td>溢出识别、摘要重试</td>
+					<td><code>packages/ai/src/utils/overflow.ts</code> → <code>isContextOverflow</code>、<code>isRecoverableLength</code>；<code>packages/ai/src/utils/retry.ts</code> → <code>retryAssistantCall</code></td>
+			</tr>
+			<tr>
+					<td>扩展事件类型</td>
+					<td><code>packages/coding-agent/src/core/extensions/types.ts</code> → <code>SessionBeforeCompactEvent</code>、<code>SessionCompactEvent</code>、<code>SessionCompactFailedEvent</code>、<code>CompactionEntryDraft</code>、<code>SessionBeforeTreeEvent</code></td>
+			</tr>
+			<tr>
+					<td>示例</td>
+					<td><code>packages/coding-agent/examples/extensions/custom-compaction.ts</code>、<code>trigger-compact.ts</code></td>
+			</tr>
+			<tr>
+					<td>官方说明</td>
+					<td><code>packages/coding-agent/docs/compaction.md</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>下一章</strong>：上下文工程。看系统提示词由哪些部分拼成、上下文文件和技能怎样进入请求，以及扩展能在请求前改写哪些内容。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/4.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文"
+              class="lazyload"
+            /><a
+          href="/harness/pi/06-session/"
+          aria-label="Prev:Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文"
+          title="Prev:Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 06 · 会话：一条消息怎么存进会话树，又怎么变回上下文</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--什么时候压缩">1 · 什么时候压缩</a>
+      <ul>
+        <li><a href="#11-阈值和设置">1.1 阈值和设置</a></li>
+        <li><a href="#12-四个检查点">1.2 四个检查点</a></li>
+        <li><a href="#13-用什么数-token">1.3 用什么数 token</a></li>
+        <li><a href="#14-溢出压缩后重试一次">1.4 溢出：压缩后重试一次</a></li>
+        <li><a href="#15-手动压缩">1.5 手动压缩</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--切在哪里">2 · 切在哪里</a>
+      <ul>
+        <li><a href="#21-估算-token">2.1 估算 token</a></li>
+        <li><a href="#22-选切点">2.2 选切点</a></li>
+        <li><a href="#23-切在回合中间">2.3 切在回合中间</a></li>
+        <li><a href="#24-写进条目的几个数">2.4 写进条目的几个数</a></li>
+        <li><a href="#25-什么时候切不出来">2.5 什么时候切不出来</a></li>
+        <li><a href="#26-一条不留">2.6 一条不留</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--摘要怎么生成">3 · 摘要怎么生成</a>
+      <ul>
+        <li><a href="#31-请求的组成">3.1 请求的组成</a></li>
+        <li><a href="#32-增量摘要">3.2 增量摘要</a></li>
+        <li><a href="#33-回合前缀">3.3 回合前缀</a></li>
+        <li><a href="#34-模型和请求选项">3.4 模型和请求选项</a></li>
+        <li><a href="#35-检查回复">3.5 检查回复</a></li>
+        <li><a href="#36-文件列表">3.6 文件列表</a></li>
+        <li><a href="#37-写入">3.7 写入</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--失败中止与重试">4 · 失败、中止与重试</a>
+      <ul>
+        <li><a href="#41-事件">4.1 事件</a></li>
+        <li><a href="#42-失败之后">4.2 失败之后</a></li>
+        <li><a href="#43-摘要请求的重试">4.3 摘要请求的重试</a></li>
+        <li><a href="#44-中止">4.4 中止</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--扩展怎么插手">5 · 扩展怎么插手</a>
+      <ul>
+        <li><a href="#51-session_before_compact取消或接管">5.1 session_before_compact：取消或接管</a></li>
+        <li><a href="#52-session_compact-和-session_compact_failed">5.2 session_compact 和 session_compact_failed</a></li>
+        <li><a href="#53-ctxcompact从扩展发起">5.3 ctx.compact()：从扩展发起</a></li>
+        <li><a href="#54-回合边界的-compaction-草稿">5.4 回合边界的 compaction 草稿</a></li>
+        <li><a href="#55-只影响一次请求的改写">5.5 只影响一次请求的改写</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--分支摘要tree-的另一种摘要">6 · 分支摘要：/tree 的另一种摘要</a>
+      <ul>
+        <li><a href="#61-流程">6.1 流程</a></li>
+        <li><a href="#62-和压缩的异同">6.2 和压缩的异同</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--用法一个不调用模型的压缩扩展">7 · 用法：一个不调用模型的压缩扩展</a></li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的",
+          url: "https:\/\/example.org\/harness\/pi\/07-compaction\/",
+          description: "接着第六章往下讲：coding-agent 在一次运行里的哪几个时机检查上下文、阈值怎么算，切点怎样从最新的消息往回选，摘要请求由什么组成、增量摘要和文件列表怎么带下去，失败、中止和重试会发出哪些事件，扩展能在哪里取消或接管压缩，以及 \/tree 的分支摘要和压缩有什么异同。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

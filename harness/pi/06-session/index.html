@@ -748,7 +748,7 @@ This article does not have a corresponding language version
 <h3 id="53-失败的尝试被编辑掉而不是删掉">
 <a class="header-anchor" href="#53-%e5%a4%b1%e8%b4%a5%e7%9a%84%e5%b0%9d%e8%af%95%e8%a2%ab%e7%bc%96%e8%be%91%e6%8e%89%e8%80%8c%e4%b8%8d%e6%98%af%e5%88%a0%e6%8e%89"></a>
 5.3 失败的尝试被编辑掉，而不是删掉
-</h3><p>供应商返回可重试的错误时（过载、限流之类），出错的 assistant 消息已经在 <code>message_end</code> 时写进了会话。<code>_omitRecoveryAttempt</code>（隐藏一次失败的尝试）给这条消息追加一条 <code>replacement: null</code> 的 <code>context_edit</code>，再刷新状态。上下文超长、需要压缩后再试时也这样处理，这时连同这条回复产生的工具结果一起隐藏。</p>
+</h3><p>供应商返回可重试的错误时（过载、限流之类），出错的 assistant 消息已经在 <code>message_end</code> 时写进了会话。<code>_omitRecoveryAttempt</code>（隐藏一次失败的尝试）给这条消息追加一条 <code>replacement: null</code> 的 <code>context_edit</code>，再刷新状态。上下文超长或回复被截断（<code>length</code>）、需要压缩后再试时也这样处理，这时连同这条回复产生的工具结果一起隐藏（第七章 1.4 节）。</p>
 <p>结果是：</p>
 <ul>
 <li>文件里保留着失败的记录</li>
@@ -1197,7 +1197,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/12.webp"
+              data-src="/random/30.webp"
               data-sizes="auto"
               alt="Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么"
               class="lazyload"
@@ -1209,7 +1209,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/28.webp"
+              data-src="/random/7.webp"
               data-sizes="auto"
               alt="Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的"
               class="lazyload"

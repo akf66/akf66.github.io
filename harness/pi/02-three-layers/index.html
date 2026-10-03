@@ -512,7 +512,7 @@ This article does not have a corresponding language version
 2.3 L3 → L1：按需直接使用
 </h3><p>依赖规则只要求单向，上层可以直接使用任意下层。不算实验目录，coding-agent 有 26 个文件在运行时直接导入 pi-ai，例如：</p>
 <ul>
-<li>生成压缩摘要时直接发一次请求、等完整回复。默认用 <code>Agent</code> 的 <code>streamFn</code> 发请求再取结果，没有传入时就用 pi-ai 的 <code>completeSimple</code>（发一次请求，等完整回复）。摘要不需要工具、循环和事件，所以不经过 <code>Agent</code> 的循环。</li>
+<li>生成压缩摘要时直接发一次请求、等完整回复。压缩函数优先用传入的 <code>streamFn</code> 发请求再取结果，没有传入时才用 pi-ai 的 <code>completeSimple</code>（发一次请求，等完整回复）；<code>AgentSession</code> 总是传入 <code>Agent</code> 的 <code>streamFunction</code>，所以产品里的摘要请求都走 <code>streamFn</code>。摘要不需要工具、循环和事件，所以不经过 <code>Agent</code> 的循环。</li>
 <li>自动重试时用 <code>retryDelayMs</code>（按重试次数算出退避等待时间）。</li>
 <li>选择推理强度时用 <code>clampThinkingLevel</code>（把用户要的推理强度调整到模型实际支持的档位）。</li>
 </ul>
@@ -940,7 +940,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/13.webp"
+              data-src="/random/26.webp"
               data-sizes="auto"
               alt="Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架"
               class="lazyload"

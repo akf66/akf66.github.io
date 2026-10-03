@@ -10,7 +10,7 @@
 /><title>
   Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架 | AKF
 </title>
-<meta name="description" content="基于 earendil-works/pi v0.99.2 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"/><script>
+<meta name="description" content="基于 earendil-works/pi v1.0.0 之后的 main（a276dabe5）的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"/><script>
   window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
   
 </script>
@@ -37,7 +37,7 @@
   <meta property="og:title" content="Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架 | AKF" />
   <meta
     property="og:description"
-    content="基于 earendil-works/pi v0.99.2 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"
+    content="基于 earendil-works/pi v1.0.0 之后的 main（a276dabe5）的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"
   />
   <meta property="og:url" content="https://example.org/harness/pi/01-overview/" />
   <meta
@@ -223,7 +223,7 @@ This article does not have a corresponding language version
     </li>
     <li><a href="#7--定制阶梯从用-pi到造自己的-agent">7 · 定制阶梯：从&quot;用 Pi&quot;到&quot;造自己的 Agent&quot;</a></li>
     <li><a href="#8--减法哲学核心不做什么以及怎么补">8 · 减法哲学：核心不做什么，以及怎么补</a></li>
-    <li><a href="#9--关键数字v0992">9 · 关键数字（v0.99.2）</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
     <li><a href="#10--术语表">10 · 术语表</a></li>
     <li><a href="#11--源码导航">11 · 源码导航</a></li>
   </ul>
@@ -429,7 +429,7 @@ This article does not have a corresponding language version
   </span></div>
 <div class="article-category"></div>
 </div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
-<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v0.99.2（2026-09-30），commit <code>8ce69e9d2</code>。文中所有架构、数字和代码均以该版本源码为准。</p>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v1.0.0-25-ga276dabe5</code>（2026-10-03），commit <code>a276dabe5</code>。文中所有架构、数字和代码均以该版本源码为准。</p>
 </blockquote>
 <p>本章不深入实现细节，只回答两个问题：</p>
 <ol>
@@ -450,7 +450,7 @@ This article does not have a corresponding language version
 	<tbody>
 			<tr>
 					<td>源码位置</td>
-					<td>本文所有路径都相对于仓库根目录，如 <code>packages/agent/src/agent-loop.ts</code></td>
+					<td>路径默认相对于仓库根目录，如 <code>packages/agent/src/agent-loop.ts</code>；单独出现的 <code>docs/</code>、<code>examples/</code> 指 <code>packages/coding-agent/</code> 下的目录</td>
 			</tr>
 			<tr>
 					<td>行号</td>
@@ -458,7 +458,7 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td>标记 <code>*</code></td>
-					<td>表示实验性包，README 明确写了&quot;API 随时变化&quot;</td>
+					<td>表示实验性包，README 标注为 experimental，不保证兼容</td>
 			</tr>
 	</tbody>
 </table>
@@ -467,8 +467,9 @@ This article does not have a corresponding language version
 <a class="header-anchor" href="#1--%e4%b8%80%e5%8f%a5%e8%af%9d%e8%ae%a4%e8%af%86-pi"></a>
 1 · 一句话认识 Pi
 </h2><blockquote>
-<p><strong>Pi 是一个用 TypeScript 写的、极简且可扩展的终端编码 Agent，同时也是一套可以逐层拆开复用的 Agent SDK。</strong></p>
+<p><strong>Pi 是一个用 TypeScript 写的、极简且可扩展的 Agent Harness：开箱是终端编码 Agent，同时也是一套可以逐层拆开复用的 Agent SDK。</strong></p>
 </blockquote>
+<p>官方 README 的第一句是 &ldquo;Pi is a minimal, extensible agent harness that you can make your own.&rdquo;</p>
 <p>拆开来看，Pi 有三重身份。后面每一节都会落到其中一个身份上：</p>
 <table>
 	<thead>
@@ -506,7 +507,7 @@ This article does not have a corresponding language version
 <a class="header-anchor" href="#2--%e5%85%a8%e6%99%af%e4%b8%80%e5%bc%a0%e5%9b%be%e7%9c%8b%e6%87%82-pi-%e7%9a%84%e5%88%86%e5%b1%82"></a>
 2 · 全景：一张图看懂 Pi 的分层
 </h2><p><img src="/images/harness/pi/ch01/fig1-overview.png" alt="图 1 · Pi 架构全景"></p>
-<p>Pi 的 14 个包目录（13 个可发布的 npm 包，外加私有的 <code>pi-evals</code>）可以归成三类：<strong>主干堆栈</strong>、<strong>能力库</strong>、<strong>实验区</strong>。</p>
+<p>Pi 的 13 个包目录（12 个可发布的 npm 包，外加私有的 <code>pi-evals</code>）可以归成三类：<strong>主干堆栈</strong>、<strong>能力库</strong>、<strong>实验区</strong>。</p>
 <h3 id="21-主干四层堆栈">
 <a class="header-anchor" href="#21-%e4%b8%bb%e5%b9%b2%e5%9b%9b%e5%b1%82%e5%a0%86%e6%a0%88"></a>
 2.1 主干：四层堆栈
@@ -540,14 +541,14 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td><strong>L0 基础层</strong></td>
-					<td><code>pi-telemetry</code>、<code>chord</code></td>
-					<td>厂商中立的遥测契约；上下文与取消、服务、复制状态</td>
+					<td><code>pi-telemetry</code></td>
+					<td>厂商中立的遥测契约</td>
 					<td>不知道什么是 LLM</td>
 			</tr>
 	</tbody>
 </table>
 <blockquote>
-<p>💡 读源码时，L0 几乎可以忽略：agent-core 主要通过 <code>chord/context</code> 传递取消信号和遥测父 span。真正的主线是 L1 → L2 → L3 这三层。</p>
+<p>💡 读源码时，L0 几乎可以忽略：agent-core 的内部依赖只有 pi-ai，pi-ai 也只从 pi-telemetry 引入一个 <code>TelemetryContext</code> 类型。真正的主线是 L1 → L2 → L3 这三层。</p>
 </blockquote>
 <h3 id="22-能力库零内部依赖可单独复用">
 <a class="header-anchor" href="#22-%e8%83%bd%e5%8a%9b%e5%ba%93%e9%9b%b6%e5%86%85%e9%83%a8%e4%be%9d%e8%b5%96%e5%8f%af%e5%8d%95%e7%8b%ac%e5%a4%8d%e7%94%a8"></a>
@@ -564,7 +565,7 @@ This article does not have a corresponding language version
 			<tr>
 					<td><code>pi-tui</code></td>
 					<td>差分渲染的终端 UI 框架：组件树、编辑器、Markdown、全屏模式。约 1.9 万行，只依赖 <code>get-east-asian-width</code> 和 <code>marked</code></td>
-					<td>coding-agent 的交互模式</td>
+					<td>coding-agent 的交互模式；扩展和工具的渲染接口也用它的组件类型</td>
 			</tr>
 			<tr>
 					<td><code>pi-mcp</code></td>
@@ -575,6 +576,11 @@ This article does not have a corresponding language version
 					<td><code>pi-codemode</code></td>
 					<td>QuickJS/WASM 沙箱，执行模型写的 JS。脚本唯一的能力是调用注入进来的工具</td>
 					<td>coding-agent 的内置 <code>codemode</code> 扩展</td>
+			</tr>
+			<tr>
+					<td><code>chord</code></td>
+					<td>应用组合运行时：上下文与取消、服务、复制状态、RPC。README 说明它不是 Pi 专用的包，其他应用也能用</td>
+					<td>pi-durable、pi-protocol、pi-client、pi-server；coding-agent 虽然声明了依赖，但只在不发布的实验代码里用</td>
 			</tr>
 	</tbody>
 </table>
@@ -596,11 +602,7 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td><code>pi-server</code> * / <code>pi-protocol</code> * / <code>pi-client</code> *</td>
-					<td>远程会话：CBOR 帧协议，把 Agent 跑在服务端，多个前端接入</td>
-			</tr>
-			<tr>
-					<td><code>pi-session-backend-sqlite-node</code></td>
-					<td>基于 <code>node:sqlite</code> 的会话存储后端</td>
+					<td>远程会话：CBOR 帧协议；服务端托管基于 pi-durable 的会话，多个前端接入</td>
 			</tr>
 			<tr>
 					<td><code>pi-evals</code>（私有）</td>
@@ -609,7 +611,7 @@ This article does not have a corresponding language version
 	</tbody>
 </table>
 <blockquote>
-<p>⚠️ coding-agent 里接入 server/protocol/client 的代码在 <code>src/experimental/</code> 下，<strong>不会随 npm 包发布</strong>（<code>package.json</code> 的 <code>files</code> 排除了 <code>dist/experimental</code>）。这三个包只是它的 devDependencies。所以对外的运行模式仍然是第 6 节列出的四种。</p>
+<p>⚠️ coding-agent 里接入 server/protocol/client 的代码在 <code>src/experimental/</code>、<code>src/cli/experimental/</code> 和 <code>src/client/</code> 下，<strong>不会随 npm 包发布</strong>（<code>package.json</code> 的 <code>files</code> 排除了这三个目录对应的 <code>dist/</code> 产物）。这三个包只是它的 devDependencies。这些目录还直接 import 了 pi-durable 和 chord，同样不发布。所以对外的运行模式仍然是第 6 节列出的四种。</p>
 </blockquote>
 <hr>
 <h2 id="3--依赖规则为什么箭头只朝下">
@@ -626,7 +628,7 @@ This article does not have a corresponding language version
 <li><code>pi-coding-agent</code> 再加入 <code>ToolDefinition</code>（带 TUI 渲染）、<code>BashExecutionMessage</code>、<code>CompactionSummaryMessage</code> 等业务类型。</li>
 </ul>
 <p><strong>规则 3：叶子包零依赖。</strong>
-<code>chord</code>、<code>pi-telemetry</code>、<code>pi-tui</code>、<code>pi-mcp</code>、<code>pi-codemode</code> 都没有内部依赖。像 MCP、codemode 这样的能力，先做成独立的叶子包，再由 L3 以&quot;内置扩展&quot;的形式接进来，而不是直接写进引擎。</p>
+<code>pi-telemetry</code>、<code>chord</code>、<code>pi-tui</code>、<code>pi-mcp</code>、<code>pi-codemode</code> 都没有内部依赖。像 MCP、codemode 这样的能力，先做成独立的叶子包，再由 L3 以&quot;内置扩展&quot;的形式接进来，而不是直接写进引擎。</p>
 <blockquote>
 <p>🧠 <strong>思考题</strong>：为什么 MCP 不放进 <code>pi-agent-core</code>？
 因为对引擎来说，MCP 工具和 <code>read</code> 工具没有区别，都只是一个 <code>AgentTool</code>。把 MCP 放在 L3 的扩展里，引擎就能保持&quot;不知道工具从哪来&quot;。想用别的 MCP 实现，替换扩展就行，不用 fork 引擎。</p>
@@ -661,7 +663,7 @@ This article does not have a corresponding language version
 			<tr>
 					<td><code>Models</code> 集合</td>
 					<td>注册供应商、查模型、发请求的入口：<code>createModels()</code> / <code>builtinModels()</code></td>
-					<td><code>packages/ai/src/models.ts</code></td>
+					<td><code>packages/ai/src/models.ts</code>；<code>builtinModels</code> 在 <code>providers/all.ts</code></td>
 			</tr>
 			<tr>
 					<td>模型类型</td>
@@ -675,7 +677,7 @@ This article does not have a corresponding language version
 			</tr>
 	</tbody>
 </table>
-<p><strong>最小示例</strong>（摘自 <code>packages/ai/README.md</code>）：</p>
+<p><strong>最小示例</strong>（据 <code>packages/ai/README.md</code> 的 Quick Start 改写）：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span> <span class="nx">Context</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">builtinModels</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/providers/all&#34;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
@@ -684,7 +686,7 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">context</span>: <span class="kt">Context</span> <span class="o">=</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;You are helpful.&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nx">messages</span><span class="o">:</span> <span class="p">[{</span> <span class="nx">role</span><span class="o">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="nx">content</span><span class="o">:</span> <span class="s2">&#34;Hello!&#34;</span> <span class="p">}],</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">messages</span><span class="o">:</span> <span class="p">[{</span> <span class="nx">role</span><span class="o">:</span> <span class="s2">&#34;user&#34;</span><span class="p">,</span> <span class="nx">content</span><span class="o">:</span> <span class="s2">&#34;Hello!&#34;</span><span class="p">,</span> <span class="nx">timestamp</span>: <span class="kt">Date.now</span><span class="p">()</span> <span class="p">}],</span>
 </span></span><span class="line"><span class="cl"><span class="p">};</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">s</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">stream</span><span class="p">(</span><span class="nx">model</span><span class="p">,</span> <span class="nx">context</span><span class="p">);</span>                 <span class="c1">// 认证由供应商解析（如 OPENAI_API_KEY）
@@ -733,16 +735,21 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">models</span> <span class="o">=</span> <span class="nx">createModels</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="nx">models</span><span class="p">.</span><span class="nx">setProvider</span><span class="p">(</span><span class="nx">anthropicProvider</span><span class="p">());</span>
-</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;anthropic&#34;</span><span class="p">,</span> <span class="s2">&#34;claude-sonnet-4-6&#34;</span><span class="p">)</span><span class="o">!</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">models</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;anthropic&#34;</span><span class="p">,</span> <span class="s2">&#34;claude-sonnet-4-6&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">model</span><span class="p">)</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&#34;Model not found&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">agent</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Agent</span><span class="p">({</span>
-</span></span><span class="line"><span class="cl">  <span class="nx">initialState</span><span class="o">:</span> <span class="p">{</span> <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;You are a helpful assistant.&#34;</span><span class="p">,</span> <span class="nx">model</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">  <span class="nx">initialState</span><span class="o">:</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">systemPrompt</span><span class="o">:</span> <span class="s2">&#34;You are a helpful assistant.&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nx">model</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="p">},</span>
 </span></span><span class="line"><span class="cl">  <span class="nx">streamFn</span>: <span class="kt">models.streamSimple.bind</span><span class="p">(</span><span class="nx">models</span><span class="p">),</span>
 </span></span><span class="line"><span class="cl"><span class="p">});</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="nx">agent</span><span class="p">.</span><span class="nx">subscribe</span><span class="p">((</span><span class="nx">event</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">  <span class="k">if</span> <span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;message_update&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">event</span><span class="p">.</span><span class="nx">assistantMessageEvent</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;text_delta&#34;</span><span class="p">)</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">assistantMessageEvent</span><span class="p">.</span><span class="nx">delta</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">    <span class="c1">// Stream just the new text chunk
+</span></span></span><span class="line"><span class="cl">    <span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">event</span><span class="p">.</span><span class="nx">assistantMessageEvent</span><span class="p">.</span><span class="nx">delta</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">  <span class="p">}</span>
 </span></span><span class="line"><span class="cl"><span class="p">});</span>
 </span></span><span class="line"><span class="cl">
@@ -789,11 +796,12 @@ This article does not have a corresponding language version
 			</tr>
 	</tbody>
 </table>
-<p><strong>最小示例</strong>（摘自 <code>docs/sdk.md</code> 与 <code>examples/sdk/02-custom-model.ts</code>）：</p>
+<p><strong>最小示例</strong>（据 <code>docs/sdk.md</code> 与 <code>examples/sdk/02-custom-model.ts</code> 改写）：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createAgentSession</span><span class="p">,</span> <span class="nx">ModelRuntime</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">modelRuntime</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">ModelRuntime</span><span class="p">.</span><span class="nx">create</span><span class="p">();</span>
 </span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">model</span> <span class="o">=</span> <span class="nx">modelRuntime</span><span class="p">.</span><span class="nx">getModel</span><span class="p">(</span><span class="s2">&#34;anthropic&#34;</span><span class="p">,</span> <span class="s2">&#34;claude-opus-4-5&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">model</span><span class="p">)</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&#34;Model not found&#34;</span><span class="p">);</span>
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="p">{</span> <span class="nx">session</span> <span class="p">}</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">createAgentSession</span><span class="p">({</span> <span class="nx">model</span><span class="p">,</span> <span class="nx">thinkingLevel</span><span class="o">:</span> <span class="s2">&#34;medium&#34;</span><span class="p">,</span> <span class="nx">modelRuntime</span> <span class="p">});</span>
 </span></span><span class="line"><span class="cl"><span class="k">try</span> <span class="p">{</span>
@@ -807,17 +815,17 @@ This article does not have a corresponding language version
 <p>📌 两个容易踩的点：</p>
 <ul>
 <li><code>createAgentSession()</code> 返回的是 <code>{ session, extensionsResult, ... }</code>，需要解构。</li>
-<li><strong>SDK 会话不会自动加载内置扩展</strong>。要用 MCP，需要自己加 <code>createMcpExtension()</code>。</li>
+<li><strong>SDK 会话不会自动加载内置扩展</strong>。要用 MCP，需要把 <code>createMcpExtension()</code> 加进 <code>DefaultResourceLoader</code> 的 <code>extensionFactories</code>；MCP 工具默认经 codemode 暴露，所以通常还要加 <code>createCodemodeExtension()</code>（或 <code>createToolSearchExtension()</code>）。MCP 在 <code>session_start</code> 时连接服务器，所以还要调用 <code>session.bindExtensions()</code>。</li>
 </ul>
 </blockquote>
 <h3 id="44-侧库--pi-tui与-agent-无关的终端-ui">
 <a class="header-anchor" href="#44-%e4%be%a7%e5%ba%93--pi-tui%e4%b8%8e-agent-%e6%97%a0%e5%85%b3%e7%9a%84%e7%bb%88%e7%ab%af-ui"></a>
 4.4 侧库 · pi-tui：与 Agent 无关的终端 UI
-</h3><p>pi-tui 不在堆栈链上：只有交互模式用它，它本身也不认识任何 <code>pi-*</code> 包，任何 Node.js 终端程序都能用。核心能力：</p>
+</h3><p>pi-tui 不在堆栈链上：主要由交互模式使用（扩展和工具渲染接口里的组件类型也来自它），它本身不认识任何 <code>pi-*</code> 包，任何 Node.js 终端程序都能用。核心能力：</p>
 <ul>
 <li><strong>差分渲染</strong>：只重绘变化的部分，配合同步输出（CSI 2026）避免闪烁</li>
-<li><strong>两种渲染器</strong>：常规模式 <code>TuiMainScreen</code> 和全屏模式 <code>TuiAltScreen</code>，运行时可以切换</li>
-<li><strong>组件</strong>：<code>Editor</code>、<code>Markdown</code>（支持 Mermaid 与 LaTeX）、<code>SelectList</code>、<code>SettingsList</code>、<code>ScrollView</code> 等</li>
+<li><strong>两种渲染器</strong>：常规模式 <code>TuiMainScreen</code> 和全屏模式 <code>TuiAltScreen</code>，运行时可以切换；coding-agent 默认用全屏</li>
+<li><strong>组件</strong>：<code>Editor</code>、<code>Markdown</code>（支持 LaTeX；Mermaid 图由 coding-agent 通过 transformer 接入）、<code>SelectList</code>、<code>SettingsList</code>、<code>ScrollView</code> 等</li>
 </ul>
 <hr>
 <h2 id="5--把三层串起来一次-prompt-的旅程">
@@ -838,52 +846,58 @@ This article does not have a corresponding language version
 					<td>① 输入</td>
 					<td>L3</td>
 					<td>四种前端最终都调用 <code>AgentSession.prompt()</code></td>
-					<td><code>input</code></td>
+					<td>——</td>
 			</tr>
 			<tr>
 					<td>② 准备</td>
 					<td>L3</td>
 					<td>展开模板和 Skill；组装系统提示词、AGENTS.md 和当前分支的消息</td>
-					<td><code>before_agent_start</code></td>
+					<td><code>input</code> / <code>before_agent_start</code></td>
 			</tr>
 			<tr>
 					<td>③ 进入循环</td>
 					<td>L2</td>
 					<td><code>Agent.prompt()</code> → <code>runAgentLoop</code>；<code>turn_start</code></td>
-					<td><code>context</code></td>
+					<td><code>context</code> / <code>context_with_system</code></td>
 			</tr>
 			<tr>
 					<td>④ 调模型</td>
 					<td>L1</td>
-					<td><code>streamFn</code> → <code>Models.streamSimple()</code>，按 <code>model.api</code> 选择协议</td>
+					<td><code>streamFn</code> → <code>Models</code> 接口的 <code>streamSimple()</code>（coding-agent 里由 <code>ModelRuntime</code> 实现）：先按 <code>model.provider</code> 找供应商，再按 <code>model.api</code> 选协议实现</td>
 					<td><code>before_provider_request</code> / <code>before_provider_headers</code></td>
 			</tr>
 			<tr>
-					<td>⑤ 网络</td>
+					<td>⑤ 网络请求</td>
 					<td>外部</td>
 					<td>HTTP / SSE</td>
-					<td><code>provider_stream_event</code>（只读观察）</td>
-			</tr>
-			<tr>
-					<td>⑥ 归一化</td>
-					<td>L1</td>
-					<td>各家原始流 → <code>AssistantMessageEvent</code>（text_delta、toolcall_* 等）</td>
 					<td>——</td>
 			</tr>
 			<tr>
-					<td>⑦ 执行工具</td>
+					<td>⑥ 原始流</td>
+					<td>外部</td>
+					<td>各家供应商的原始流事件</td>
+					<td><code>provider_stream_event</code>（只读观察）</td>
+			</tr>
+			<tr>
+					<td>⑦ 归一化</td>
+					<td>L1</td>
+					<td>原始流 → <code>AssistantMessageEvent</code>（text_delta、toolcall_* 等）</td>
+					<td>——</td>
+			</tr>
+			<tr>
+					<td>⑧ 执行工具</td>
 					<td>L2</td>
 					<td>发出 <code>message_*</code>；有 toolCall 就执行 <code>before → execute → after</code>，然后<strong>回到 ③</strong></td>
 					<td><code>tool_call</code>（可拦截）/ <code>tool_result</code></td>
 			</tr>
 			<tr>
-					<td>⑧ 落盘</td>
+					<td>⑨ 落盘</td>
 					<td>L3</td>
 					<td>写 JSONL 会话树；超过阈值自动压缩；出错自动重试</td>
 					<td><code>turn_end</code>、<code>session_compact</code> 等</td>
 			</tr>
 			<tr>
-					<td>⑨ 呈现</td>
+					<td>⑩ 呈现</td>
 					<td>L3</td>
 					<td><code>AgentSessionEvent</code> 广播给 TUI / JSON / RPC / SDK</td>
 					<td>——</td>
@@ -892,12 +906,12 @@ This article does not have a corresponding language version
 </table>
 <p>这张表是读懂后续章节的地图：</p>
 <ul>
-<li>Agent Loop 章节讲 ③⑦ 的循环</li>
-<li>模型调用章节讲 ④⑥</li>
-<li>工具系统章节讲 ⑦ 的工具执行</li>
-<li>消息系统与上下文工程章节讲 ②</li>
-<li>事件驱动章节讲 ⑨</li>
-<li>压缩与会话管理章节讲 ⑧</li>
+<li>Agent Loop 章节讲 ③⑧ 的循环</li>
+<li>模型调用章节讲 ④–⑦</li>
+<li>工具系统章节讲 ⑧ 的工具执行</li>
+<li>会话与压缩章节讲 ⑨</li>
+<li>上下文工程章节讲 ②</li>
+<li>扩展与事件、运行模式与界面章节讲 ⑩</li>
 </ul>
 <hr>
 <h2 id="6--产品层工具内置扩展与运行模式">
@@ -982,7 +996,7 @@ This article does not have a corresponding language version
 	<tbody>
 			<tr>
 					<td>交互</td>
-					<td><code>pi</code>（可加 <code>--tui-mode fullscreen</code>）</td>
+					<td><code>pi</code>（默认全屏；<code>--tui-mode regular</code> 切回常规滚动）</td>
 					<td>日常编码</td>
 			</tr>
 			<tr>
@@ -1002,6 +1016,7 @@ This article does not have a corresponding language version
 			</tr>
 	</tbody>
 </table>
+<p>安装：官方推荐 <code>curl -fsSL https://pi.dev/install.sh | sh</code>（Windows 用 <code>install.ps1</code>），也可以 <code>npm install -g --ignore-scripts @earendil-works/pi-coding-agent</code>，需要 Node.js 22.19 以上。</p>
 <p>官方文档 <code>docs/how-pi-works.md</code> 的原话是：&ldquo;All interfaces use the same agent and session mechanisms.&rdquo; 四种模式只是 L3 之上的四种呈现方式。</p>
 <h3 id="64-配置文件地图">
 <a class="header-anchor" href="#64-%e9%85%8d%e7%bd%ae%e6%96%87%e4%bb%b6%e5%9c%b0%e5%9b%be"></a>
@@ -1016,7 +1031,7 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl">└── sessions/                   # JSONL 会话，按工作目录分组
 </span></span><span class="line"><span class="cl">
 </span></span><span class="line"><span class="cl">&lt;项目&gt;/.pi/                     # 项目级（需要先信任项目才会加载）
-</span></span><span class="line"><span class="cl">└── settings.json  mcp.json  SYSTEM.md  extensions/  skills/  prompts/  themes/
+</span></span><span class="line"><span class="cl">└── settings.json  mcp.json  SYSTEM.md  APPEND_SYSTEM.md  extensions/  skills/  prompts/  themes/
 </span></span></code></pre></div><p>上下文文件：每个目录只取下面几个中的第一个匹配项：<code>AGENTS.override.md</code> → <code>AGENTS.md</code> → <code>CLAUDE.md</code>。</p>
 <hr>
 <h2 id="7--定制阶梯从用-pi到造自己的-agent">
@@ -1068,14 +1083,14 @@ This article does not have a corresponding language version
 </table>
 <p>两点补充：</p>
 <ul>
-<li><strong>重载方式</strong>：改完扩展、Skill 或提示词后执行 <code>/reload</code> 即可生效，不用重启会话。主题文件会被自动监听。</li>
+<li><strong>重载方式</strong>：改完扩展、Skill 或提示词后执行 <code>/reload</code> 即可生效，不用重启会话。当前生效的用户主题（<code>~/.pi/agent/themes/&lt;name&gt;.json</code>）改动后会自动重载；其他来源的主题改完后要执行 <code>/reload</code>。</li>
 <li><strong>官方示例</strong>：<code>examples/extensions/</code> 下有 70 个顶层示例和 9 个子目录，包括 <code>subagent/</code>、<code>plan-mode/</code>、<code>sandbox/</code>、<code>permission-gate.ts</code>、<code>todo.ts</code>、<code>ssh.ts</code>，是写扩展最好的参考。</li>
 </ul>
 <hr>
 <h2 id="8--减法哲学核心不做什么以及怎么补">
 <a class="header-anchor" href="#8--%e5%87%8f%e6%b3%95%e5%93%b2%e5%ad%a6%e6%a0%b8%e5%bf%83%e4%b8%8d%e5%81%9a%e4%bb%80%e4%b9%88%e4%bb%a5%e5%8f%8a%e6%80%8e%e4%b9%88%e8%a1%a5"></a>
 8 · 减法哲学：核心不做什么，以及怎么补
-</h2><p>Pi 的核心刻意保持很小。下面这些常见能力，核心要么不做，要么做成可以关掉、可以替换的扩展：</p>
+</h2><p>Pi 的核心刻意保持很小。官方 README 的说法是 &ldquo;Pi ships with powerful defaults but skips features like sub-agents and plan mode.&rdquo; 下面这些常见能力，核心要么不做，要么做成可以关掉、可以替换的扩展：</p>
 <table>
 	<thead>
 			<tr>
@@ -1103,25 +1118,25 @@ This article does not have a corresponding language version
 			<tr>
 					<td>计划模式</td>
 					<td>核心没有</td>
-					<td><code>examples/extensions/plan-mode/</code>，或者直接写 plan.md</td>
+					<td><code>examples/extensions/plan-mode/</code>；也可以自己维护一个 plan.md</td>
 			</tr>
 			<tr>
 					<td>后台 bash</td>
 					<td>核心没有</td>
-					<td>用 tmux</td>
+					<td>可以把长任务放进 tmux 等终端复用工具里跑（本文建议，官方文档没有专门说明）</td>
 			</tr>
 			<tr>
 					<td>待办清单</td>
 					<td>核心没有</td>
-					<td><code>examples/extensions/todo.ts</code>，或者用 TODO.md</td>
+					<td><code>examples/extensions/todo.ts</code>；也可以自己维护一个 TODO.md</td>
 			</tr>
 	</tbody>
 </table>
 <p>背后的逻辑是：<strong>引擎（L2）保持干净，产品层（L3）的能力都是可以拆下来的模块</strong>。评价 Pi 的标准不是&quot;有没有某个功能&quot;，而是&quot;这个功能是不是焊死的&quot;。</p>
 <hr>
-<h2 id="9--关键数字v0992">
-<a class="header-anchor" href="#9--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97v0992"></a>
-9 · 关键数字（v0.99.2）
+<h2 id="9--关键数字">
+<a class="header-anchor" href="#9--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+9 · 关键数字
 </h2><table>
 	<thead>
 			<tr>
@@ -1132,7 +1147,7 @@ This article does not have a corresponding language version
 	<tbody>
 			<tr>
 					<td>包目录</td>
-					<td>14 个（13 个可发布 npm 包 + 私有 evals）</td>
+					<td>13 个（12 个可发布 npm 包 + 私有 evals）</td>
 			</tr>
 			<tr>
 					<td>内置工具</td>
@@ -1295,11 +1310,11 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td>会话怎么存和分叉</td>
-					<td><code>packages/coding-agent/src/core/session-manager.ts</code>；<code>docs/session-format.md</code></td>
+					<td><code>packages/coding-agent/src/core/session-manager.ts</code>；<code>packages/coding-agent/docs/session-format.md</code></td>
 			</tr>
 			<tr>
 					<td>扩展能做什么</td>
-					<td><code>packages/coding-agent/src/core/extensions/types.ts</code>；<code>docs/extensions.md</code></td>
+					<td><code>packages/coding-agent/src/core/extensions/types.ts</code>；<code>packages/coding-agent/docs/extensions.md</code></td>
 			</tr>
 			<tr>
 					<td>MCP 怎么接入</td>
@@ -1352,7 +1367,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap right"><img
-              data-src="/random/21.webp"
+              data-src="/random/16.webp"
               data-sizes="auto"
               alt="Pi 源码分析 02 · 三层架构：层与层之间怎么接"
               class="lazyload"
@@ -1443,7 +1458,7 @@ This article does not have a corresponding language version
     </li>
     <li><a href="#7--定制阶梯从用-pi到造自己的-agent">7 · 定制阶梯：从&quot;用 Pi&quot;到&quot;造自己的 Agent&quot;</a></li>
     <li><a href="#8--减法哲学核心不做什么以及怎么补">8 · 减法哲学：核心不做什么，以及怎么补</a></li>
-    <li><a href="#9--关键数字v0992">9 · 关键数字（v0.99.2）</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
     <li><a href="#10--术语表">10 · 术语表</a></li>
     <li><a href="#11--源码导航">11 · 源码导航</a></li>
   </ul>
@@ -1549,7 +1564,7 @@ This article does not have a corresponding language version
           author: "AKF",
           title: "Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架",
           url: "https:\/\/example.org\/harness\/pi\/01-overview\/",
-          description: "基于 earendil-works\/pi v0.99.2 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。",
+          description: "基于 earendil-works\/pi v1.0.0 之后的 main（a276dabe5）的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {

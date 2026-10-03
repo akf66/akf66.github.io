@@ -210,7 +210,7 @@ This article does not have a corresponding language version
       </ul>
     </li>
     <li><a href="#4--l3-怎么把业务注入-l2">4 · L3 怎么把业务注入 L2</a></li>
-    <li><a href="#5--l2-在演进同一个位置上的多套实现">5 · L2 在演进：同一个位置上的多套实现</a></li>
+    <li><a href="#5--l2-在演进另一套持久化引擎">5 · L2 在演进：另一套持久化引擎</a></li>
     <li><a href="#6--按需取层每一层都能单独用">6 · 按需取层：每一层都能单独用</a></li>
     <li><a href="#7--三个可以带走的方法">7 · 三个可以带走的方法</a></li>
     <li><a href="#8--关键数字">8 · 关键数字</a></li>
@@ -419,7 +419,7 @@ This article does not have a corresponding language version
   </span></div>
 <div class="article-category"></div>
 </div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
-<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v0.99.2-23-g0c453048b</code>（2026-10-01），commit <code>0c453048b</code>。文中所有架构、数字和代码均以该版本源码为准。</p>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v1.0.0-25-ga276dabe5</code>（2026-10-03），commit <code>a276dabe5</code>。文中所有架构、数字和代码均以该版本源码为准。</p>
 </blockquote>
 <p>第一章画出了 Pi 的骨架：L1 <code>pi-ai</code> 调模型，L2 <code>pi-agent-core</code> 跑循环，L3 <code>pi-coding-agent</code> 做产品，依赖只朝下。本章接着往下讲，打开层与层之间的接口，看看这三层具体是怎么接起来的。</p>
 <p>本章要点：</p>
@@ -427,7 +427,7 @@ This article does not have a corresponding language version
 <li><strong>规则靠 CI 守住</strong>：每个公开包在运行时 import 的包，都必须写在自己的 <code>package.json</code> 依赖里，CI 会检查这一点。</li>
 <li><strong>接口很窄</strong>：coding-agent 自己的逻辑只用到 agent-core 的 3 个值；agent-core 的核心部分只借用 pi-ai 的纯函数，调模型这件事交给外部注入的函数。</li>
 <li><strong>类型逐层加料，从不改下层</strong>：工具、消息、事件三条类型线，各用一种扩展手法。</li>
-<li><strong>L2 在演进</strong>：除了现在发布的 <code>Agent</code>，同一个位置上还有三套新引擎在并行开发。它们同样遵守&quot;只朝下依赖&quot;。</li>
+<li><strong>L2 在演进</strong>：除了现在发布的 <code>Agent</code>，同一个位置上还有一套持久化引擎 <code>pi-durable</code> 在开发。它同样遵守&quot;只朝下依赖&quot;。</li>
 </ul>
 <hr>
 <h2 id="1--依赖规则靠什么守住">
@@ -435,7 +435,7 @@ This article does not have a corresponding language version
 1 · 依赖规则靠什么守住
 </h2><p><img src="/images/harness/pi/ch02/fig1-guards.png" alt="图 1 · npm run check 里的三道检查"></p>
 <p>第一章说过，下层不知道上层的存在。在代码里搜一遍可以确认：pi-ai 里找不到 agent-core 和 coding-agent，agent-core 里找不到 coding-agent，连类型导入都没有。</p>
-<p>这条规则由 CI 保证。根目录的 <code>npm run check</code> 串了九步检查，CI 和发布前都会运行，其中三步跟架构有关：</p>
+<p>这条规则由 CI 保证。根目录的 <code>npm run check</code> 串了八步检查，CI 和发布前都会运行，其中三步跟架构有关：</p>
 <ul>
 <li><strong>runtime-deps（守方向）</strong>：扫描每个公开包的源码，凡是运行时用到的 import，被导入的包都必须写在这个包的 <code>dependencies</code>、<code>peerDependencies</code> 或 <code>optionalDependencies</code> 里（开发依赖不算）。pi-ai 唯一的内部依赖是 <code>pi-telemetry</code>，所以它在运行时 import 不了 agent-core。</li>
 <li><strong>entry-graphs（守入口体积）</strong>：给重要的导出入口设预算。例如 pi-ai 的 <code>./models</code> 入口最多只能牵连 15 个文件，而且不能碰到供应商实现。脚本开头的注释是这样说的：&ldquo;Entry points are cost contracts&rdquo;。</li>
@@ -477,7 +477,7 @@ This article does not have a corresponding language version
 <h3 id="22-l2--l1只借纯函数不调模型">
 <a class="header-anchor" href="#22-l2--l1%e5%8f%aa%e5%80%9f%e7%ba%af%e5%87%bd%e6%95%b0%e4%b8%8d%e8%b0%83%e6%a8%a1%e5%9e%8b"></a>
 2.2 L2 → L1：只借纯函数，不调模型
-</h3><p>agent-core 的核心部分（顶层几个文件，不含 <code>harness/</code> 目录）从 pi-ai 借用的都是不涉及网络的工具函数：</p>
+</h3><p>agent-core 只有 6 个文件：<code>Agent</code>、循环、代理流和类型。它唯一的内部依赖是 pi-ai，借用的都是不涉及网络的工具函数：</p>
 <ul>
 <li><code>normalizeContext</code>（把系统提示词和工具列表折叠成开头的一条 system 消息，得到供应商能接收的上下文）</li>
 <li><code>validateToolArguments</code>（按工具的参数 schema 校验并修正模型给出的参数）</li>
@@ -647,7 +647,7 @@ This article does not have a corresponding language version
 </span></span></code></pre></div><ul>
 <li><code>streamFn</code>（模型调用函数）：交给 coding-agent 的模型运行时，它负责认证和自定义模型</li>
 <li><code>convertToLlm</code>（消息转换）：就是 3.2 节的转换函数，可以按设置屏蔽图片</li>
-<li><code>transformContext</code>（请求前改写上下文）：交给扩展的 <code>context</code> 事件</li>
+<li><code>transformContext</code>（请求前改写上下文）：交给扩展的上下文事件。先是 <code>context</code>，处理函数只看到对话消息，system 消息由 pi 还原；再是 <code>context_with_system</code>，处理函数看到含 system 消息的完整列表，返回值原样使用</li>
 <li><code>onPayload</code> / <code>onResponse</code> / <code>onProviderStreamEvent</code>（请求发出前、收到 HTTP 响应头时、收到供应商的原始流事件时）：分别交给扩展的 <code>before_provider_request</code>、<code>after_provider_response</code>、<code>provider_stream_event</code> 事件</li>
 </ul>
 <p>注意 <code>tools: []</code> 和 <code>systemPrompt: &quot;&quot;</code>：这时工具和提示词都还没定，要等扩展加载完才知道。</p>
@@ -670,7 +670,7 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td><code>prepareRequest</code>（每次请求前）</td>
-					<td>从会话树重新算出这次请求的上下文；超过阈值时先压缩</td>
+					<td>从会话树重新算出这次请求的上下文；用的是虚拟模型时，先路由到具体模型，超过那个模型的阈值就先压缩</td>
 			</tr>
 			<tr>
 					<td><code>finishTurn</code>（一轮结束时）</td>
@@ -691,20 +691,23 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl"><span class="c1">// Handle session persistence
 </span></span></span></code></pre></div><p>先发给扩展，再发给订阅者（终端界面、JSON 模式、RPC、SDK 调用方），最后写进会话文件。</p>
 <hr>
-<h2 id="5--l2-在演进同一个位置上的多套实现">
-<a class="header-anchor" href="#5--l2-%e5%9c%a8%e6%bc%94%e8%bf%9b%e5%90%8c%e4%b8%80%e4%b8%aa%e4%bd%8d%e7%bd%ae%e4%b8%8a%e7%9a%84%e5%a4%9a%e5%a5%97%e5%ae%9e%e7%8e%b0"></a>
-5 · L2 在演进：同一个位置上的多套实现
-</h2><p><img src="/images/harness/pi/ch02/fig5-engines.png" alt="图 5 · L2 的位置上现在有四套引擎"></p>
-<p>前面讲的都是现在发布出去的 <code>pi</code> 所用的引擎。在仓库里，L2 这个位置上还有三套新引擎在并行开发：</p>
+<h2 id="5--l2-在演进另一套持久化引擎">
+<a class="header-anchor" href="#5--l2-%e5%9c%a8%e6%bc%94%e8%bf%9b%e5%8f%a6%e4%b8%80%e5%a5%97%e6%8c%81%e4%b9%85%e5%8c%96%e5%bc%95%e6%93%8e"></a>
+5 · L2 在演进：另一套持久化引擎
+</h2><p><img src="/images/harness/pi/ch02/fig5-engines.png" alt="图 5 · L2 的位置上现在有两套引擎"></p>
+<p>前面讲的都是现在发布出去的 <code>pi</code> 所用的引擎。在仓库里，L2 这个位置上还有一套新引擎在开发：</p>
 <ol>
-<li><strong><code>Agent</code>（当前发布的引擎）</strong>：约 2.7k 行，就是前四节讲的内容。</li>
-<li><strong><code>AgentHarness</code>（会话化的引擎接口）</strong>：位于 agent-core 的 <code>harness/</code> 目录。这个目录里还有一套自己的会话存储、压缩，以及 bash/read/edit/write 工具。它已经从 agent-core 的根入口导出，目前由 coding-agent 实验目录里的 mini（拆成多进程的小型编码 Agent）等使用。</li>
-<li><strong>pico3</strong>：同样在 <code>harness/</code> 目录下，约 8.1k 行，由实验目录里的 micro（单进程的小型编码 Agent）使用。</li>
-<li><strong><code>pi-durable</code>（持久化引擎，规范里叫 Pico5）</strong>：独立的包，约 17.7k 行。第一章把它归在实验区；从依赖关系看，它占的正是 L2 的位置。它的 README 是这样介绍的：&ldquo;Conversations, model turns, tool calls, and your own state are committed to storage before anything is shown.&rdquo; 也就是说，消息、模型输出、工具调用和你的状态，都先写入存储再展示。进程中途崩溃，重新打开就能接着跑。它的设计文档把 pico3 当作参考材料。</li>
+<li><strong><code>Agent</code>（当前发布的引擎）</strong>：agent-core 的 6 个文件，约 2.5k 行，就是前四节讲的内容。</li>
+<li><strong><code>pi-durable</code>（持久化引擎，规范里叫 Pico5）</strong>：独立的包，约 17.7k 行，已经发布到 npm，README 开头标着 &ldquo;Experimental&rdquo;（API 会在版本之间不经通知地变化）。README 是这样介绍它的：&ldquo;Conversations, model turns, tool calls, and your own state are committed to storage before anything is shown.&rdquo; 也就是说，消息、模型输出、工具调用和你的状态，都先写入存储再展示。进程中途崩溃，重新打开就能接着跑。</li>
 </ol>
-<p>这四套引擎有一个共同点：<strong>都只往下依赖 pi-ai，没有一套依赖 coding-agent</strong>。三层结构对它们同样成立，在变的只是 L2 的实现。其中 <code>pi-durable</code> 甚至不依赖 agent-core，内部依赖只有 pi-ai 和 <code>chord</code>（第一章提到的基础库）。</p>
-<p>从 2026-08-01 到 2026-10-01 的提交可以看出开发重心在哪里：<code>agent-loop.ts</code> 有 9 次提交，<code>harness/</code> 有 235 次，<code>pi-durable</code> 从 2026-09-18 创建以来有 76 次。2026-10-01 新增的提交还在 coding-agent 的实验目录里，用 <code>pi-durable</code> 搭了一个能用的终端编码 Agent。</p>
-<p>实验代码不会影响 npm 用户：coding-agent 发布时排除了 <code>experimental/</code> 目录，所以安装的 <code>pi</code> 只跑第一套引擎。agent-core 则会把 <code>harness/</code> 一起发布。</p>
+<p>两套引擎有一个共同点：<strong>都只往下依赖 pi-ai，都不依赖 coding-agent</strong>。三层结构对它们同样成立，在变的只是 L2 的实现。<code>pi-durable</code> 也不依赖 agent-core，内部依赖只有 pi-ai 和 <code>chord</code>（第一章提到的基础库）。</p>
+<p>从 2026-08-01 到 2026-10-03 的提交可以看出开发重心在哪里：<code>agent-loop.ts</code> 只有 9 次提交，<code>pi-durable</code> 从 2026-09-18 创建以来有 77 次（含 2 次发版提交）。coding-agent 的实验目录里已经有三处在用它：</p>
+<ul>
+<li><code>experimental/durable</code>：单进程的终端编码 Agent</li>
+<li>实验性 server / client 的会话 worker：每个会话一个 <code>pi-durable</code> 实例</li>
+<li><code>experimental/vacation</code>：一个示例</li>
+</ul>
+<p>实验代码不会影响 npm 用户：coding-agent 发布时排除了 <code>experimental/</code> 目录，也没有把 <code>pi-durable</code> 列为依赖，所以安装的 <code>pi</code> 只跑 <code>Agent</code> 这一套引擎。</p>
 <blockquote>
 <p>💡 这种演进方式本身就得益于分层：新引擎只要满足&quot;往下依赖 pi-ai、往上接 coding-agent&quot;，就能在实验目录里和现有引擎并行开发，不用动已发布的路径。本系列接下来的 Agent Loop、工具、事件章节讲的是当前发布的 <code>Agent</code>；新引擎稳定之后再单独成章。</p>
 </blockquote>
@@ -796,7 +799,7 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td><code>npm run check</code></td>
-					<td>9 步，其中 3 步与架构有关</td>
+					<td>8 步，其中 3 步与架构有关</td>
 			</tr>
 			<tr>
 					<td>coding-agent 里引擎流转的消息种类</td>
@@ -812,7 +815,7 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td>L2 位置上的引擎</td>
-					<td>4 套（1 套已发布，3 套在实验代码中开发）</td>
+					<td>2 套（<code>Agent</code> 稳定发布；<code>pi-durable</code> 标为 Experimental，只有实验代码在用）</td>
 			</tr>
 	</tbody>
 </table>
@@ -853,8 +856,8 @@ This article does not have a corresponding language version
 					<td>扩展 import pi 的包时，解析到 coding-agent 自带的那一份</td>
 			</tr>
 			<tr>
-					<td><strong>AgentHarness / pi-durable</strong></td>
-					<td>L2 位置上正在开发的新引擎；pi-durable 先写入存储再展示，崩溃后能接着跑</td>
+					<td><strong>pi-durable</strong></td>
+					<td>L2 位置上的实验性持久化引擎；先写入存储再展示，崩溃后能接着跑</td>
 			</tr>
 	</tbody>
 </table>
@@ -900,11 +903,11 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td>三条类型线的定义</td>
-					<td><code>packages/ai/src/types.ts</code>；<code>packages/agent/src/types.ts</code>；<code>packages/coding-agent/src/core/extensions/types.ts</code></td>
+					<td><code>packages/ai/src/types.ts</code>；<code>packages/agent/src/types.ts</code>；<code>packages/coding-agent/src/core/extensions/types.ts</code>（<code>ToolDefinition</code>）；<code>packages/coding-agent/src/core/agent-session.ts</code>（<code>AgentSessionEvent</code>）；<code>packages/coding-agent/src/core/messages.ts</code>（声明合并）</td>
 			</tr>
 			<tr>
 					<td>新引擎</td>
-					<td><code>packages/agent/src/harness/</code>；<code>packages/durable/README.md</code>；<code>packages/durable/docs/pico-v5.md</code></td>
+					<td><code>packages/durable/README.md</code>；<code>packages/durable/docs/spec.md</code>；<code>packages/coding-agent/src/experimental/durable/</code></td>
 			</tr>
 	</tbody>
 </table>
@@ -937,7 +940,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/18.webp"
+              data-src="/random/6.webp"
               data-sizes="auto"
               alt="Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架"
               class="lazyload"
@@ -949,7 +952,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/21.webp"
+              data-src="/random/19.webp"
               data-sizes="auto"
               alt="Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的"
               class="lazyload"
@@ -1027,7 +1030,7 @@ This article does not have a corresponding language version
       </ul>
     </li>
     <li><a href="#4--l3-怎么把业务注入-l2">4 · L3 怎么把业务注入 L2</a></li>
-    <li><a href="#5--l2-在演进同一个位置上的多套实现">5 · L2 在演进：同一个位置上的多套实现</a></li>
+    <li><a href="#5--l2-在演进另一套持久化引擎">5 · L2 在演进：另一套持久化引擎</a></li>
     <li><a href="#6--按需取层每一层都能单独用">6 · 按需取层：每一层都能单独用</a></li>
     <li><a href="#7--三个可以带走的方法">7 · 三个可以带走的方法</a></li>
     <li><a href="#8--关键数字">8 · 关键数字</a></li>

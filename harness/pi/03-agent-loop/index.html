@@ -443,7 +443,7 @@ This article does not have a corresponding language version
 <a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
 0 · 阅读说明
 </h2><ul>
-<li>本章只讲当前发布的引擎：<code>Agent</code> 类和 <code>agentLoop()</code> 系列函数。第二章提到的 <code>harness/</code> 和 <code>pi-durable</code> 两套新引擎不在本章范围内。</li>
+<li>本章只讲当前发布的引擎：<code>Agent</code> 类和 <code>agentLoop()</code> 系列函数。第二章第 5 节提到的实验引擎不在本章范围内。</li>
 <li>文中的事件顺序都用一个探针脚本实际跑过。脚本用一个假的 <code>streamFn</code> 按剧本返回助手消息，订阅 <code>Agent</code> 的事件并记录钩子的调用时刻。本章引用的运行记录都来自这个脚本。</li>
 <li>后文说的&quot;一轮&quot;（turn），指一次模型请求加上这条回复里所有工具调用的执行，和 <code>turn_start</code> / <code>turn_end</code> 两个事件对应。</li>
 </ul>
@@ -638,7 +638,7 @@ This article does not have a corresponding language version
 </span></span><span class="line"><span class="cl">convertToLlm
 </span></span><span class="line"><span class="cl">streamFn#1
 </span></span></code></pre></div><blockquote>
-<p>💡 <code>prepareRequest</code> 和 <code>transformContext</code> 都能改上下文，作用范围不同：<code>prepareRequest</code> 返回的上下文会替换循环里保存的那一份，影响之后的所有请求；<code>transformContext</code> 的结果只用于这一次请求，循环里保存的上下文不变。第二章讲过 coding-agent 怎么用它们：前者从会话树重新算出上下文，后者交给扩展的 <code>context</code> 事件。</p>
+<p>💡 <code>prepareRequest</code> 和 <code>transformContext</code> 都能改上下文，作用范围不同：<code>prepareRequest</code> 返回的上下文会替换循环里保存的那一份，影响之后的所有请求；<code>transformContext</code> 的结果只用于这一次请求，循环里保存的上下文不变。第二章讲过 coding-agent 怎么用它们：前者从会话树重新算出上下文，后者交给扩展的上下文事件（先是 <code>context</code>，再是 <code>context_with_system</code>）。</p>
 </blockquote>
 <blockquote>
 <p>📌 <code>convertToLlm</code> 要保留 <code>system</code> 消息。提示词和工具声明都放在 system 消息里，<code>Agent</code> 默认的转换函数会保留 <code>system</code>、<code>user</code>、<code>assistant</code>、<code>toolResult</code> 四种角色。自己写转换函数时，如果把 <code>system</code> 也过滤掉，模型就看不到提示词和工具声明了。</p>
@@ -1142,7 +1142,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/19.webp"
+              data-src="/random/3.webp"
               data-sizes="auto"
               alt="Pi 源码分析 02 · 三层架构：层与层之间怎么接"
               class="lazyload"
@@ -1154,7 +1154,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 02 · 三层架构：层与层之间怎么接</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/29.webp"
+              data-src="/random/22.webp"
               data-sizes="auto"
               alt="Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么"
               class="lazyload"

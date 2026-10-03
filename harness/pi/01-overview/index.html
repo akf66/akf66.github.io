@@ -10,7 +10,7 @@
 /><title>
   Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架 | AKF
 </title>
-<meta name="description" content="基于 earendil-works/pi v1.0.0 之后的 main（a276dabe5）的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"/><script>
+<meta name="description" content="基于 earendil-works/pi v1.0.1 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"/><script>
   window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
   
 </script>
@@ -37,7 +37,7 @@
   <meta property="og:title" content="Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架 | AKF" />
   <meta
     property="og:description"
-    content="基于 earendil-works/pi v1.0.0 之后的 main（a276dabe5）的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"
+    content="基于 earendil-works/pi v1.0.1 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。"
   />
   <meta property="og:url" content="https://example.org/harness/pi/01-overview/" />
   <meta
@@ -429,7 +429,7 @@ This article does not have a corresponding language version
   </span></div>
 <div class="article-category"></div>
 </div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
-<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v1.0.0-25-ga276dabe5</code>（2026-10-03），commit <code>a276dabe5</code>。文中所有架构、数字和代码均以该版本源码为准。</p>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.1（2026-10-03），commit <code>a7229ddc2</code>。文中所有架构、数字和代码均以该版本源码为准。</p>
 </blockquote>
 <p>本章不深入实现细节，只回答两个问题：</p>
 <ol>
@@ -1367,7 +1367,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap right"><img
-              data-src="/random/16.webp"
+              data-src="/random/4.webp"
               data-sizes="auto"
               alt="Pi 源码分析 02 · 三层架构：层与层之间怎么接"
               class="lazyload"
@@ -1564,7 +1564,7 @@ This article does not have a corresponding language version
           author: "AKF",
           title: "Pi 源码分析 01 · 开篇：Pi 是什么，以及它的骨架",
           url: "https:\/\/example.org\/harness\/pi\/01-overview\/",
-          description: "基于 earendil-works\/pi v1.0.0 之后的 main（a276dabe5）的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。",
+          description: "基于 earendil-works\/pi v1.0.1 的开篇：三重身份、四层堆栈、依赖规则、一次 prompt 的旅程，以及定制方式。",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {

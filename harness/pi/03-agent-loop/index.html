@@ -10,7 +10,7 @@
 /><title>
   Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的 | AKF
 </title>
-<meta name="description" content="接着第二章往下讲：当前发布的 pi-agent-core 引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。"/><script>
+<meta name="description" content="接着第二章往下讲：pi-agent-core 的引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。"/><script>
   window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
   
 </script>
@@ -37,7 +37,7 @@
   <meta property="og:title" content="Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的 | AKF" />
   <meta
     property="og:description"
-    content="接着第二章往下讲：当前发布的 pi-agent-core 引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。"
+    content="接着第二章往下讲：pi-agent-core 的引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。"
   />
   <meta property="og:url" content="https://example.org/harness/pi/03-agent-loop/" />
   <meta
@@ -428,9 +428,9 @@ This article does not have a corresponding language version
   </span></div>
 <div class="article-category"></div>
 </div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
-<p><strong>版本基线</strong>：<code>earendil-works/pi</code> main 分支 <code>v0.99.2-29-g0f8740bb6</code>（2026-10-01），commit <code>0f8740bb6</code>。本章涉及的 <code>agent-loop.ts</code>、<code>agent.ts</code>、<code>types.ts</code> 与 npm 上发布的 <code>@earendil-works/pi-agent-core@0.99.2</code> 完全一致。文中所有行为、数字和代码均以该版本为准。</p>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.1（2026-10-03），commit <code>a7229ddc2</code>。文中所有行为、数字和代码均以该版本为准。</p>
 </blockquote>
-<p>第二章讲到，L3 在创建 <code>Agent</code> 时传入一批钩子，又在创建后改写了另一批。本章接着往下讲，打开 L2 当前发布的引擎，看这些钩子在一次运行里什么时候被调用，循环靠什么继续、什么时候停下。</p>
+<p>第二章讲到，L3 在创建 <code>Agent</code> 时传入一批钩子，又在创建后改写了另一批。本章接着往下讲，打开 L2 的引擎，看这些钩子在一次运行里什么时候被调用，循环靠什么继续、什么时候停下。</p>
 <p>本章要点：</p>
 <ul>
 <li><strong>两层循环</strong>：内层在&quot;还有工具结果要交给模型&quot;或&quot;有插队消息&quot;时继续；外层在内层停下后检查后续消息。<code>finishTurn</code> 还能要求再跑一轮。</li>
@@ -443,7 +443,7 @@ This article does not have a corresponding language version
 <a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
 0 · 阅读说明
 </h2><ul>
-<li>本章只讲当前发布的引擎：<code>Agent</code> 类和 <code>agentLoop()</code> 系列函数。第二章第 5 节提到的实验引擎不在本章范围内。</li>
+<li>本章只讲 pi-agent-core 里的引擎：<code>Agent</code> 类和 <code>agentLoop()</code> 系列函数。第二章第 5 节提到的 pi-durable 是另一个包里的引擎，不在本章范围内。</li>
 <li>文中的事件顺序都用一个探针脚本实际跑过。脚本用一个假的 <code>streamFn</code> 按剧本返回助手消息，订阅 <code>Agent</code> 的事件并记录钩子的调用时刻。本章引用的运行记录都来自这个脚本。</li>
 <li>后文说的&quot;一轮&quot;（turn），指一次模型请求加上这条回复里所有工具调用的执行，和 <code>turn_start</code> / <code>turn_end</code> 两个事件对应。</li>
 </ul>
@@ -778,14 +778,14 @@ This article does not have a corresponding language version
 <li><strong>工具执行中</strong>：signal 会传给 <code>execute</code>，工具要自己响应中止。
 <ul>
 <li>串行模式下，当前调用结束后发现已中止，剩下的调用就不再执行，<strong>也不会生成结果</strong>。</li>
-<li>并行模式（默认）下，所有调用在执行前都已经准备好，同时启动；已中止的调用各自得到 <code>Operation aborted</code>，每个调用都有结果。</li>
+<li>并行模式（默认）下，所有调用在执行前都已经准备好，同时启动，每个调用都有结果：已经在执行的调用，结果取决于工具自己怎么响应中止；开始执行时 signal 已经中止的调用，引擎直接给它 <code>Operation aborted</code>。</li>
 </ul>
 </li>
 </ul>
 <p>工具批次结束后，循环并不会马上退出，而是照常调用 <code>finishTurn</code>、发出 <code>turn_end</code>，进入下一轮。下一次请求带着已中止的 signal 发出，<code>streamFn</code> 返回一条失败的助手消息，循环这才结束。用 pi-ai 的 <code>Models.streamSimple</code> 时，这条消息在准备阶段就生成，不会发出 HTTP 请求，<code>stopReason</code> 是 <code>error</code>，<code>errorMessage</code> 为 <code>This operation was aborted</code>。探针用的是假 <code>streamFn</code>，它对已中止的 signal 返回 <code>aborted</code>。探针用串行模式，中止发生在第一个工具执行期间，记录是这样的：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">tool_execution_start(a) → tool_execution_end(a!: cancelled) → message_start/end(toolResult:a!)
 </span></span><span class="line"><span class="cl">→ turn_end → turn_start → streamFn#1 → message_start/end(assistant, aborted) → turn_end → agent_end
-</span></span></code></pre></div><p>第二个调用 <code>b</code> 没有任何事件和结果。同样的场景换成并行模式，<code>b</code> 会得到一条 <code>Operation aborted</code> 的结果。串行模式下留下的这种调用，之后再把这段对话发给模型时，pi-ai 的消息转换会给这种没有结果的调用补一条 <code>No result provided</code> 的错误结果，让请求符合供应商的格式要求。</p>
+</span></span></code></pre></div><p>第二个调用 <code>b</code> 没有任何事件和结果。同样的场景换成并行模式，<code>b</code> 和 <code>a</code> 同时在执行，也收到中止信号，各自得到一条错误结果（探针里都是工具抛出的 <code>cancelled</code>）；如果 <code>a</code> 一开始执行就同步中止，<code>b</code> 开始执行时 signal 已经中止，得到的是 <code>Operation aborted</code>。串行模式下留下的这种调用，之后再把这段对话发给模型时，pi-ai 的消息转换会给这种没有结果的调用补一条 <code>No result provided</code> 的错误结果，让请求符合供应商的格式要求。</p>
 <hr>
 <h2 id="5--agent-类和直接调用-agentloop-的区别">
 <a class="header-anchor" href="#5--agent-%e7%b1%bb%e5%92%8c%e7%9b%b4%e6%8e%a5%e8%b0%83%e7%94%a8-agentloop-%e7%9a%84%e5%8c%ba%e5%88%ab"></a>
@@ -817,7 +817,7 @@ This article does not have a corresponding language version
 </span></span></code></pre></div><p>订阅者按注册顺序依次执行，每一个都被等待。探针里，订阅者在助手消息的 <code>message_end</code> 上等待 50ms，再看工具什么时候开始执行：</p>
 <ul>
 <li><code>Agent</code>：订阅者开始 → 订阅者结束 → <code>execute</code></li>
-<li><code>agentLoop()</code>：<code>execute</code> → 订阅者开始 → 订阅者结束</li>
+<li><code>agentLoop()</code>：<code>execute</code> 不等订阅者结束就开始。探针里的顺序是订阅者开始 → <code>execute</code> → 订阅者结束；<code>execute</code> 和订阅者谁先开始，取决于消费者什么时候读取事件</li>
 </ul>
 <p>这正是 README 里说的：用 <code>Agent</code> 时，助手消息的 <code>message_end</code> 处理完，才会开始准备工具，所以 <code>beforeToolCall</code> 看到的状态里已经有了这条助手消息。</p>
 <p>除了等不等订阅者，两者还有这些区别：</p>
@@ -1142,7 +1142,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/18.webp"
+              data-src="/random/6.webp"
               data-sizes="auto"
               alt="Pi 源码分析 02 · 三层架构：层与层之间怎么接"
               class="lazyload"
@@ -1154,7 +1154,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 02 · 三层架构：层与层之间怎么接</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/29.webp"
+              data-src="/random/19.webp"
               data-sizes="auto"
               alt="Pi 源码分析 04 · 模型调用：streamFn 背后发生了什么"
               class="lazyload"
@@ -1350,7 +1350,7 @@ This article does not have a corresponding language version
           author: "AKF",
           title: "Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的",
           url: "https:\/\/example.org\/harness\/pi\/03-agent-loop\/",
-          description: "接着第二章往下讲：当前发布的 pi-agent-core 引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。",
+          description: "接着第二章往下讲：pi-agent-core 的引擎里，双层循环怎么继续和停下、一轮里钩子和事件的先后顺序、工具的串行与并行以及各种失败的去向，还有 Agent 类和直接调用 agentLoop() 的区别。",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {

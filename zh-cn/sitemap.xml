@@ -27,11 +27,6 @@
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/tags/"
-                />
-    <xhtml:link
-                rel="alternate"
                 hreflang="en"
                 href="https://example.org/en/tags/"
                 />
@@ -39,6 +34,11 @@
                 rel="alternate"
                 hreflang="ja"
                 href="https://example.org/ja/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/tags/"
                 />
   </url><url>
     <loc>https://example.org/tags/%E6%B2%99%E7%AE%B1/</loc>
@@ -56,6 +56,11 @@
                 />
     <xhtml:link
                 rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/"
+                />
+    <xhtml:link
+                rel="alternate"
                 hreflang="en"
                 href="https://example.org/en/"
                 />
@@ -63,11 +68,6 @@
                 rel="alternate"
                 hreflang="ja"
                 href="https://example.org/ja/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/"
                 />
   </url><url>
     <loc>https://example.org/tags/gvisor/</loc>

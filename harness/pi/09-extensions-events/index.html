@@ -1,0 +1,2116 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程 | AKF
+</title>
+<meta name="description" content="接着第八章往下讲：把扩展当成一个整体，看它从哪八类来源按什么顺序加载、TypeScript 怎样被 jiti 转译、怎样装进 AgentSession、/reload 和 /new 时会不会重新执行、ExtensionAPI 的 33 个成员各落到哪个子系统、41 个事件在一次 prompt 里的先后和多个扩展的返回值怎样合并、三种 ctx 有什么不同，以及处理函数出错时会怎样。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程 | AKF" />
+  <meta
+    property="og:description"
+    content="接着第八章往下讲：把扩展当成一个整体，看它从哪八类来源按什么顺序加载、TypeScript 怎样被 jiti 转译、怎样装进 AgentSession、/reload 和 /new 时会不会重新执行、ExtensionAPI 的 33 个成员各落到哪个子系统、41 个事件在一次 prompt 里的先后和多个扩展的返回值怎样合并、三种 ctx 有什么不同，以及处理函数出错时会怎样。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/09-extensions-events/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-04T19:30:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-04T19:30:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--扩展从哪来">1 · 扩展从哪来</a>
+      <ul>
+        <li><a href="#11-八类来源和加载顺序">1.1 八类来源和加载顺序</a></li>
+        <li><a href="#12-目录里什么算一个扩展">1.2 目录里什么算一个扩展</a></li>
+        <li><a href="#13-typescript-怎么加载">1.3 TypeScript 怎么加载</a></li>
+        <li><a href="#14-同名与重复">1.4 同名与重复</a></li>
+        <li><a href="#15-项目信任">1.5 项目信任</a></li>
+        <li><a href="#16-加载失败">1.6 加载失败</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--扩展怎么装进会话">2 · 扩展怎么装进会话</a>
+      <ul>
+        <li><a href="#21-三个对象">2.1 三个对象</a></li>
+        <li><a href="#22-绑定session_start-从这里发出">2.2 绑定：session_start 从这里发出</a></li>
+        <li><a href="#23-reload重新导入模块整体换掉运行器">2.3 /reload：重新导入模块，整体换掉运行器</a></li>
+        <li><a href="#24-newresumefork换一个会话模块不重新导入">2.4 /new、/resume、/fork：换一个会话，模块不重新导入</a></li>
+        <li><a href="#25-ctx-什么时候失效">2.5 ctx 什么时候失效</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--extensionapi-能注册什么">3 · ExtensionAPI 能注册什么</a>
+      <ul>
+        <li><a href="#31-33-个成员">3.1 33 个成员</a></li>
+        <li><a href="#32-每项注册落到哪里">3.2 每项注册落到哪里</a></li>
+        <li><a href="#33-动作对会话的影响">3.3 动作对会话的影响</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--事件全表">4 · 事件全表</a>
+      <ul>
+        <li><a href="#41-41-个事件两种方法核对">4.1 41 个事件，两种方法核对</a></li>
+        <li><a href="#42-一次-prompt-里的先后">4.2 一次 prompt 里的先后</a></li>
+        <li><a href="#43-分组表">4.3 分组表</a></li>
+        <li><a href="#44-返回值的五种合并规则">4.4 返回值的五种合并规则</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--extensioncontext三种-ctx">5 · ExtensionContext：三种 ctx</a></li>
+    <li><a href="#6--隔离与出错">6 · 隔离与出错</a>
+      <ul>
+        <li><a href="#61-处理函数抛错">6.1 处理函数抛错</a></li>
+        <li><a href="#62-有没有权限边界">6.2 有没有权限边界</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--用法一个-todo-扩展">7 · 用法：一个 /todo 扩展</a></li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.3cf30c7271bec63efd7f486bce6e5fb5d736af11ecc46b715600952e59d2bb1a.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程</p>
+</div>
+      </div>
+    </article><link rel="stylesheet" href="/css/immersive.min.2db92d937938ad74c3f0da9f094e4878ceeb590da6c1a4e7129c8e526ba57363.css" /><h1 class="immersive-title">Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><div class="immersive-side-row">
+  <button type="button" class="immersive-side" data-immersive-toggle>
+    <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+    <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
+    <span class="immersive-side-text-on">沉浸阅读</span>
+    <span class="immersive-side-text-off">退出沉浸</span>
+  </button>
+  <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+</div><button
+  type="button"
+  class="immersive-toggle"
+  data-immersive-toggle
+  data-label-on="进入沉浸阅读"
+  data-label-off="退出沉浸阅读"
+  title="进入沉浸阅读"
+  aria-label="进入沉浸阅读"
+  aria-pressed="false"
+>
+  <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </svg>
+  <span class="immersive-toggle-text-on">沉浸阅读</span>
+  <span class="immersive-toggle-text">退出沉浸阅读</span>
+  <kbd class="immersive-toggle-kbd">Esc</kbd>
+</button>
+<script>
+  (() => {
+    const KEY = "immersive-reading";
+    const root = document.documentElement;
+    const btn = document.querySelector(".immersive-toggle");
+    const entry = document.querySelector(".immersive-entry");
+
+    const apply = (on) => {
+      root.classList.toggle("immersive", on);
+      const label = on ? btn.dataset.labelOff : btn.dataset.labelOn;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", String(on));
+      const sideBtn = document.querySelector(".immersive-side");
+      if (sideBtn) sideBtn.title = label;
+      try {
+        localStorage.setItem(KEY, on ? "1" : "0");
+      } catch (e) {}
+    };
+
+    const nav = document.querySelector(".immersive-nav");
+    const side = document.querySelector(".immersive-side-row");
+
+    const title = document.querySelector(".immersive-title");
+
+    const placeEntry = () => {
+      const inner = document.querySelector("article.h-entry .article-inner");
+      if (inner) inner.prepend(title);
+      const date = document.querySelector(".article-meta .article-date");
+      if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
+      const sidebar = document.querySelector("#sidebar .sidebar-wrapper-container");
+      if (sidebar) {
+        sidebar.appendChild(side);
+        root.classList.add("immersive-has-side");
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", placeEntry);
+    } else {
+      placeEntry();
+    }
+
+    apply(root.classList.contains("immersive"));
+    document.querySelectorAll("[data-immersive-toggle]").forEach((el) =>
+      el.addEventListener("click", () => {
+        apply(!root.classList.contains("immersive"));
+        window.scrollTo({ top: 0 });
+      })
+    );
+    side.querySelector(".immersive-side-top").addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
+    });
+  })();
+</script>
+<article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-04 19:30:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-04</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-04</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.2-1-g200387122（2026-10-04），commit <code>200387122</code>。这个提交在 v1.0.2 之上只给各包的 CHANGELOG 加了 <code>[Unreleased]</code> 段，代码与 v1.0.2 相同。文中所有行为、数字和代码均以该版本为准。</p>
+</blockquote>
+<p>前几章分别讲了扩展在工具、会话、压缩、请求前改写里的那几个插口；本章把扩展当成一个整体来讲，包括它从哪来、怎么装进会话、能注册什么、事件怎么派发、出错和重载时会怎样。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>八类来源，一个固定顺序</strong>：命令行 <code>-e</code>、项目 settings、<code>&lt;cwd&gt;/.pi/extensions</code>、用户 settings、<code>~/.pi/agent/extensions</code>、pi 包、内置扩展、SDK 的 <code>extensionFactories</code>，按这个顺序加载，事件处理函数也按这个顺序执行。项目里的来源要先信任项目。TypeScript 由 jiti 转译后加载，不需要编译。</li>
+<li><strong>同名冲突在启动时就拦下</strong>：两个扩展注册同名工具或参数时，第一个生效，并记一条加载错误；CLI 遇到任何加载错误都会退出。同名命令都保留，改名为 <code>name:1</code>、<code>name:2</code>。</li>
+<li><strong>运行器住在 AgentSession 里</strong>：<code>AgentSession</code> 构造时建 <code>ExtensionRunner</code> 并接上动作方法，运行模式调用 <code>bindExtensions</code> 时才发 <code>session_start</code>。<code>/reload</code> 会重新导入模块、重跑工厂，旧的注册随旧运行器整体丢弃；<code>/new</code>、<code>/resume</code>、<code>/fork</code> 只重跑工厂，模块取自缓存。之前留下的 <code>pi</code> 和 <code>ctx</code> 一律失效。</li>
+<li><strong>33 个 API 成员、41 个事件</strong>：注册类方法加载时就能调用，动作类方法要等绑定之后。41 个事件里 19 个会采用处理函数的返回值或修改，按接力、拦截即停、后者覆盖、先到先得、收集五种规则合并；其余 22 个只通知。</li>
+<li><strong>出错只报告，不中断</strong>：处理函数抛错时报告给 <code>onError</code>，跳过它继续执行；<code>tool_call</code> 例外，抛错就阻止这次工具调用。扩展和 pi 跑在同一个进程里，没有权限边界，项目信任只决定加载不加载。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章只讲已发布的 <code>pi</code> 走的路径：pi-coding-agent 的 <code>DefaultResourceLoader</code>（资源加载器）、<code>PackageManager</code>（包与路径解析）、扩展加载器、<code>ExtensionRunner</code>（扩展运行器）、<code>AgentSession</code> 和 <code>AgentSessionRuntime</code>（会话替换）。</li>
+<li>引用前几章的结论，不再重复：
+<ul>
+<li>第二章 2.1 节：扩展里 <code>import &quot;@earendil-works/pi-agent-core&quot;</code> 拿到的是宿主自带的那一份；第 4 节：<code>AgentSession</code> 怎样把扩展事件接到 <code>Agent</code> 的钩子上。</li>
+<li>第三章 6.2 节：<code>tool_call</code> 返回 <code>{ block, reason }</code> 拦截工具；<code>turn_end</code> 返回 <code>continue</code>。</li>
+<li>第五章 7 节：<code>registerTool</code> 之后工具怎样进注册表、<code>exposure</code> 的五种取值、MCP 工具的命名和暴露方式。</li>
+<li>第六章 6 节和 7.2 节：<code>pi.appendEntry</code>、<code>setLabel</code>、<code>setSessionName</code> 写的条目；<code>turn_end</code> 和 <code>agent_before_settle</code> 的条目草稿；<code>session_before_switch / _fork / _tree</code>。</li>
+<li>第七章 5 节：<code>session_before_compact</code>、<code>session_compact</code>、<code>session_compact_failed</code>、<code>ctx.compact()</code>。</li>
+<li>第八章 5 节：<code>input</code>、<code>before_agent_start</code>、<code>context</code>、<code>context_with_system</code>、<code>before_provider_request</code>、<code>before_provider_headers</code> 能改什么；6.3 节：<code>cache_warming_decision</code>。</li>
+</ul>
+</li>
+<li>文中的行为都用探针实际跑过。探针用 npm 上的 1.0.2，用 <code>createAgentSession</code> 加 pi-ai 的 faux 供应商（从 <code>@earendil-works/pi-ai/compat</code> 导入 <code>registerFauxProvider</code>、<code>fauxAssistantMessage</code>）。临时目录里放全局、项目两层扩展目录、settings 里列出的路径和两个本地 pi 包，<code>HOME</code> 也指向临时目录。faux 的每个回复都用工厂函数在请求到达时才创建。faux 不调用 <code>before_provider_request</code> 和 <code>provider_stream_event</code>，涉及它们的探针（P2b）改用本地 mock 服务模拟 Anthropic 的流式接口。涉及启动退出码和项目信任的探针（P1b、P1c）直接运行 npm 包里的 <code>pi</code> 命令。探针编号 P1–P7。</li>
+<li>术语：
+<ul>
+<li><strong>工厂</strong>：扩展模块默认导出的函数 <code>(pi: ExtensionAPI) =&gt; void | Promise&lt;void&gt;</code>，加载时调用一次。</li>
+<li><strong>注册表</strong>：每个扩展一个 <code>Extension</code> 对象，里面是它注册的处理函数、工具、命令、快捷键、参数、渲染器。</li>
+<li><strong>运行器</strong>：<code>ExtensionRunner</code>，持有本次加载的全部 <code>Extension</code>，负责派发事件、汇总注册。</li>
+<li><strong>绑定</strong>：运行模式调用 <code>session.bindExtensions()</code>，接上界面、命令上下文和错误监听，并发出 <code>session_start</code>。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1--扩展从哪来">
+<a class="header-anchor" href="#1--%e6%89%a9%e5%b1%95%e4%bb%8e%e5%93%aa%e6%9d%a5"></a>
+1 · 扩展从哪来
+</h2><p><img src="/images/harness/pi/ch09/fig1-ext-sources.png" alt="图 1 · 扩展从哪来：八类来源与加载顺序"></p>
+<h3 id="11-八类来源和加载顺序">
+<a class="header-anchor" href="#11-%e5%85%ab%e7%b1%bb%e6%9d%a5%e6%ba%90%e5%92%8c%e5%8a%a0%e8%bd%bd%e9%a1%ba%e5%ba%8f"></a>
+1.1 八类来源和加载顺序
+</h3><p>扩展的路径由 <code>PackageManager.resolve</code>（收集 settings、包和自动发现的路径）汇总，按 <code>resourcePrecedenceRank</code>（资源优先级）排序，再由 <code>DefaultResourceLoader.reload</code> 把命令行路径放在最前、SDK 工厂放在最后：</p>
+<table>
+	<thead>
+			<tr>
+					<th>顺序</th>
+					<th>来源</th>
+					<th>需要信任项目</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>1</td>
+					<td>命令行 <code>-e</code> / <code>--extension</code>（文件、目录、<code>npm:</code>、<code>git:</code>）</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>2</td>
+					<td>项目 <code>.pi/settings.json</code> 的 <code>extensions</code> 列出的路径</td>
+					<td>是</td>
+			</tr>
+			<tr>
+					<td>3</td>
+					<td><code>&lt;cwd&gt;/.pi/extensions/</code> 自动发现</td>
+					<td>是</td>
+			</tr>
+			<tr>
+					<td>4</td>
+					<td>用户 <code>~/.pi/agent/settings.json</code> 的 <code>extensions</code> 列出的路径</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>5</td>
+					<td><code>~/.pi/agent/extensions/</code> 自动发现</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>6</td>
+					<td>pi 包：settings 里 <code>packages</code> 列出的包，项目的排在用户的前面</td>
+					<td>项目 settings 里的包需要</td>
+			</tr>
+			<tr>
+					<td>7</td>
+					<td>内置扩展 <code>builtin:llama.cpp</code>、<code>codemode</code>、<code>tool-search</code>、<code>mcp</code></td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>8</td>
+					<td>SDK 的 <code>extensionFactories</code>，路径记为 <code>&lt;inline:N&gt;</code></td>
+					<td>—</td>
+			</tr>
+	</tbody>
+</table>
+<p>这个顺序就是之后每个事件处理函数的执行顺序；同一个扩展里的多个处理函数按注册顺序执行。探针 P1 在每一类来源各放一个扩展，每个扩展在工厂里和 <code>input</code> 事件里各记一行：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">项目已信任
+</span></span><span class="line"><span class="cl">  factory: cli-e → proj-setting → p-file → user-setting → g-dir → g-early → g-file → g-replace → proj-pkg → user-pkg → builtin:fake-builtin → &lt;inline:SDK&gt;
+</span></span><span class="line"><span class="cl">  input:   cli-e → proj-setting → p-file → user-setting → g-dir → g-early → g-file → g-replace → proj-pkg → user-pkg → &lt;inline:SDK&gt;
+</span></span><span class="line"><span class="cl">项目未信任
+</span></span><span class="line"><span class="cl">  factory: cli-e → user-setting → g-dir → g-early → g-file → g-replace → user-pkg → builtin:fake-builtin → &lt;inline:SDK&gt;
+</span></span></code></pre></div><p><code>g-*</code> 都在 <code>~/.pi/agent/extensions/</code> 里，同一个目录内按 <code>readdirSync</code> 返回的顺序，代码里没有再排序（macOS 的 APFS 上恰好是文件名顺序）。未信任时，项目 settings、<code>.pi/extensions</code> 和项目 settings 里的包都消失了，命令行、用户和 SDK 的扩展照常加载。</p>
+<p>P1 用 SDK，信任事先给定。CLI 需要询问项目信任时会先跑一遍预信任加载（1.5 节），这时命令行、用户和 SDK 扩展的工厂比项目扩展先执行；加载完成后仍按上表重新排列，处理函数的顺序不变。</p>
+<p>几点补充：</p>
+<ul>
+<li><strong>内置扩展只有 CLI 会装上</strong>：<code>main.ts</code> 把 <code>builtInExtensions</code> 放在用户给的 <code>extensionFactories</code> 前面，带 <code>builtin: true</code> 的项被资源加载器当作 <code>builtin:&lt;名字&gt;</code> 路径处理。直接用 SDK 的 <code>createAgentSession</code> 时没有这四个扩展，要自己加，例如第五章的 <code>createToolSearchExtension()</code>。</li>
+<li><strong>关掉内置扩展</strong>：在 <code>extensions</code> 设置里写 <code>-builtin:mcp</code>；项目设置里的 <code>+</code>、<code>-</code>、<code>!</code> 条目优先于用户设置。<code>-e builtin:mcp</code> 可以强制加载。</li>
+<li><strong><code>-ne</code>（<code>--no-extensions</code>）</strong>：去掉第 2–7 类，命令行 <code>-e</code> 的扩展和 SDK 工厂照样加载（P1b 里 <code>-ne -e a.ts</code> 时 <code>a.ts</code> 的工厂照常执行）。</li>
+<li><strong>settings 里的 <code>extensions</code> 条目</strong>：普通条目是路径；带 <code>!</code>、<code>+</code>、<code>-</code> 前缀或含 <code>*</code>、<code>?</code> 的是过滤规则，用来排除或强制包含已收集到的文件，也能开关自动发现的文件。</li>
+</ul>
+<h3 id="12-目录里什么算一个扩展">
+<a class="header-anchor" href="#12-%e7%9b%ae%e5%bd%95%e9%87%8c%e4%bb%80%e4%b9%88%e7%ae%97%e4%b8%80%e4%b8%aa%e6%89%a9%e5%b1%95"></a>
+1.2 目录里什么算一个扩展
+</h3><p>自动发现只看一层：</p>
+<ul>
+<li>顶层的 <code>*.ts</code>、<code>*.js</code> 文件各算一个扩展。</li>
+<li>子目录先看 <code>package.json</code> 里的 <code>pi.extensions</code>（列出入口文件），没有就找 <code>index.ts</code>，再找 <code>index.js</code>。</li>
+<li>跳过以 <code>.</code> 开头的项和 <code>node_modules</code>，遵守目录里的 <code>.gitignore</code>、<code>.ignore</code>、<code>.fdignore</code>。</li>
+<li>例外：扩展目录本身就有 <code>package.json</code> 的 <code>pi.extensions</code> 或 <code>index.ts</code> / <code>index.js</code> 时，只加载这个入口，旁边的文件都不看。</li>
+<li><code>*.d.ts</code> 也以 <code>.ts</code> 结尾，会被当成扩展加载，因为没有默认导出而报加载错误，CLI 因此启动失败。</li>
+</ul>
+<p>P1 的全局目录里放了 <code>g-mjs.mjs</code> 和 <code>.g-hidden.ts</code>，两个都没有加载。<code>.mjs</code>、<code>.mts</code> 这类扩展名不会被自动发现，但用 <code>-e</code> 或 settings 显式给出路径时照样交给加载器。</p>
+<p>pi 包（第一章 6 节的 Pi Packages）用同一套规则：<code>package.json</code> 的 <code>pi.extensions</code> 列出入口，没有时用约定的 <code>extensions/</code> 目录。</p>
+<h3 id="13-typescript-怎么加载">
+<a class="header-anchor" href="#13-typescript-%e6%80%8e%e4%b9%88%e5%8a%a0%e8%bd%bd"></a>
+1.3 TypeScript 怎么加载
+</h3><p>加载器用 <a href="https://github.com/unjs/jiti">jiti</a>（2.7）导入扩展，<code>.ts</code> 文件经 jiti 内置的 Babel 转译后执行（Node 下 jiti 的 <code>tryNative</code> 默认关闭，pi 也没有打开它；Babel 在第一次需要转译时才加载）。所以扩展可以直接写 <code>.ts</code>，不需要编译，也不限于&quot;可擦除&quot;的类型语法。P1 的扩展里用了 <code>enum</code> 和 <code>satisfies</code>，照常运行，输出 <code>g-file enum=2</code>。</p>
+<p>加载器的几个设置：</p>
+<ul>
+<li><strong><code>moduleCache: false</code></strong>：每次导入都重新执行模块，不复用 Node 的模块缓存。另有一层按路径缓存工厂函数的表，第 2 节讲它和 <code>/reload</code> 的关系。</li>
+<li><strong>宿主提供的包</strong>：扩展里导入 <code>@earendil-works/pi-coding-agent</code>、<code>pi-agent-core</code>、<code>pi-ai</code>、<code>pi-tui</code>、<code>typebox</code> 时，拿到的是 pi 自带的那一份。npm 安装的版本用别名表（<code>getAliases</code>）指过去，编译成单文件的二进制和自带 Node 的发行版用 <code>VIRTUAL_MODULES</code>（虚拟模块表）。<code>@earendil-works/pi-ai</code> 的根入口被指到 <code>compat</code> 入口，旧的全局 API 在扩展里还能用。</li>
+<li><strong>&ldquo;重复的运行时&rdquo;</strong>：如果某个 pi 包把上面这些宿主包写进了 <code>dependencies</code>，<code>npm install</code> 会在包里装一份自己的副本，导入时可能绕过别名，变成第二份 pi 模块，类型检查和 <code>instanceof</code> 都会出问题。加载器为此给出警告，要求改写到 <code>peerDependencies</code> 并用 <code>&quot;*&quot;</code> 版本范围。P1 的 <code>user-pkg</code> 故意这样写，得到：</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Host-provided extension packages must be declared in peerDependencies with a &#34;*&#34; range, not dependencies: @earendil-works/pi-ai. Installed copies can bypass the extension loader and create duplicate runtime modules.
+</span></span></code></pre></div><h3 id="14-同名与重复">
+<a class="header-anchor" href="#14-%e5%90%8c%e5%90%8d%e4%b8%8e%e9%87%8d%e5%a4%8d"></a>
+1.4 同名与重复
+</h3><table>
+	<thead>
+			<tr>
+					<th>情形</th>
+					<th>结果</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>同一个文件被列了两次（例如 settings 和自动发现都指向它）</td>
+					<td>按规范路径去重，只加载一次</td>
+			</tr>
+			<tr>
+					<td>全局和项目各放一份同样的扩展</td>
+					<td>是两个不同的文件，都加载</td>
+			</tr>
+			<tr>
+					<td>两个扩展注册同名工具或同名参数</td>
+					<td>第一个生效；后一个记一条加载错误 <code>Tool &quot;dup&quot; conflicts with &lt;先注册的扩展&gt;</code></td>
+			</tr>
+			<tr>
+					<td>两个扩展注册同名命令</td>
+					<td>都保留，调用名改成 <code>/hello:1</code>、<code>/hello:2</code></td>
+			</tr>
+			<tr>
+					<td>两个扩展注册同一个快捷键</td>
+					<td>后一个生效，记一条警告；与保留的内置快捷键冲突时跳过扩展的</td>
+			</tr>
+			<tr>
+					<td>两个扩展注册同名 MCP 服务器（只差 <code>-</code> 和 <code>_</code> 的也算）</td>
+					<td>后注册的那次在工厂里抛错，这个扩展整个加载失败</td>
+			</tr>
+			<tr>
+					<td>第三方扩展注册了与可替换内置扩展同名的工具、命令或参数（例如 <code>tool_search</code>、<code>/mcp</code>）</td>
+					<td>对应的内置扩展被替换，不加载</td>
+			</tr>
+			<tr>
+					<td>SDK <code>customTools</code> 和扩展工具同名</td>
+					<td><code>customTools</code> 的生效</td>
+			</tr>
+	</tbody>
+</table>
+<p>P1 里项目扩展 <code>p-file</code> 和全局扩展 <code>g-file</code> 都注册了工具 <code>dup</code> 和命令 <code>/hello</code>：工具 <code>dup</code> 的描述是 <code>from p-file</code>，命令变成 <code>/hello:1(p-file hello)</code>、<code>/hello:2(g-file hello)</code>；项目未信任时 <code>p-file</code> 不加载，<code>dup</code> 就是 <code>g-file</code> 的，命令也恢复成 <code>/hello</code>。</p>
+<p>内置扩展被替换时给出的警告（P1 的 <code>g-replace</code> 注册了 <code>tool_search</code>）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">Extension &lt;T&gt;/home/.pi/agent/extensions/g-replace.ts registers tool `tool_search`, so built-in extension `tool-search` was not loaded. To use `tool-search`, run `pi config` and make sure it is enabled under Built-in extensions, then disable or remove the existing extension. We recommend only having one or the other loaded at a time.
+</span></span></code></pre></div><p>替换发生在加载之后：内置扩展的工厂已经执行过，只是它的 <code>Extension</code> 没有交给运行器。</p>
+<h3 id="15-项目信任">
+<a class="header-anchor" href="#15-%e9%a1%b9%e7%9b%ae%e4%bf%a1%e4%bb%bb"></a>
+1.5 项目信任
+</h3><p><code>.pi/</code> 里有 <code>settings.json</code>、<code>mcp.json</code>、<code>extensions</code>、<code>skills</code>、<code>prompts</code>、<code>themes</code>、<code>SYSTEM.md</code>、<code>APPEND_SYSTEM.md</code> 之一，或者工作目录及其祖先目录里有 <code>.agents/skills</code>（<code>~/.agents/skills</code> 除外）时，pi 要先决定是否信任这个项目。决定的顺序（<code>resolveProjectTrusted</code>）：</p>
+<ol>
+<li>命令行 <code>--approve</code> / <code>--no-approve</code>。</li>
+<li><code>project_trust</code> 事件：第一个返回 <code>yes</code> 或 <code>no</code> 的处理函数做决定，<code>undecided</code> 交给下一个。</li>
+<li><code>~/.pi/agent/trust.json</code> 里保存的决定，从当前目录往上找最近的一条。</li>
+<li>设置 <code>defaultProjectTrust</code>（<code>always</code>、<code>never</code>，默认 <code>ask</code>）。</li>
+<li>交互模式弹出选择；print、JSON、RPC 模式不能弹窗，按不信任处理。</li>
+</ol>
+<p><code>project_trust</code> 要在项目扩展加载之前回答，所以需要询问时（没有 <code>--approve</code> / <code>--no-approve</code>、这次进程里还没有决定过、项目里确实有需要信任的资源），CLI 先做一遍<strong>预信任加载</strong>：把项目当成未信任，加载命令行、用户和 SDK 的扩展（不含内置扩展），让它们处理 <code>project_trust</code>；决定之后再加载其余的，已经加载过的扩展直接复用，不会执行第二次。探针 P1c 在用户目录放了三个扩展，依次返回 <code>undecided</code>、<code>yes</code>、<code>no</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">factory a-undecided
+</span></span><span class="line"><span class="cl">factory b-yes
+</span></span><span class="line"><span class="cl">factory c-no
+</span></span><span class="line"><span class="cl">a project_trust cwd=ws/proj mode=print hasUI=false
+</span></span><span class="line"><span class="cl">b project_trust -&gt; yes
+</span></span><span class="line"><span class="cl">factory PROJECT extension
+</span></span></code></pre></div><p><code>c</code> 没有被调用，项目扩展随后加载。<code>b</code> 返回的 <code>remember: false</code> 使 <code>trust.json</code> 没有写入。</p>
+<p>SDK 里由调用方决定：<code>SettingsManager.create</code> 的 <code>projectTrusted</code> 默认是 <code>true</code>，<code>createAgentSession</code> 不经过上面的流程。</p>
+<h3 id="16-加载失败">
+<a class="header-anchor" href="#16-%e5%8a%a0%e8%bd%bd%e5%a4%b1%e8%b4%a5"></a>
+1.6 加载失败
+</h3><p>单个扩展失败不影响其他扩展加载，错误收集到 <code>getExtensions().errors</code>：</p>
+<ul>
+<li>模块没有默认导出函数：<code>Extension does not export a valid factory function: &lt;路径&gt;</code></li>
+<li>导入或工厂抛错：文件扩展记为 <code>Failed to load extension: &lt;错误信息&gt;</code>，SDK 工厂和内置扩展只记原始错误信息。工厂里已经做的注册全部作废，之后再用这个扩展的 <code>pi</code> 会抛 <code>failed to load and its API is no longer active</code>。</li>
+<li>工厂里调用动作方法（<code>sendMessage</code> 等）：抛 <code>Extension runtime not initialized. Action methods cannot be called during extension loading.</code>（P1 的 <code>g-early</code>）</li>
+</ul>
+<p>CLI 对加载错误的处理更严格：启动时只要有一条错误，就打印错误和提示后以退出码 1 结束，四种模式都一样。1.4 节的同名工具冲突也记在错误里，同样会让 CLI 退出。探针 P1b 直接运行 npm 包里的 <code>pi</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">--- tool conflict, project trusted (--approve)
+</span></span><span class="line"><span class="cl">factory b
+</span></span><span class="line"><span class="cl">factory a
+</span></span><span class="line"><span class="cl">Error: Failed to load extension &#34;&lt;T&gt;/home/.pi/agent/extensions/a.ts&#34;: Tool &#34;dup&#34; conflicts with &lt;T&gt;/ws/proj/.pi/extensions/b.ts
+</span></span><span class="line"><span class="cl">Hint: Start without extensions using &#34;pi -ne&#34;.
+</span></span><span class="line"><span class="cl">exit=1
+</span></span><span class="line"><span class="cl">--- same, project not trusted (--no-approve)
+</span></span><span class="line"><span class="cl">factory a
+</span></span><span class="line"><span class="cl">No API key found for the selected model.        ← 项目扩展没加载，没有冲突，启动继续
+</span></span></code></pre></div><p>SDK 不会退出，要自己检查 <code>resourceLoader.getExtensions().errors</code>。<code>/reload</code> 之后的加载错误在交互界面里列出来，不会退出。</p>
+<hr>
+<h2 id="2--扩展怎么装进会话">
+<a class="header-anchor" href="#2--%e6%89%a9%e5%b1%95%e6%80%8e%e4%b9%88%e8%a3%85%e8%bf%9b%e4%bc%9a%e8%af%9d"></a>
+2 · 扩展怎么装进会话
+</h2><p><img src="/images/harness/pi/ch09/fig2-ext-lifecycle.png" alt="图 2 · 扩展的生命周期"></p>
+<h3 id="21-三个对象">
+<a class="header-anchor" href="#21-%e4%b8%89%e4%b8%aa%e5%af%b9%e8%b1%a1"></a>
+2.1 三个对象
+</h3><ul>
+<li><strong><code>Extension</code></strong>（一个扩展的注册表）：加载器为每个扩展建一个，里面是 <code>handlers</code>（事件名 → 处理函数列表）、<code>tools</code>、<code>commands</code>、<code>shortcuts</code>、<code>flags</code>、<code>messageRenderers</code> 等。<code>pi.on</code>、<code>pi.registerTool</code> 这类注册方法只往这里写。</li>
+<li><strong><code>ExtensionRuntime</code></strong>（共享运行时）：同一次加载的所有扩展共用一个。它持有动作方法（<code>sendMessage</code>、<code>appendEntry</code>、<code>setActiveTools</code>……）、参数值、排队中的供应商和虚拟模型注册、MCP 服务器表。刚建出来时动作方法都是会抛错的占位。</li>
+<li><strong><code>ExtensionRunner</code></strong>（运行器）：持有本次加载的全部 <code>Extension</code> 和共享运行时，负责派发事件、汇总工具和命令、创建 <code>ctx</code>。</li>
+</ul>
+<p><code>ExtensionRunner</code> 由 <code>AgentSession</code> 在构造函数里创建（<code>_buildRuntime</code>），SDK 和运行模式都不直接创建它。创建之后立刻：</p>
+<ol>
+<li><code>bindCore</code>（接上核心动作）：把共享运行时里的占位换成 <code>AgentSession</code> 的真实方法，把加载期间排队的 <code>registerProvider</code>、<code>registerVirtualModel</code> 交给模型运行时，之后这类注册立即生效。</li>
+<li>用运行器包装扩展工具，刷新工具注册表（第五章 7.1 节）。</li>
+</ol>
+<h3 id="22-绑定session_start-从这里发出">
+<a class="header-anchor" href="#22-%e7%bb%91%e5%ae%9asession_start-%e4%bb%8e%e8%bf%99%e9%87%8c%e5%8f%91%e5%87%ba"></a>
+2.2 绑定：session_start 从这里发出
+</h3><p>运行模式拿到会话后调用 <code>session.bindExtensions(bindings)</code>（绑定界面与错误监听）：</p>
+<ul>
+<li><code>uiContext</code> 和 <code>mode</code>：交互模式传终端界面，RPC 模式传转发给客户端的实现，print 和 JSON 模式不传（第 5 节）。</li>
+<li><code>commandContextActions</code>：命令上下文里 <code>newSession</code>、<code>fork</code>、<code>reload</code> 等方法的实现。</li>
+<li><code>onError</code>：处理函数出错时的回调（第 6 节）。</li>
+</ul>
+<p>接上之后它依次发出 <code>session_start</code> 和 <code>resources_discover</code>。所以 <strong><code>session_start</code> 不在会话创建时发出，而在绑定时发出</strong>。用 SDK 时，<code>createAgentSession</code> 不会替你绑定；不调用 <code>session.bindExtensions(…)</code>，扩展就收不到 <code>session_start</code>，也收不到 <code>resources_discover</code>，处理函数出错时也没有人接收。本章的探针都在创建会话后调用了它，并传了 <code>onError</code>。</p>
+<blockquote>
+<p>⚠️ <code>session.reload()</code> 只在至少有一项绑定（<code>uiContext</code>、<code>commandContextActions</code>、<code>shutdownHandler</code>、<code>onError</code> 之一）时才在重载后发 <code>session_start</code> 和 <code>resources_discover</code>。SDK 里只调用 <code>bindExtensions({})</code> 的话，重载后的扩展收不到 <code>session_start</code>。</p>
+</blockquote>
+<h3 id="23-reload重新导入模块整体换掉运行器">
+<a class="header-anchor" href="#23-reload%e9%87%8d%e6%96%b0%e5%af%bc%e5%85%a5%e6%a8%a1%e5%9d%97%e6%95%b4%e4%bd%93%e6%8d%a2%e6%8e%89%e8%bf%90%e8%a1%8c%e5%99%a8"></a>
+2.3 /reload：重新导入模块，整体换掉运行器
+</h3><p><code>session.reload()</code>（交互界面里是 <code>/reload</code>，扩展命令里是 <code>ctx.reload()</code>）的步骤：</p>
+<ol>
+<li>向旧扩展发 <code>session_shutdown</code>，<code>reason</code> 为 <code>reload</code>。</li>
+<li>旧运行器 <code>invalidate()</code>：之后旧的 <code>pi</code>、<code>ctx</code> 一用就抛错，<code>pi.events</code> 上的订阅全部退订。</li>
+<li>重新读设置，<code>DefaultResourceLoader.reload()</code>：先 <code>clearExtensionCache()</code> 清掉工厂缓存，加上 <code>moduleCache: false</code>，每个扩展的模块重新导入、工厂重新执行。</li>
+<li><code>_buildRuntime</code> 建一个新的运行器，参数值沿用，之前激活的工具名留作待定，新运行器里有同名工具就恢复激活。</li>
+<li>有绑定时，发 <code>session_start</code>（<code>reason</code> 为 <code>reload</code>），然后发 <code>resources_discover</code>。</li>
+</ol>
+<p>旧的注册不是逐项注销的，旧的 <code>Extension</code> 对象随旧运行器一起丢弃。探针 P4 在两次操作之间改写磁盘上的扩展文件，让新版本注册另一个工具：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">=== startup
+</span></span><span class="line"><span class="cl">  module body ran (version v1), total module runs=1
+</span></span><span class="line"><span class="cl">  factory ran (version v1), factory calls in this module instance=1
+</span></span><span class="line"><span class="cl">  session_start reason=startup (version v1)
+</span></span><span class="line"><span class="cl">  [registry after startup] tools=tool_v1 active=tool_v1 commands=/ver(version v1)
+</span></span><span class="line"><span class="cl">=== session.reload() after editing the file to v2
+</span></span><span class="line"><span class="cl">  session_shutdown reason=reload (version v1)
+</span></span><span class="line"><span class="cl">  module body ran (version v2), total module runs=2
+</span></span><span class="line"><span class="cl">  factory ran (version v2), factory calls in this module instance=1
+</span></span><span class="line"><span class="cl">  session_start reason=reload (version v2)
+</span></span><span class="line"><span class="cl">  [registry after reload] tools=tool_v2 active=tool_v2 commands=/ver(version v2)
+</span></span><span class="line"><span class="cl">  old pi.getActiveTools() threw: This extension ctx is stale after session replacement or reload. …
+</span></span><span class="line"><span class="cl">  old ctx.cwd threw: This extension ctx is stale after session replacement or reload. …
+</span></span></code></pre></div><p><code>tool_v1</code> 和旧的 <code>/ver</code> 都没了。pi 只清理它自己记录的东西：扩展在模块或工厂里启动的定时器、子进程、文件监听不会被自动停止，要在 <code>session_shutdown</code> 里自己关掉。官方文档的建议是不要在工厂里启动这类资源，放到 <code>session_start</code> 或用到它的命令、工具里。</p>
+<h3 id="24-newresumefork换一个会话模块不重新导入">
+<a class="header-anchor" href="#24-newresumefork%e6%8d%a2%e4%b8%80%e4%b8%aa%e4%bc%9a%e8%af%9d%e6%a8%a1%e5%9d%97%e4%b8%8d%e9%87%8d%e6%96%b0%e5%af%bc%e5%85%a5"></a>
+2.4 /new、/resume、/fork：换一个会话，模块不重新导入
+</h3><p>这三个操作由 <code>AgentSessionRuntime</code>（持有当前会话及其服务）完成，换掉的是整个 <code>AgentSession</code>：</p>
+<ol>
+<li>发 <code>session_before_switch</code>（<code>/new</code>、<code>/resume</code>）或 <code>session_before_fork</code>，处理函数可以取消（第六章）。</li>
+<li>发 <code>session_shutdown</code>（<code>reason</code> 为 <code>new</code>、<code>resume</code> 或 <code>fork</code>），<code>dispose()</code> 旧会话，旧运行器失效。</li>
+<li>用新的资源加载器和新的 <code>AgentSession</code> 重建，运行模式重新绑定，发 <code>session_start</code>（同样的 <code>reason</code>，并带上 <code>previousSessionFile</code>）。</li>
+</ol>
+<p>新的资源加载器第一次加载时不清工厂缓存，所以扩展的工厂会重新执行，模块却不会重新导入（新会话的工作目录变了时缓存会被清掉，模块重新导入）。SDK 里用 <code>AgentSessionRuntime</code> 时，要用 <code>setRebindSession</code> 注册一个调用 <code>bindExtensions</code> 的函数，新会话才会收到 <code>session_start</code>。P4 接着把文件改成 v3，再调用 <code>runtime.newSession()</code>：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">=== runtime.newSession() after editing the file to v3
+</span></span><span class="line"><span class="cl">  session_shutdown reason=new (version v2)
+</span></span><span class="line"><span class="cl">  factory ran (version v2), factory calls in this module instance=2
+</span></span><span class="line"><span class="cl">  session_start reason=new (version v2)
+</span></span><span class="line"><span class="cl">=== runtime.dispose()
+</span></span><span class="line"><span class="cl">  session_shutdown reason=quit (version v2)
+</span></span></code></pre></div><p>工厂第二次在同一个模块实例里执行，模块级变量还在，磁盘上的 v3 没有生效。所以模块顶层的状态会跨 <code>/new</code> 保留，要在新会话里重新开始的状态应放在工厂函数内部。</p>
+<p>退出时 <code>AgentSessionRuntime.dispose()</code> 发 <code>session_shutdown</code>（<code>reason=quit</code>）。SDK 里直接调用 <code>session.dispose()</code> 只让运行器失效，不发 <code>session_shutdown</code>（P2 里 <code>dispose()</code> 之后没有任何事件）。</p>
+<h3 id="25-ctx-什么时候失效">
+<a class="header-anchor" href="#25-ctx-%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e5%a4%b1%e6%95%88"></a>
+2.5 ctx 什么时候失效
+</h3><p>运行器、共享运行时和每个扩展的 <code>pi</code> 对象都带一个失效标记。<code>ctx</code> 上的每个属性和方法都是取值时才检查（getter），失效后访问任何一个都抛同一段错误：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">This extension ctx is stale after session replacement or reload. Do not use a captured pi or command ctx after ctx.newSession(), ctx.fork(), ctx.switchSession(), or ctx.reload(). For newSession, fork, and switchSession, move post-replacement work into withSession and use the ctx passed to withSession. For reload, do not use the old ctx after await ctx.reload().
+</span></span></code></pre></div><p>失效发生在 <code>/reload</code> 发完 <code>session_shutdown</code> 之后，以及会话被替换或 <code>dispose()</code> 时。命令里调用 <code>ctx.newSession({ withSession })</code> 这类方法后，要继续操作新会话，用 <code>withSession</code> 回调里拿到的新 <code>ctx</code>。</p>
+<hr>
+<h2 id="3--extensionapi-能注册什么">
+<a class="header-anchor" href="#3--extensionapi-%e8%83%bd%e6%b3%a8%e5%86%8c%e4%bb%80%e4%b9%88"></a>
+3 · ExtensionAPI 能注册什么
+</h2><p><img src="/images/harness/pi/ch09/fig3-ext-api.png" alt="图 3 · ExtensionAPI 能力地图"></p>
+<h3 id="31-33-个成员">
+<a class="header-anchor" href="#31-33-%e4%b8%aa%e6%88%90%e5%91%98"></a>
+3.1 33 个成员
+</h3><p><code>ExtensionAPI</code> 有 33 个成员（用 TypeScript 类型检查器数出来的属性数）：</p>
+<ul>
+<li><strong>订阅</strong>（2）：<code>on</code>（订阅事件，返回退订函数）、<code>events</code>（扩展之间互发消息的事件总线，<code>emit</code> / <code>on</code>）。</li>
+<li><strong>注册</strong>（11）：
+<ul>
+<li><code>registerTool</code>（给模型用的工具）、<code>registerCommand</code>（<code>/</code> 命令）、<code>registerShortcut</code>（快捷键）、<code>registerFlag</code>（命令行参数）</li>
+<li><code>registerMessageRenderer</code>（<code>custom_message</code> 的显示）、<code>registerEntryRenderer</code>（<code>custom</code> 条目的显示）、<code>registerToolRenderer</code>（工具调用的显示）、<code>registerMarkdownTransformer</code>（显示前改写 Markdown）</li>
+<li><code>registerProvider</code>（模型供应商）、<code>registerVirtualModel</code>（按请求路由到具体模型的虚拟模型）、<code>registerMcpServer</code>（MCP 服务器）</li>
+</ul>
+</li>
+<li><strong>注销</strong>（3）：<code>unregisterProvider</code>、<code>unregisterVirtualModel</code>、<code>unregisterMcpServer</code>，分别撤销上面最后三种注册。</li>
+<li><strong>动作</strong>（10）：
+<ul>
+<li>写会话或发消息：<code>sendMessage</code>（发一条自定义消息）、<code>sendUserMessage</code>（以用户身份发消息）、<code>appendEntry</code>（写一条不进上下文的条目）、<code>setSessionName</code>（会话名）、<code>setLabel</code>（给条目加标签）</li>
+<li>改会话状态：<code>setActiveTools</code>（激活的工具）、<code>setModel</code>（模型）、<code>setThinkingLevel</code>（思考级别）</li>
+<li>其他：<code>exec</code>（在工作目录里执行命令）、<code>getFlag</code>（读命令行参数的值）</li>
+</ul>
+</li>
+<li><strong>查询</strong>（7）：<code>getSessionName</code>（会话名）、<code>getActiveTools</code>（激活的工具名）、<code>getAllTools</code>（全部工具）、<code>getSettings</code>（合并后的设置）、<code>getCommands</code>（扩展命令、模板和技能命令）、<code>getThinkingLevel</code>（思考级别）、<code>getMcpServers</code>（已注册的 MCP 服务器）。</li>
+</ul>
+<p>能在工厂里调用的是注册、注销、<code>on</code>、<code>events</code>、<code>getFlag</code>、<code>exec</code> 和 <code>getMcpServers</code>。其余动作和查询在加载期间都是占位，调用就抛 1.6 节的错误；<code>setModel</code> 返回一个被拒绝的 Promise。</p>
+<h3 id="32-每项注册落到哪里">
+<a class="header-anchor" href="#32-%e6%af%8f%e9%a1%b9%e6%b3%a8%e5%86%8c%e8%90%bd%e5%88%b0%e5%93%aa%e9%87%8c"></a>
+3.2 每项注册落到哪里
+</h3><table>
+	<thead>
+			<tr>
+					<th>方法</th>
+					<th>落到哪里</th>
+					<th>能否撤销</th>
+					<th>同名时</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>on</code></td>
+					<td>本扩展 <code>handlers</code> 表，运行器派发时读取</td>
+					<td>返回的函数退订；不影响正在进行的派发</td>
+					<td>各自执行</td>
+			</tr>
+			<tr>
+					<td><code>registerTool</code></td>
+					<td><code>AgentSession</code> 的工具注册表，再到 <code>agent.state.tools</code>（第五章）</td>
+					<td>不能注销</td>
+					<td>先注册的生效</td>
+			</tr>
+			<tr>
+					<td><code>registerCommand</code></td>
+					<td>命令表。<code>prompt()</code> 遇到 <code>/名字</code> 先查这里，查到就执行，不发请求</td>
+					<td>不能</td>
+					<td>都保留，改名 <code>name:N</code></td>
+			</tr>
+			<tr>
+					<td><code>registerShortcut</code></td>
+					<td>交互模式的按键表</td>
+					<td>不能</td>
+					<td>后注册的生效</td>
+			</tr>
+			<tr>
+					<td><code>registerFlag</code></td>
+					<td>命令行参数，<code>pi --help</code> 里列出；<code>getFlag</code> 读值</td>
+					<td>不能</td>
+					<td>先注册的生效</td>
+			</tr>
+			<tr>
+					<td><code>registerMessageRenderer</code> / <code>registerEntryRenderer</code></td>
+					<td>交互界面里 <code>custom_message</code> / <code>custom</code> 条目的显示</td>
+					<td>不能</td>
+					<td>先注册的生效</td>
+			</tr>
+			<tr>
+					<td><code>registerToolRenderer</code></td>
+					<td>工具调用的显示，多个解析器按加载顺序串成一条链，每个可以交给下一个</td>
+					<td>不能</td>
+					<td>链式</td>
+			</tr>
+			<tr>
+					<td><code>registerMarkdownTransformer</code></td>
+					<td>交互界面渲染 user、assistant 的 Markdown 之前改写文字</td>
+					<td>不能</td>
+					<td>全部依次执行</td>
+			</tr>
+			<tr>
+					<td><code>registerProvider</code> / <code>registerVirtualModel</code></td>
+					<td>模型运行时。加载期间排队，<code>bindCore</code> 时生效；之后立即生效</td>
+					<td><code>unregister*</code></td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td><code>registerMcpServer</code></td>
+					<td>MCP 服务器表。变化时发 <code>mcp_servers_change</code>，由 <code>builtin:mcp</code> 去连接；加载期间注册的在 <code>session_start</code> 时读取</td>
+					<td><code>unregisterMcpServer</code></td>
+					<td>抛错</td>
+			</tr>
+	</tbody>
+</table>
+<p>两点说明：</p>
+<ul>
+<li>渲染器只在交互模式起作用。print、JSON、RPC 模式里注册不会报错，只是不用。</li>
+<li>没有扩展处理 <code>mcp_servers_change</code> 时（例如 <code>builtin:mcp</code> 被关掉或替换了），注册的 MCP 服务器会被报告为错误：<code>MCP server &quot;&lt;name&gt;&quot; is registered, but no loaded extension connects MCP servers; …</code>。</li>
+</ul>
+<h3 id="33-动作对会话的影响">
+<a class="header-anchor" href="#33-%e5%8a%a8%e4%bd%9c%e5%af%b9%e4%bc%9a%e8%af%9d%e7%9a%84%e5%bd%b1%e5%93%8d"></a>
+3.3 动作对会话的影响
+</h3><p>探针 P6 在空闲的会话上逐个调用动作方法，记录新增的请求数和会话条目：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">sendMessage(display:true)                    idle
+</span></span><span class="line"><span class="cl">    requests +0; entries +[custom_message(note)]
+</span></span><span class="line"><span class="cl">sendMessage(triggerTurn:true)                idle
+</span></span><span class="line"><span class="cl">    requests +1; entries +[message:system, custom_message(kick), message:assistant]
+</span></span><span class="line"><span class="cl">sendMessage(deliverAs:nextTurn)              idle
+</span></span><span class="line"><span class="cl">    requests +0; entries +[]
+</span></span><span class="line"><span class="cl">sendUserMessage(&#34;hello&#34;)                     idle
+</span></span><span class="line"><span class="cl">    requests +1; entries +[message:system, message:user, custom_message(next), message:assistant]
+</span></span><span class="line"><span class="cl">  input source=extension text=&#34;hello&#34;
+</span></span><span class="line"><span class="cl">appendEntry(&#34;todo-state&#34;, {...})             idle
+</span></span><span class="line"><span class="cl">    requests +0; entries +[custom(todo-state)]
+</span></span><span class="line"><span class="cl">setLabel / setSessionName                    idle
+</span></span><span class="line"><span class="cl">    requests +0; entries +[label, session_info]
+</span></span><span class="line"><span class="cl">setActiveTools([read, work])                 idle
+</span></span><span class="line"><span class="cl">    requests +0; entries +[]
+</span></span></code></pre></div><p>再让一次运行里的工具在执行期间调用三个动作：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">prompt(&#34;do work&#34;) — tool sends 3 messages while streaming
+</span></span><span class="line"><span class="cl">    requests +2; entries +[…, message:toolResult, custom_message(later-note), custom_message(steer-note), message:assistant]
+</span></span><span class="line"><span class="cl">!! emitError &lt;runtime&gt; event=send_user_message error=Agent is already processing. Specify streamingBehavior (&#39;steer&#39; or &#39;followUp&#39;) to queue the message.
+</span></span></code></pre></div><p>整理成规则：</p>
+<table>
+	<thead>
+			<tr>
+					<th>动作</th>
+					<th>空闲时</th>
+					<th>运行中</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>sendMessage(msg)</code></td>
+					<td>写一条 <code>custom_message</code>，不发请求</td>
+					<td>默认作为插队消息（steer）交给当前运行</td>
+			</tr>
+			<tr>
+					<td><code>sendMessage(msg, { triggerTurn: true })</code></td>
+					<td>写入并立即开始一次运行</td>
+					<td>同上</td>
+			</tr>
+			<tr>
+					<td><code>sendMessage(msg, { triggerTurn: false })</code></td>
+					<td>只写入</td>
+					<td>不插队，等这一轮的工具结果写完再写入；这次运行如果还有下一次请求，会带上它</td>
+			</tr>
+			<tr>
+					<td><code>sendMessage(msg, { deliverAs: &quot;followUp&quot; })</code></td>
+					<td>只写入</td>
+					<td>排进后续消息队列（第三章 2.2 节）</td>
+			</tr>
+			<tr>
+					<td><code>sendMessage(msg, { deliverAs: &quot;nextTurn&quot; })</code></td>
+					<td>不写，等下一次 prompt 跟在 user 消息后面写入</td>
+					<td>同左</td>
+			</tr>
+			<tr>
+					<td><code>sendUserMessage(text)</code></td>
+					<td>走 <code>prompt()</code>：<code>input</code> 事件的 <code>source</code> 为 <code>extension</code>，默认不展开模板</td>
+					<td>必须给 <code>deliverAs: &quot;steer&quot;</code> 或 <code>&quot;followUp&quot;</code>，否则报错</td>
+			</tr>
+			<tr>
+					<td><code>appendEntry(type, data)</code></td>
+					<td>写一条 <code>custom</code> 条目，不进上下文</td>
+					<td>同左</td>
+			</tr>
+			<tr>
+					<td><code>setLabel</code> / <code>setSessionName</code></td>
+					<td>写 <code>label</code> / <code>session_info</code> 条目</td>
+					<td>同左</td>
+			</tr>
+			<tr>
+					<td><code>setActiveTools(names)</code></td>
+					<td>不写条目；下一次请求前以 system 补丁写入（第八章 4 节）</td>
+					<td>下一轮生效</td>
+			</tr>
+	</tbody>
+</table>
+<p><code>custom_message</code> 在发给模型前转成 user 消息（第二章 3.2 节），<code>display</code> 只影响界面里是否显示。<code>sendMessage</code> 和 <code>sendUserMessage</code> 不返回 Promise，失败时通过 <code>onError</code> 报告，<code>extensionPath</code> 记为 <code>&lt;runtime&gt;</code>。</p>
+<p>两个容易踩的点：</p>
+<blockquote>
+<p>📌 <strong><code>triggerTurn</code> 启动的运行不经过 prompt 的前半段</strong>。<code>sendMessage(..., { triggerTurn: true })</code> 直接把消息交给 <code>Agent</code>，不经过 <code>input</code>、<code>before_agent_start</code>，也不重算提示词补丁（第八章 4.1 节的第一个时机）。探针 P6b 在一个全新的会话上第一个动作就这样做，这次请求里只有一条文字为空的 system 消息，没有系统提示词；之后一次正常的 prompt 才把完整的段作为补丁写进来。需要提示词和 <code>before_agent_start</code> 的场景，用 <code>sendUserMessage</code>。</p>
+<p>📌 <strong><code>appendEntry</code> 存的是引用</strong>。条目在内存里直接保存传入的 <code>data</code>。会话文件要等第一条 assistant 消息出现才开始写（第六章 2.3 节），在那之前追加的条目写盘时才序列化，几条条目可能序列化出同样的最新内容（第 7 节的例子第一版就踩了这一点）；文件已经存在时，条目立即序列化进文件，但内存里的条目仍会跟着变，<code>getBranch()</code> 读到的是改过的值。传 <code>structuredClone(data)</code>。</p>
+</blockquote>
+<hr>
+<h2 id="4--事件全表">
+<a class="header-anchor" href="#4--%e4%ba%8b%e4%bb%b6%e5%85%a8%e8%a1%a8"></a>
+4 · 事件全表
+</h2><h3 id="41-41-个事件两种方法核对">
+<a class="header-anchor" href="#41-41-%e4%b8%aa%e4%ba%8b%e4%bb%b6%e4%b8%a4%e7%a7%8d%e6%96%b9%e6%b3%95%e6%a0%b8%e5%af%b9"></a>
+4.1 41 个事件，两种方法核对
+</h3><p><code>pi.on</code> 能订阅的事件由联合类型 <code>ExtensionEvent</code> 定义：32 个成员，其中 <code>SessionEvent</code> 又是 10 个 <code>session_*</code> 事件的联合，合计 41 个事件名。两种方法核对：</p>
+<ol>
+<li><strong>类型</strong>：用 TypeScript 类型检查器展开 <code>ExtensionEvent[&quot;type&quot;]</code>，得到 41 个字符串字面量；<code>ExtensionAPI.on</code> 的重载也是 41 个，两份名单完全一致。</li>
+<li><strong>派发点</strong>：在源码里逐个查找每个事件的派发位置，包括通用的 <code>runner.emit({ type: … })</code>、专用的 <code>emitInput</code>、<code>emitToolCall</code> 这类方法，以及 <code>AgentSession</code> 转发引擎事件的 <code>_emitExtensionEvent</code>。41 个都至少有一处，没有联合类型以外的事件名。</li>
+</ol>
+<p><code>ExtensionRunner</code> 用通用的 <code>emit()</code> 派发其中 26 个：22 个只通知的，加上 4 个 <code>session_before_*</code>（<code>emit()</code> 里专门处理了它们的取消和返回值）。另外 15 个走专用路径：12 个专用方法（<code>emitBoundary</code> 兼管 <code>turn_end</code> 和 <code>agent_before_settle</code>，<code>emitContext</code> 兼管 <code>context</code> 和 <code>context_with_system</code>），以及独立函数 <code>emitProjectTrustEvent</code>。</p>
+<h3 id="42-一次-prompt-里的先后">
+<a class="header-anchor" href="#42-%e4%b8%80%e6%ac%a1-prompt-%e9%87%8c%e7%9a%84%e5%85%88%e5%90%8e"></a>
+4.2 一次 prompt 里的先后
+</h3><p><img src="/images/harness/pi/ch09/fig4-ext-timeline.png" alt="图 4 · 一次 prompt 的事件时间线"></p>
+<p>探针 P2 注册一个订阅全部 41 个事件的扩展，用 faux 跑一次&quot;用户 → 工具调用 → 工具结果 → 回答&quot;；P2b 用本地 Anthropic mock 把供应商相关的事件补全。P2b 的记录（连续的 <code>message_update</code>、<code>provider_stream_event</code> 已合并）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">  input text=&#34;go&#34; source=interactive
+</span></span><span class="line"><span class="cl">  before_agent_start prompt=&#34;go&#34;
+</span></span><span class="line"><span class="cl">  agent_start
+</span></span><span class="line"><span class="cl">  turn_start turnIndex=0
+</span></span><span class="line"><span class="cl">  message_start role=system
+</span></span><span class="line"><span class="cl">  message_end role=system
+</span></span><span class="line"><span class="cl">  message_start role=user
+</span></span><span class="line"><span class="cl">  message_end role=user
+</span></span><span class="line"><span class="cl">  context messages=[user]
+</span></span><span class="line"><span class="cl">  context_with_system messages=[system,user]
+</span></span><span class="line"><span class="cl">  before_provider_headers headers=0
+</span></span><span class="line"><span class="cl">  before_provider_request payload keys=[model,messages,max_tokens,stream,system,tools]
+</span></span><span class="line"><span class="cl">  after_provider_response status=200
+</span></span><span class="line"><span class="cl">  provider_stream_event …
+</span></span><span class="line"><span class="cl">  message_start role=assistant
+</span></span><span class="line"><span class="cl">  message_update toolcall_start / toolcall_delta / toolcall_end（与 provider_stream_event 交替）
+</span></span><span class="line"><span class="cl">  message_end role=assistant
+</span></span><span class="line"><span class="cl">  tool_execution_start echo
+</span></span><span class="line"><span class="cl">  tool_call echo input={&#34;text&#34;:&#34;hi&#34;}
+</span></span><span class="line"><span class="cl">  tool_result echo isError=false
+</span></span><span class="line"><span class="cl">  tool_execution_end echo isError=false
+</span></span><span class="line"><span class="cl">  message_start role=toolResult
+</span></span><span class="line"><span class="cl">  message_end role=toolResult
+</span></span><span class="line"><span class="cl">  turn_end turnIndex=0 message=assistant toolResults=1 entries=0 continue=false
+</span></span><span class="line"><span class="cl">  turn_start turnIndex=1
+</span></span><span class="line"><span class="cl">  context … context_with_system … before_provider_headers … before_provider_request … after_provider_response
+</span></span><span class="line"><span class="cl">  message_start role=assistant … message_end role=assistant
+</span></span><span class="line"><span class="cl">  turn_end turnIndex=1 message=assistant toolResults=0 entries=0 continue=false
+</span></span><span class="line"><span class="cl">  agent_end messages=5
+</span></span><span class="line"><span class="cl">  agent_before_settle entries=0 continue=false
+</span></span><span class="line"><span class="cl">  agent_settled
+</span></span></code></pre></div><p>从这份记录可以读出几件事：</p>
+<ul>
+<li><code>message_start / end</code> 的第一对是 system 消息，即第八章的提示词补丁，它和 user 消息一起在第 0 轮开始后写入。</li>
+<li><code>tool_execution_start</code> 在 <code>tool_call</code> 之前：引擎先宣布开始执行，再调用 <code>beforeToolCall</code> 钩子。<code>tool_call</code> 阻止了调用时，<code>tool_result</code> 不会触发（P3）。</li>
+<li><code>before_provider_headers</code> 在 <code>before_provider_request</code> 之前。faux 会触发 <code>before_provider_headers</code> 和 <code>after_provider_response</code>，但不触发 <code>before_provider_request</code> 和 <code>provider_stream_event</code>。</li>
+<li>工具执行期间调用了 <code>onUpdate</code> 才有 <code>tool_execution_update</code>（P2 的 faux 版本有一次）。</li>
+</ul>
+<p>其他操作触发的事件（P2 后半段）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">setSessionName(&#34;probe&#34;)        session_info_changed name=probe
+</span></span><span class="line"><span class="cl">setModel(faux-think)           model_select faux-ext→faux-think source=set
+</span></span><span class="line"><span class="cl">setThinkingLevel(&#34;high&#34;)       thinking_level_select off→high
+</span></span><span class="line"><span class="cl">compact()                      session_before_compact reason=manual → before_provider_headers（摘要请求）→ session_compact fromExtension=false
+</span></span><span class="line"><span class="cl">navigateTree(…)                session_before_tree → session_tree
+</span></span></code></pre></div><p>压缩的摘要请求也经过 <code>before_provider_headers</code>，但不经过 <code>context</code> 一类事件（第七章 3.4 节）。</p>
+<h3 id="43-分组表">
+<a class="header-anchor" href="#43-%e5%88%86%e7%bb%84%e8%a1%a8"></a>
+4.3 分组表
+</h3><p>&ldquo;结果&quot;一列：<strong>通知</strong>表示返回值被忽略；其余写明能返回什么、多个扩展怎样合并（规则见 4.4 节）。最后一列是已经详细讲过的章节。</p>
+<p><strong>启动与资源（3）</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>何时</th>
+					<th>结果</th>
+					<th>详见</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>project_trust</code></td>
+					<td>预信任加载之后、项目扩展加载之前</td>
+					<td><code>{ trusted: &quot;yes&quot; | &quot;no&quot; | &quot;undecided&quot;, remember? }</code>，先到先得</td>
+					<td>1.5 节</td>
+			</tr>
+			<tr>
+					<td><code>resources_discover</code></td>
+					<td>每次绑定和重载发完 <code>session_start</code> 之后（<code>reason</code> 只有 <code>startup</code>、<code>reload</code> 两种，<code>/new</code> 等之后也是 <code>startup</code>）；没有处理函数时不发</td>
+					<td><code>{ skillPaths, promptPaths, themePaths }</code>，收集</td>
+					<td>第八章 3.2 节</td>
+			</tr>
+			<tr>
+					<td><code>mcp_servers_change</code></td>
+					<td>运行器构造（<code>bindCore</code>）之后 MCP 服务器表变化</td>
+					<td>通知，不等待</td>
+					<td>3.2 节</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>会话（10）</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>何时</th>
+					<th>结果</th>
+					<th>详见</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>session_start</code></td>
+					<td>绑定时；<code>reason</code> 为 <code>startup</code>、<code>reload</code>、<code>new</code>、<code>resume</code>、<code>fork</code></td>
+					<td>通知</td>
+					<td>2.2 节</td>
+			</tr>
+			<tr>
+					<td><code>session_shutdown</code></td>
+					<td>重载、替换、退出前；<code>reason</code> 为 <code>reload</code>、<code>new</code>、<code>resume</code>、<code>fork</code>、<code>quit</code></td>
+					<td>通知</td>
+					<td>2.3 节</td>
+			</tr>
+			<tr>
+					<td><code>session_info_changed</code></td>
+					<td>会话改名</td>
+					<td>通知，不等待</td>
+					<td>第六章</td>
+			</tr>
+			<tr>
+					<td><code>session_before_switch</code> / <code>session_before_fork</code></td>
+					<td><code>/new</code>、<code>/resume</code> / <code>/fork</code> 之前</td>
+					<td><code>{ cancel }</code>，拦截即停</td>
+					<td>第六章 6 节</td>
+			</tr>
+			<tr>
+					<td><code>session_before_tree</code> / <code>session_tree</code></td>
+					<td><code>/tree</code> 导航前 / 后</td>
+					<td>前者 <code>{ cancel, summary… }</code>；后者通知</td>
+					<td>第六章</td>
+			</tr>
+			<tr>
+					<td><code>session_before_compact</code> / <code>session_compact</code> / <code>session_compact_failed</code></td>
+					<td>压缩前 / 后 / 失败</td>
+					<td>前者 <code>{ cancel, compaction }</code>；后两个通知</td>
+					<td>第七章 5 节</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>运行（5）</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>何时</th>
+					<th>结果</th>
+					<th>详见</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>before_agent_start</code></td>
+					<td>prompt 展开之后、运行开始之前</td>
+					<td>改 <code>systemPromptOptions</code>（接力）；<code>message</code> 收集；<code>systemPrompt</code> 接力，最后一个生效</td>
+					<td>第八章 5.1 节</td>
+			</tr>
+			<tr>
+					<td><code>agent_start</code> / <code>agent_end</code></td>
+					<td>一次运行开始 / 引擎结束</td>
+					<td>通知</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td><code>agent_before_settle</code></td>
+					<td>运行即将结束</td>
+					<td><code>{ entries, continue }</code>，接力</td>
+					<td>第六章 7.2 节</td>
+			</tr>
+			<tr>
+					<td><code>agent_settled</code></td>
+					<td>不会再自动继续</td>
+					<td>通知</td>
+					<td>—</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>轮与消息（5）</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>何时</th>
+					<th>结果</th>
+					<th>详见</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>turn_start</code></td>
+					<td>每轮开始，带 <code>turnIndex</code></td>
+					<td>通知</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td><code>turn_end</code></td>
+					<td>每轮结束</td>
+					<td><code>{ entries, continue }</code>，接力</td>
+					<td>第六章 7.2 节</td>
+			</tr>
+			<tr>
+					<td><code>message_start</code> / <code>message_update</code></td>
+					<td>消息开始 / 流式更新</td>
+					<td>通知</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td><code>message_end</code></td>
+					<td>消息完成、写会话之前</td>
+					<td><code>{ message }</code> 替换消息，接力；角色必须不变</td>
+					<td>4.4 节</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>工具（5）</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>何时</th>
+					<th>结果</th>
+					<th>详见</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>tool_call</code></td>
+					<td>执行前</td>
+					<td><code>{ block, reason }</code>，拦截即停；原地改 <code>event.input</code> 接力</td>
+					<td>第三章 4.2 节</td>
+			</tr>
+			<tr>
+					<td><code>tool_result</code></td>
+					<td>执行后</td>
+					<td>改 <code>content</code>、<code>details</code>、<code>isError</code> 等，接力</td>
+					<td>第三章 4.2 节</td>
+			</tr>
+			<tr>
+					<td><code>tool_execution_start</code> / <code>_update</code> / <code>_end</code></td>
+					<td>引擎的执行进度</td>
+					<td>通知</td>
+					<td>—</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>请求（6）</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>何时</th>
+					<th>结果</th>
+					<th>详见</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>context</code> / <code>context_with_system</code></td>
+					<td>每次请求前改消息</td>
+					<td><code>{ messages }</code>，接力</td>
+					<td>第八章 5.1 节</td>
+			</tr>
+			<tr>
+					<td><code>before_provider_headers</code></td>
+					<td>发请求前</td>
+					<td>原地改 <code>event.headers</code>，接力</td>
+					<td>第八章 5.1 节</td>
+			</tr>
+			<tr>
+					<td><code>before_provider_request</code></td>
+					<td>请求体拼好后</td>
+					<td>返回值替换请求体，接力</td>
+					<td>第八章 5.1 节</td>
+			</tr>
+			<tr>
+					<td><code>after_provider_response</code></td>
+					<td>收到响应头</td>
+					<td>通知</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td><code>provider_stream_event</code></td>
+					<td>每个解析出的原始流事件</td>
+					<td>通知；逐个等待，处理慢会拖慢流</td>
+					<td>—</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>输入（2）</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>何时</th>
+					<th>结果</th>
+					<th>详见</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>input</code></td>
+					<td>用户、RPC 或扩展的输入到达</td>
+					<td><code>transform</code> 接力，<code>handled</code> 拦截即停</td>
+					<td>第八章 5.1 节</td>
+			</tr>
+			<tr>
+					<td><code>user_bash</code></td>
+					<td>交互和 RPC 模式里用户用 <code>!</code> 执行命令</td>
+					<td><code>{ operations }</code> 或 <code>{ result }</code>，先到先得</td>
+					<td>—</td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>设置与界面（5）</strong></p>
+<table>
+	<thead>
+			<tr>
+					<th>事件</th>
+					<th>何时</th>
+					<th>结果</th>
+					<th>详见</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>model_select</code></td>
+					<td>换模型，<code>source</code> 为 <code>set</code> 或 <code>cycle</code>（类型里还有 <code>restore</code>，这个版本不会发出）</td>
+					<td>通知</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td><code>thinking_level_select</code></td>
+					<td>换思考级别</td>
+					<td>通知，不等待</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td><code>cache_warming_decision</code></td>
+					<td>缓存预热定时器到期</td>
+					<td><code>{ action: &quot;warm&quot; | &quot;stop&quot; }</code>，后者覆盖</td>
+					<td>第八章 6.3 节</td>
+			</tr>
+			<tr>
+					<td><code>ui_prompt_start</code> / <code>ui_prompt_end</code></td>
+					<td>扩展弹出的对话框打开 / 关闭（只算最外层）</td>
+					<td>通知，不等待</td>
+					<td>第 5 节</td>
+			</tr>
+	</tbody>
+</table>
+<p>3 + 10 + 5 + 5 + 5 + 6 + 2 + 5 = 41。&ldquo;不等待&quot;的五个（<code>mcp_servers_change</code>、<code>session_info_changed</code>、<code>thinking_level_select</code>、<code>ui_prompt_start</code>、<code>ui_prompt_end</code>）是丢进微任务或不 <code>await</code> 的派发，处理函数拖不住调用方。其余事件的处理函数都被逐个 <code>await</code>，一个慢的处理函数会让整条流程等它。</p>
+<h3 id="44-返回值的五种合并规则">
+<a class="header-anchor" href="#44-%e8%bf%94%e5%9b%9e%e5%80%bc%e7%9a%84%e4%ba%94%e7%a7%8d%e5%90%88%e5%b9%b6%e8%a7%84%e5%88%99"></a>
+4.4 返回值的五种合并规则
+</h3><p><img src="/images/harness/pi/ch09/fig5-ext-merge.png" alt="图 5 · 返回值合并规则"></p>
+<p>41 个事件里，19 个会采用处理函数的返回值或修改，22 个只通知。会采用结果的事件按下面五种规则合并：</p>
+<table>
+	<thead>
+			<tr>
+					<th>规则</th>
+					<th>做法</th>
+					<th>事件</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>接力</td>
+					<td>每个处理函数拿到前一个的输出，最后的结果生效</td>
+					<td><code>input</code>（transform）、<code>before_agent_start</code>（共用选项对象，<code>systemPrompt</code> 也写在上面）、<code>context</code>、<code>context_with_system</code>、<code>before_provider_request</code>、<code>before_provider_headers</code>、<code>message_end</code>、<code>tool_call</code>（原地改 input）、<code>tool_result</code>、<code>turn_end</code>、<code>agent_before_settle</code></td>
+			</tr>
+			<tr>
+					<td>拦截即停</td>
+					<td>某个处理函数给出终止信号，后面的不再执行</td>
+					<td><code>input</code> 的 <code>handled</code>、<code>tool_call</code> 的 <code>block</code>、四个 <code>session_before_*</code> 的 <code>cancel</code></td>
+			</tr>
+			<tr>
+					<td>后者覆盖</td>
+					<td>不接力，最后一个非空返回值生效</td>
+					<td><code>session_before_*</code>（非 cancel 的结果）、<code>cache_warming_decision</code></td>
+			</tr>
+			<tr>
+					<td>先到先得</td>
+					<td>第一个给出决定的生效，之后的不执行</td>
+					<td><code>project_trust</code>、<code>user_bash</code></td>
+			</tr>
+			<tr>
+					<td>收集</td>
+					<td>所有结果合并成一个列表</td>
+					<td><code>resources_discover</code>、<code>before_agent_start</code> 的 <code>message</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>探针 P3 装两个扩展 A、B，在同一次运行里观察几种规则（模型先后调用 <code>echo(&quot;hi&quot;)</code>、<code>echo(&quot;stop&quot;)</code>，再回答）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">A message_end assistant=&#34;echo({\&#34;text\&#34;:\&#34;hi\&#34;})&#34;
+</span></span><span class="line"><span class="cl">B message_end assistant=&#34;echo({\&#34;text\&#34;:\&#34;hi\&#34;}) &lt;A&gt;&#34;            ← B 看到 A 追加的 &#34; &lt;A&gt;&#34;
+</span></span><span class="line"><span class="cl">!! emitError &lt;inline:3&gt; event=message_end error=message_end handlers must return a message with the same role
+</span></span><span class="line"><span class="cl">A tool_call input={&#34;text&#34;:&#34;hi&#34;}
+</span></span><span class="line"><span class="cl">B tool_call input={&#34;text&#34;:&#34;hi+A&#34;}                              ← A 原地改了 input
+</span></span><span class="line"><span class="cl">  echo.execute text=hi+A
+</span></span><span class="line"><span class="cl">A tool_result content=&#34;hi+A&#34;
+</span></span><span class="line"><span class="cl">B tool_result content=&#34;hi+A [A]&#34;                               ← B 看到 A 改过的结果
+</span></span><span class="line"><span class="cl">A turn_end entries_in=0
+</span></span><span class="line"><span class="cl">B turn_end entries_in=1                                        ← B 看到 A 提交的草稿
+</span></span><span class="line"><span class="cl">…
+</span></span><span class="line"><span class="cl">A tool_call input={&#34;text&#34;:&#34;stop&#34;}
+</span></span><span class="line"><span class="cl">B tool_call input={&#34;text&#34;:&#34;stop+A&#34;}                            ← B 返回 block，工具没有执行，也没有 tool_result
+</span></span><span class="line"><span class="cl">…
+</span></span><span class="line"><span class="cl">navigateTree -&gt; {&#34;cancelled&#34;:true}
+</span></span><span class="line"><span class="cl">A session_before_tree                                          ← A 返回 cancel，B 没有被调用
+</span></span></code></pre></div><p>B 在 <code>message_end</code> 里返回了一条 role 为 <code>user</code> 的消息，被拒绝并报告，A 的修改保留。会话文件里的结果：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">   message assistant &#34;echo({\&#34;text\&#34;:\&#34;hi\&#34;}) &lt;A&gt;&#34;
+</span></span><span class="line"><span class="cl">   message toolResult &#34;hi+A [A]&#34;
+</span></span><span class="line"><span class="cl">   custom a-note {&#34;turn&#34;:0}
+</span></span><span class="line"><span class="cl">   custom b-note {}
+</span></span><span class="line"><span class="cl">   message assistant &#34;echo({\&#34;text\&#34;:\&#34;stop\&#34;}) &lt;A&gt;&#34;
+</span></span><span class="line"><span class="cl">   message toolResult &#34;B blocks stop&#34;
+</span></span><span class="line"><span class="cl">   …
+</span></span></code></pre></div><p>被阻止的调用，工具结果的内容就是 <code>reason</code>（<code>B blocks stop</code>），标为错误交回模型。</p>
+<hr>
+<h2 id="5--extensioncontext三种-ctx">
+<a class="header-anchor" href="#5--extensioncontext%e4%b8%89%e7%a7%8d-ctx"></a>
+5 · ExtensionContext：三种 ctx
+</h2><p>每次派发事件时，运行器新建一个 <code>ctx</code>，这次派发的所有处理函数共用它。按调用场合分三种（P5 列出各自的属性）：</p>
+<table>
+	<thead>
+			<tr>
+					<th>ctx</th>
+					<th>谁拿到</th>
+					<th>在上一行基础上多出的成员</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>ExtensionContext</code>（18 项）</td>
+					<td>事件处理函数、快捷键</td>
+					<td>见下面的列表</td>
+			</tr>
+			<tr>
+					<td><code>ExtensionCommandContext</code>（25 项）</td>
+					<td>命令的 <code>handler(args, ctx)</code></td>
+					<td><code>waitForIdle()</code>（等运行结束）、<code>reload()</code>（重载）、<code>newSession()</code> / <code>fork()</code> / <code>switchSession()</code>（替换会话）、<code>navigateTree()</code>（在会话树上跳转）、<code>getSystemPromptOptions()</code>（基础提示词选项）</td>
+			</tr>
+			<tr>
+					<td><code>ExtensionToolContext</code>（20 项）</td>
+					<td>工具的 <code>execute(…, ctx)</code></td>
+					<td><code>tools</code>（能被调用的工具）、<code>executeTool()</code>（嵌套调用，第五章 5.4 节）</td>
+			</tr>
+	</tbody>
+</table>
+<p><code>ExtensionContext</code> 的 18 项：</p>
+<ul>
+<li>
+<p>界面：<code>ui</code>（对话框、通知等）、<code>mode</code>（<code>tui</code> / <code>rpc</code> / <code>json</code> / <code>print</code>）、<code>hasUI</code>（能否和用户交互）</p>
+</li>
+<li>
+<p>环境：<code>cwd</code>（工作目录）、<code>sessionManager</code>（会话，类型上只读）、<code>modelRegistry</code>（模型注册表）、<code>model</code>（当前模型）、<code>scopedModels</code>（<code>--models</code> 限定的模型）、<code>thinkingLevel</code>（思考级别）</p>
+</li>
+<li>
+<p>运行状态：<code>signal</code>（当前运行的中止信号）、<code>isIdle()</code>（是否空闲）、<code>hasPendingMessages()</code>（是否有排队消息）、<code>getContextUsage()</code>（上下文用量）、<code>getSystemPrompt()</code>（当前提示词）、<code>isProjectTrusted()</code>（项目是否被信任）</p>
+</li>
+<li>
+<p>控制：<code>abort()</code>（中止运行）、<code>compact()</code>（发起压缩，第七章）、<code>shutdown()</code>（请求退出进程）</p>
+</li>
+<li>
+<p>会替换会话、重载、等待空闲的方法只放在命令上下文里。官方文档的解释是：在事件处理函数里调用它们可能让运行时死锁。</p>
+</li>
+<li>
+<p><code>before_agent_start</code> 拿到的 <code>ctx.getSystemPrompt()</code> 返回正在被修改的那份提示词，其他事件返回当前生效的提示词（第八章 4.3 节）。</p>
+</li>
+<li>
+<p>命令执行时不发请求，也不写任何条目（P5 里 <code>/probe a b</code> 之后会话里只有开头的两条设置条目）。</p>
+</li>
+</ul>
+<p><strong><code>ctx.ui</code> 在各模式下的行为</strong>：</p>
+<table>
+	<thead>
+			<tr>
+					<th>模式</th>
+					<th><code>mode</code></th>
+					<th><code>hasUI</code></th>
+					<th><code>ui</code> 的行为</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>交互</td>
+					<td><code>tui</code></td>
+					<td>true</td>
+					<td>完整的终端界面：对话框、通知、状态栏、组件</td>
+			</tr>
+			<tr>
+					<td>RPC</td>
+					<td><code>rpc</code></td>
+					<td>true</td>
+					<td><code>select</code>、<code>confirm</code>、<code>input</code>、<code>editor</code> 作为 <code>extension_ui_request</code> 发给客户端并等待回复；<code>notify</code>、<code>setStatus</code>、<code>setWidget</code>（只转发字符串数组）、<code>setTitle</code>、<code>setEditorText</code> / <code>pasteToEditor</code>（<code>set_editor_text</code>）单向发送；<code>custom</code> 和自定义组件是空操作</td>
+			</tr>
+			<tr>
+					<td>print / JSON</td>
+					<td><code>print</code> / <code>json</code></td>
+					<td>false</td>
+					<td>交互和显示都是空操作：<code>select</code>、<code>input</code>、<code>editor</code> 返回 <code>undefined</code>，<code>confirm</code> 返回 <code>false</code>，<code>getEditorText</code> 返回空串，<code>setTheme</code> 返回 <code>{ success: false, error: &quot;UI not available&quot; }</code>；<code>theme</code> 仍返回当前主题</td>
+			</tr>
+	</tbody>
+</table>
+<p>SDK 不传 <code>uiContext</code> 时和 print 模式一样（P5：<code>hasUI=false mode=print select=undefined confirm=false</code>）。只在终端里有意义的功能用 <code>ctx.mode === &quot;tui&quot;</code> 判断，需要用户回答的交互用 <code>ctx.hasUI</code> 判断。</p>
+<hr>
+<h2 id="6--隔离与出错">
+<a class="header-anchor" href="#6--%e9%9a%94%e7%a6%bb%e4%b8%8e%e5%87%ba%e9%94%99"></a>
+6 · 隔离与出错
+</h2><h3 id="61-处理函数抛错">
+<a class="header-anchor" href="#61-%e5%a4%84%e7%90%86%e5%87%bd%e6%95%b0%e6%8a%9b%e9%94%99"></a>
+6.1 处理函数抛错
+</h3><p>运行器的派发方法逐个用 <code>try/catch</code> 包住处理函数：抛错时组装一个 <code>{ extensionPath, event, error, stack }</code> 交给 <code>emitError</code>，然后接着调用下一个，当前运行不受影响。<code>project_trust</code> 发生在绑定之前，它的错误不交给 <code>onError</code>，而是变成启动警告 <code>Extension &quot;…&quot; project_trust error: …</code>；处理函数返回 <code>undefined</code> 也算出错，要返回 <code>{ trusted: &quot;undecided&quot; }</code>。P3 让 A 在 <code>turn_end</code> 里抛错，三轮都是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">A turn_end entries_in=0
+</span></span><span class="line"><span class="cl">!! emitError &lt;inline:2&gt; event=turn_end error=A exploded in turn_end
+</span></span><span class="line"><span class="cl">B turn_end entries_in=0
+</span></span></code></pre></div><p>B 照常执行并提交了草稿，运行正常结束。</p>
+<p>例外有两个：</p>
+<ul>
+<li><strong><code>tool_call</code></strong>：派发时没有 <code>try/catch</code>，抛错直接传到引擎，后面的扩展不再执行，这次工具调用被阻止，错误信息作为工具结果交给模型。这是有意的：权限类扩展出错时宁可不执行。P3 让 A 在 <code>tool_call</code> 里抛错，会话里记的是 <code>message toolResult &quot;A exploded in tool_call&quot;</code>，没有 <code>emitError</code>。</li>
+<li><strong><code>user_bash</code></strong>：先报告，再把错误继续抛出，这条命令不执行。</li>
+</ul>
+<p><code>emitError</code> 的错误交给绑定时给的 <code>onError</code>，各模式的呈现：</p>
+<table>
+	<thead>
+			<tr>
+					<th>模式</th>
+					<th>呈现</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>交互</td>
+					<td>对话区一条 <code>Extension &quot;&lt;路径&gt;&quot; error: &lt;信息&gt;</code>，下面是灰色的调用栈</td>
+			</tr>
+			<tr>
+					<td>print / JSON</td>
+					<td>stderr 一行 <code>Extension error (&lt;路径&gt;): &lt;信息&gt;</code></td>
+			</tr>
+			<tr>
+					<td>RPC</td>
+					<td>一条 <code>{ type: &quot;extension_error&quot;, extensionPath, event, error }</code>，不带调用栈</td>
+			</tr>
+			<tr>
+					<td>SDK</td>
+					<td>自己在 <code>bindExtensions({ onError })</code> 里接；不绑定就没有人收到</td>
+			</tr>
+	</tbody>
+</table>
+<p>命令的处理函数抛错时，<code>extensionPath</code> 记为 <code>command:&lt;名字&gt;</code>，命令照样算已处理，不会把文字发给模型。</p>
+<h3 id="62-有没有权限边界">
+<a class="header-anchor" href="#62-%e6%9c%89%e6%b2%a1%e6%9c%89%e6%9d%83%e9%99%90%e8%be%b9%e7%95%8c"></a>
+6.2 有没有权限边界
+</h3><p>没有。扩展是普通的 TypeScript 模块，在 pi 的进程里执行，拥有 pi 进程的全部权限：读写任意文件、执行命令、发网络请求、读环境变量和 <code>~/.pi/agent/auth.json</code>。<code>docs/security.md</code> 的说法是 &ldquo;Extensions execute inside the Pi process&rdquo;，建议加载前先审查扩展和包。</p>
+<p>pi 提供的限制都只管&quot;加载不加载&rdquo;：</p>
+<ul>
+<li><strong>项目信任</strong>：没有信任的项目，<code>.pi/</code> 里的扩展和项目 settings 里的包不加载（1.5 节）。用户目录、命令行和 SDK 的扩展不受它约束。</li>
+<li><strong><code>-ne</code></strong>：一次性关掉自动发现的扩展。</li>
+</ul>
+<p>扩展一旦加载，<code>ctx.sessionManager</code> 的只读只体现在类型上（第六章 6 节），<code>pi.exec</code> 也不经过任何审批。需要隔离时，按 <code>docs/security.md</code> 的建议把整个 pi 放进容器或虚拟机。</p>
+<hr>
+<h2 id="7--用法一个-todo-扩展">
+<a class="header-anchor" href="#7--%e7%94%a8%e6%b3%95%e4%b8%80%e4%b8%aa-todo-%e6%89%a9%e5%b1%95"></a>
+7 · 用法：一个 /todo 扩展
+</h2><p>下面这个扩展同时用到命令、工具、事件、<code>appendEntry</code> 和消息渲染器：</p>
+<ul>
+<li>用户用 <code>/todo add &lt;文字&gt;</code>、<code>/todo done &lt;编号&gt;</code> 维护一个待办列表，<code>/todo</code> 显示列表。</li>
+<li>模型可以调用 <code>todo_done</code> 工具勾掉一项。</li>
+<li>列表的快照存成会话里的 <code>custom</code> 条目，模型改动过的那一轮结束时，再写一条模型看得到的汇总。</li>
+<li><code>session_start</code> 和 <code>session_tree</code> 时从当前分支的最后一个快照恢复，所以 <code>/reload</code>、恢复会话、<code>/tree</code> 换分支之后状态都对。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Type</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span> <span class="nx">ExtensionAPI</span><span class="p">,</span> <span class="nx">ExtensionContext</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Text</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-tui&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">interface</span> <span class="nx">Todo</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">id</span>: <span class="kt">number</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">text</span>: <span class="kt">string</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">done</span>: <span class="kt">boolean</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">STATE</span> <span class="o">=</span> <span class="s2">&#34;todo-state&#34;</span><span class="p">;</span> <span class="c1">// custom entry: a snapshot, not sent to the model
+</span></span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">SUMMARY</span> <span class="o">=</span> <span class="s2">&#34;todo-summary&#34;</span><span class="p">;</span> <span class="c1">// custom message: sent to the model as a user message
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">pi</span>: <span class="kt">ExtensionAPI</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kd">let</span> <span class="nx">todos</span>: <span class="kt">Todo</span><span class="p">[]</span> <span class="o">=</span> <span class="p">[];</span>
+</span></span><span class="line"><span class="cl">	<span class="kd">let</span> <span class="nx">dirty</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">format</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">todos</span><span class="p">.</span><span class="nx">length</span> <span class="o">===</span> <span class="mi">0</span> <span class="o">?</span> <span class="s2">&#34;No todos.&#34;</span> <span class="o">:</span> <span class="nx">todos</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">t</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="sb">`</span><span class="si">${</span><span class="nx">t</span><span class="p">.</span><span class="nx">done</span> <span class="o">?</span> <span class="s2">&#34;[x]&#34;</span> <span class="o">:</span> <span class="s2">&#34;[ ]&#34;</span><span class="si">}</span><span class="sb"> #</span><span class="si">${</span><span class="nx">t</span><span class="p">.</span><span class="nx">id</span><span class="si">}</span><span class="sb"> </span><span class="si">${</span><span class="nx">t</span><span class="p">.</span><span class="nx">text</span><span class="si">}</span><span class="sb">`</span><span class="p">).</span><span class="nx">join</span><span class="p">(</span><span class="s2">&#34;\n&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Rebuild from the latest snapshot on the current branch: survives /reload, resume, and /tree.
+</span></span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">restore</span> <span class="o">=</span> <span class="p">(</span><span class="nx">ctx</span>: <span class="kt">ExtensionContext</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">last</span> <span class="o">=</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">sessionManager</span>
+</span></span><span class="line"><span class="cl">			<span class="p">.</span><span class="nx">getBranch</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">			<span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">e</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">e</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;custom&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">e</span><span class="p">.</span><span class="nx">customType</span> <span class="o">===</span> <span class="nx">STATE</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="p">.</span><span class="nx">at</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">todos</span> <span class="o">=</span> <span class="nx">last</span><span class="o">?</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;custom&#34;</span> <span class="o">?</span> <span class="nx">structuredClone</span><span class="p">(</span><span class="nx">last</span><span class="p">.</span><span class="nx">data</span> <span class="kr">as</span> <span class="nx">Todo</span><span class="p">[])</span> <span class="o">:</span> <span class="p">[];</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">dirty</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;session_start&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">_event</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">restore</span><span class="p">(</span><span class="nx">ctx</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;session_tree&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">_event</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">restore</span><span class="p">(</span><span class="nx">ctx</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">registerCommand</span><span class="p">(</span><span class="s2">&#34;todo&#34;</span><span class="p">,</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">description</span><span class="o">:</span> <span class="s2">&#34;Manage todos: /todo add &lt;text&gt; | /todo done &lt;id&gt; | /todo&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">handler</span>: <span class="kt">async</span> <span class="p">(</span><span class="nx">args</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="kr">const</span> <span class="p">[</span><span class="nx">verb</span><span class="p">,</span> <span class="p">...</span><span class="nx">rest</span><span class="p">]</span> <span class="o">=</span> <span class="nx">args</span><span class="p">.</span><span class="nx">trim</span><span class="p">().</span><span class="nx">split</span><span class="p">(</span><span class="sr">/\s+/</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">(</span><span class="nx">verb</span> <span class="o">===</span> <span class="s2">&#34;add&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">rest</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">todos</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span> <span class="nx">id</span>: <span class="kt">todos.length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">text</span>: <span class="kt">rest.join</span><span class="p">(</span><span class="s2">&#34; &#34;</span><span class="p">),</span> <span class="nx">done</span>: <span class="kt">false</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span> <span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">verb</span> <span class="o">===</span> <span class="s2">&#34;done&#34;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="kr">const</span> <span class="nx">todo</span> <span class="o">=</span> <span class="nx">todos</span><span class="p">.</span><span class="nx">find</span><span class="p">((</span><span class="nx">t</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">t</span><span class="p">.</span><span class="nx">id</span> <span class="o">===</span> <span class="nb">Number</span><span class="p">(</span><span class="nx">rest</span><span class="p">[</span><span class="mi">0</span><span class="p">]));</span>
+</span></span><span class="line"><span class="cl">				<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">todo</span><span class="p">)</span> <span class="k">return</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">ui</span><span class="p">.</span><span class="nx">notify</span><span class="p">(</span><span class="sb">`No todo #</span><span class="si">${</span><span class="nx">rest</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span> <span class="s2">&#34;error&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">				<span class="nx">todo</span><span class="p">.</span><span class="nx">done</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">				<span class="c1">// Without triggerTurn this does not start a run; the list joins the context of the next request.
+</span></span></span><span class="line"><span class="cl">				<span class="k">return</span> <span class="nx">pi</span><span class="p">.</span><span class="nx">sendMessage</span><span class="p">({</span> <span class="nx">customType</span>: <span class="kt">SUMMARY</span><span class="p">,</span> <span class="nx">content</span>: <span class="kt">format</span><span class="p">(),</span> <span class="nx">display</span>: <span class="kt">true</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">			<span class="p">}</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">pi</span><span class="p">.</span><span class="nx">appendEntry</span><span class="p">(</span><span class="nx">STATE</span><span class="p">,</span> <span class="nx">structuredClone</span><span class="p">(</span><span class="nx">todos</span><span class="p">));</span> <span class="c1">// commands run outside a turn; copy, the entry keeps a reference
+</span></span></span><span class="line"><span class="cl">		<span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">registerTool</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">name</span><span class="o">:</span> <span class="s2">&#34;todo_done&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">label</span><span class="o">:</span> <span class="s2">&#34;Todo done&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">description</span><span class="o">:</span> <span class="s2">&#34;Mark a todo item as done by id&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">promptSnippet</span><span class="o">:</span> <span class="s2">&#34;Mark items of the user&#39;s todo list as done&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">parameters</span>: <span class="kt">Type.Object</span><span class="p">({</span> <span class="nx">id</span>: <span class="kt">Type.Number</span><span class="p">()</span> <span class="p">}),</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">async</span> <span class="nx">execute</span><span class="p">(</span><span class="nx">_toolCallId</span><span class="p">,</span> <span class="nx">params</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="kr">const</span> <span class="nx">todo</span> <span class="o">=</span> <span class="nx">todos</span><span class="p">.</span><span class="nx">find</span><span class="p">((</span><span class="nx">t</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">t</span><span class="p">.</span><span class="nx">id</span> <span class="o">===</span> <span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">todo</span><span class="p">)</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="sb">`No todo #</span><span class="si">${</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">todo</span><span class="p">.</span><span class="nx">done</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">dirty</span> <span class="o">=</span> <span class="kc">true</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="p">{</span> <span class="nx">content</span><span class="o">:</span> <span class="p">[{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="nx">text</span><span class="o">:</span> <span class="sb">`#</span><span class="si">${</span><span class="nx">todo</span><span class="p">.</span><span class="nx">id</span><span class="si">}</span><span class="sb"> done`</span> <span class="p">}],</span> <span class="nx">details</span><span class="o">:</span> <span class="p">{}</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">		<span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="c1">// Changes made by the model are written once per turn, together with a summary the model sees next turn.
+</span></span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;turn_end&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">event</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">dirty</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">dirty</span> <span class="o">=</span> <span class="kc">false</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">open</span> <span class="o">=</span> <span class="nx">todos</span><span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">t</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="o">!</span><span class="nx">t</span><span class="p">.</span><span class="nx">done</span><span class="p">).</span><span class="nx">length</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">entries</span><span class="o">:</span> <span class="p">[</span>
+</span></span><span class="line"><span class="cl">				<span class="p">...</span><span class="nx">event</span><span class="p">.</span><span class="nx">entries</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">				<span class="p">{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;custom&#34;</span><span class="p">,</span> <span class="nx">customType</span>: <span class="kt">STATE</span><span class="p">,</span> <span class="nx">data</span>: <span class="kt">structuredClone</span><span class="p">(</span><span class="nx">todos</span><span class="p">)</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">				<span class="p">{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;custom_message&#34;</span><span class="p">,</span> <span class="nx">customType</span>: <span class="kt">SUMMARY</span><span class="p">,</span> <span class="nx">content</span><span class="o">:</span> <span class="sb">`Todos (</span><span class="si">${</span><span class="nx">open</span><span class="si">}</span><span class="sb"> open):</span><span class="err">\</span><span class="sb">n</span><span class="si">${</span><span class="nx">format</span><span class="p">()</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span> <span class="nx">display</span>: <span class="kt">true</span> <span class="p">},</span>
+</span></span><span class="line"><span class="cl">			<span class="p">],</span>
+</span></span><span class="line"><span class="cl">		<span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">registerMessageRenderer</span><span class="p">(</span><span class="nx">SUMMARY</span><span class="p">,</span> <span class="p">(</span><span class="nx">message</span><span class="p">,</span> <span class="p">{</span> <span class="nx">outputPad</span> <span class="p">},</span> <span class="nx">theme</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">text</span> <span class="o">=</span> <span class="k">typeof</span> <span class="nx">message</span><span class="p">.</span><span class="nx">content</span> <span class="o">===</span> <span class="s2">&#34;string&#34;</span> <span class="o">?</span> <span class="nx">message</span><span class="p">.</span><span class="nx">content</span> <span class="o">:</span> <span class="s2">&#34;&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="k">new</span> <span class="nx">Text</span><span class="p">(</span><span class="nx">theme</span><span class="p">.</span><span class="nx">fg</span><span class="p">(</span><span class="s2">&#34;accent&#34;</span><span class="p">,</span> <span class="nx">text</span><span class="p">),</span> <span class="nx">outputPad</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>这段代码里的几个选择：</p>
+<ul>
+<li><strong>状态放在会话里，不放在文件里</strong>：快照是 <code>custom</code> 条目，跟着会话树分支走。恢复时只看 <code>getBranch()</code>（当前分支），不扫整个文件，被放弃的分支不会混进来。</li>
+<li><strong>命令里直接写，工具里攒到 <code>turn_end</code></strong>：命令在运行之外执行，直接 <code>appendEntry</code>。工具在运行中改了状态，就把快照和汇总作为条目草稿交给 <code>turn_end</code>，和这一轮的其他扩展草稿一起校验、一起写入（第六章 7.2 节）。</li>
+<li><strong>快照不进上下文，汇总进上下文</strong>：<code>custom</code> 条目模型看不到；<code>custom_message</code> 会转成 user 消息，同一次运行的下一次请求就能看到更新后的列表。</li>
+<li><strong>复制再存</strong>：<code>appendEntry</code> 和草稿里的 <code>data</code> 都用 <code>structuredClone</code>，原因见 3.3 节。</li>
+<li><strong>渲染器只影响交互界面</strong>：其他模式里 <code>custom_message</code> 照样写入、照样发给模型，只是不经过这个渲染器。</li>
+</ul>
+<p>这段代码在 <code>tsc --strict --skipLibCheck --target es2022 --module nodenext</code> 下通过（用了 <code>Array.prototype.at</code>，需要 ES2022 的库）。探针 P7 把它原样放进 <code>~/.pi/agent/extensions/todo.ts</code>，用 faux 依次执行：两次 <code>/todo add</code>；一次 prompt，模型调用 <code>todo_done({ id: 1 })</code> 后回答；再一次 prompt；<code>session.reload()</code>；最后 <code>/todo</code>。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">after two /todo add: requests sent = 0
+</span></span><span class="line"><span class="cl">request 3 (after the turn that called todo_done) carried: system,user,assistant,toolResult,user,assistant,user
+</span></span><span class="line"><span class="cl">after reload, /todo wrote: custom_message(todo-summary) &#34;[x] #1 write tests\n[ ] #2 update changelog&#34;
+</span></span><span class="line"><span class="cl">errors: []
+</span></span><span class="line"><span class="cl">--- session file
+</span></span><span class="line"><span class="cl">   session (header)
+</span></span><span class="line"><span class="cl">   model_change {&#34;provider&#34;:&#34;faux&#34;,&#34;modelId&#34;:&#34;faux-ext&#34;}
+</span></span><span class="line"><span class="cl">   thinking_level_change {&#34;thinkingLevel&#34;:&#34;off&#34;}
+</span></span><span class="line"><span class="cl">   custom todo-state [{&#34;id&#34;:1,&#34;text&#34;:&#34;write tests&#34;,&#34;done&#34;:false}]
+</span></span><span class="line"><span class="cl">   custom todo-state [{&#34;id&#34;:1,&#34;text&#34;:&#34;write tests&#34;,&#34;done&#34;:false},{&#34;id&#34;:2,&#34;text&#34;:&#34;update changelog&#34;,&#34;done&#34;:false}]
+</span></span><span class="line"><span class="cl">   message system  sections={preamble,tools,rules,docs,cwd} toolsAdded=[read,bash,edit,write,todo_done]
+</span></span><span class="line"><span class="cl">   message user &#34;Tests are written, tick it off.&#34;
+</span></span><span class="line"><span class="cl">   message assistant &#34;todo_done({\&#34;id\&#34;:1})&#34;
+</span></span><span class="line"><span class="cl">   message toolResult &#34;#1 done&#34;
+</span></span><span class="line"><span class="cl">   custom todo-state [{&#34;id&#34;:1,&#34;text&#34;:&#34;write tests&#34;,&#34;done&#34;:true},{&#34;id&#34;:2,&#34;text&#34;:&#34;update changelog&#34;,&#34;done&#34;:false}]
+</span></span><span class="line"><span class="cl">   custom_message todo-summary display=true &#34;Todos (1 open):\n[x] #1 write tests\n[ ] #2 update changelog&#34;
+</span></span><span class="line"><span class="cl">   message assistant &#34;Marked #1.&#34;
+</span></span><span class="line"><span class="cl">   message user &#34;thanks&#34;
+</span></span><span class="line"><span class="cl">   message assistant &#34;ok&#34;
+</span></span><span class="line"><span class="cl">   custom_message todo-summary display=true &#34;[x] #1 write tests\n[ ] #2 update changelog&#34;
+</span></span></code></pre></div><ul>
+<li>两次 <code>/todo add</code> 没有发请求，各留下一条快照。</li>
+<li>模型调用工具的那一轮结束时，<code>turn_end</code> 写入新快照和汇总。同一次运行的第二次请求就以这条汇总（转成 <code>user</code>）结尾，第三次请求里 <code>toolResult</code> 之后的那条 <code>user</code> 也是它。</li>
+<li><code>/reload</code> 重新导入模块，内存里的 <code>todos</code> 从空数组开始，<code>session_start</code> 从最后一条快照恢复，所以重载后的 <code>/todo</code> 列出的是 <code>#1</code> 已完成。</li>
+</ul>
+<hr>
+<h2 id="8--三个可以带走的方法">
+<a class="header-anchor" href="#8--%e4%b8%89%e4%b8%aa%e5%8f%af%e4%bb%a5%e5%b8%a6%e8%b5%b0%e7%9a%84%e6%96%b9%e6%b3%95"></a>
+8 · 三个可以带走的方法
+</h2><ol>
+<li><strong>注册和动作分两个阶段</strong>。工厂执行时只允许写自己的注册表，动作方法是会抛错的占位，供应商注册先排队；宿主准备好之后统一接上。扩展的加载顺序和副作用因此可控，加载失败的扩展可以整块丢弃。</li>
+<li><strong>每个事件声明自己的合并规则</strong>。只通知的事件走通用派发，会采用结果的事件按接力、拦截、覆盖、先到先得、收集之一合并，大多有自己的派发方法。扩展作者看事件的返回类型就知道多个扩展怎样相处，不必猜测。</li>
+<li><strong>重载就是换一整套</strong>。不逐项注销，旧运行器连同它的注册一起丢弃，旧的 <code>pi</code> 和 <code>ctx</code> 标记失效，用了就报清楚的错误。宿主不需要追踪每个扩展注册过什么。</li>
+</ol>
+<hr>
+<h2 id="9--关键数字">
+<a class="header-anchor" href="#9--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+9 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>数量</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>扩展来源</td>
+					<td>8 类</td>
+			</tr>
+			<tr>
+					<td>内置扩展</td>
+					<td>4 个（<code>llama.cpp</code>，以及可替换的 <code>codemode</code>、<code>tool-search</code>、<code>mcp</code>），只在 CLI 里装上</td>
+			</tr>
+			<tr>
+					<td><code>ExtensionAPI</code> 成员</td>
+					<td>33 个，其中注册方法 11 个、注销方法 3 个</td>
+			</tr>
+			<tr>
+					<td>事件</td>
+					<td>41 个（<code>ExtensionEvent</code> 的 32 个成员，<code>SessionEvent</code> 展开为 10 个）</td>
+			</tr>
+			<tr>
+					<td>会采用结果的事件 / 只通知的事件</td>
+					<td>19 / 22</td>
+			</tr>
+			<tr>
+					<td>有专用派发方法的事件</td>
+					<td>15 个</td>
+			</tr>
+			<tr>
+					<td>合并规则</td>
+					<td>5 种</td>
+			</tr>
+			<tr>
+					<td>不等待处理函数的事件</td>
+					<td>5 个</td>
+			</tr>
+			<tr>
+					<td><code>ctx</code> 成员：事件 / 命令 / 工具</td>
+					<td>18 / 25 / 20</td>
+			</tr>
+			<tr>
+					<td><code>ctx.ui</code> 成员</td>
+					<td>28 个</td>
+			</tr>
+			<tr>
+					<td><code>session_start</code> 的 <code>reason</code></td>
+					<td>5 种（<code>startup</code>、<code>reload</code>、<code>new</code>、<code>resume</code>、<code>fork</code>）</td>
+			</tr>
+			<tr>
+					<td><code>session_shutdown</code> 的 <code>reason</code></td>
+					<td>5 种（<code>quit</code>、<code>reload</code>、<code>new</code>、<code>resume</code>、<code>fork</code>）</td>
+			</tr>
+			<tr>
+					<td>扩展相关源码</td>
+					<td><code>extensions/types.ts</code> 2260 行、<code>runner.ts</code> 1560 行、<code>loader.ts</code> 876 行</td>
+			</tr>
+			<tr>
+					<td>官方示例</td>
+					<td><code>examples/extensions/</code> 下 70 个 <code>.ts</code> 文件、9 个目录</td>
+			</tr>
+			<tr>
+					<td>本章相关文件的提交（北京时间 2026-08-01 至 2026-10-04，不含合并提交）</td>
+					<td><code>core/extensions/</code> 与 <code>resource-loader.ts</code> 合计 41 次</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="10--术语表">
+<a class="header-anchor" href="#10--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+10 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>含义</th>
+					<th>别和它混淆</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>工厂</strong></td>
+					<td>扩展模块默认导出的函数，加载时调用一次</td>
+					<td>处理函数：<code>pi.on</code> 注册的、事件发生时调用的函数</td>
+			</tr>
+			<tr>
+					<td><strong><code>Extension</code></strong></td>
+					<td>一个扩展的注册表</td>
+					<td><code>ExtensionAPI</code>：交给工厂的 <code>pi</code> 对象，往注册表里写</td>
+			</tr>
+			<tr>
+					<td><strong>运行器</strong></td>
+					<td><code>ExtensionRunner</code>，派发事件、汇总注册</td>
+					<td><code>AgentSessionRuntime</code>：持有当前会话，负责替换会话</td>
+			</tr>
+			<tr>
+					<td><strong>绑定</strong></td>
+					<td><code>bindExtensions</code>：接上界面和错误监听，发 <code>session_start</code></td>
+					<td><code>bindCore</code>：构造时把动作方法接到 <code>AgentSession</code></td>
+			</tr>
+			<tr>
+					<td><strong>失效</strong></td>
+					<td>重载或替换后旧的 <code>pi</code>、<code>ctx</code> 一用就抛错</td>
+					<td>卸载：pi 不逐项卸载，旧注册随旧运行器丢弃</td>
+			</tr>
+			<tr>
+					<td><strong>预信任加载</strong></td>
+					<td>决定是否信任项目之前，先加载用户、命令行和 SDK 的扩展</td>
+					<td>项目信任本身：只决定 <code>.pi/</code> 下的资源加载不加载</td>
+			</tr>
+			<tr>
+					<td><strong>可替换的内置扩展</strong></td>
+					<td>第三方注册同名工具/命令/参数时让位的内置扩展</td>
+					<td>同名冲突：两个普通扩展同名时记加载错误</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="11--源码导航">
+<a class="header-anchor" href="#11--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+11 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>来源、顺序、信任</td>
+					<td><code>packages/coding-agent/src/core/package-manager.ts</code> → <code>resolve</code>、<code>resourcePrecedenceRank</code>、<code>collectAutoExtensionEntries</code>；<code>core/resource-loader.ts</code> → <code>reload</code>、<code>loadFinalExtensionSet</code>、<code>omitReplacedExtensions</code>、<code>detectExtensionConflicts</code>、<code>collectExtensionPackageWarnings</code>；<code>core/project-trust.ts</code>、<code>core/trust-manager.ts</code></td>
+			</tr>
+			<tr>
+					<td>模块怎么导入</td>
+					<td><code>packages/coding-agent/src/core/extensions/loader.ts</code> → <code>loadExtensionModule</code>、<code>createExtensionAPI</code>、<code>createExtensionRuntime</code>；<code>core/extensions/virtual-modules.ts</code></td>
+			</tr>
+			<tr>
+					<td>内置扩展</td>
+					<td><code>packages/coding-agent/src/extensions/index.ts</code>；<code>src/main.ts</code> 里的 <code>builtInExtensions</code> 和启动时的错误检查</td>
+			</tr>
+			<tr>
+					<td>运行器与派发</td>
+					<td><code>packages/coding-agent/src/core/extensions/runner.ts</code> → <code>bindCore</code>、<code>emit</code>、<code>emitBoundary</code>、<code>emitToolCall</code>、<code>emitToolResult</code>、<code>emitMessageEnd</code>、<code>emitInput</code>、<code>createContext</code>、<code>createCommandContext</code>、<code>invalidate</code></td>
+			</tr>
+			<tr>
+					<td>装进会话、重载</td>
+					<td><code>packages/coding-agent/src/core/agent-session.ts</code> → <code>_buildRuntime</code>、<code>_bindExtensionCore</code>、<code>bindExtensions</code>、<code>reload</code>、<code>_emitExtensionEvent</code>、<code>sendCustomMessage</code>、<code>sendUserMessage</code></td>
+			</tr>
+			<tr>
+					<td>替换会话</td>
+					<td><code>packages/coding-agent/src/core/agent-session-runtime.ts</code> → <code>newSession</code>、<code>switchSession</code>、<code>fork</code>、<code>teardownCurrent</code></td>
+			</tr>
+			<tr>
+					<td>类型</td>
+					<td><code>packages/coding-agent/src/core/extensions/types.ts</code> → <code>ExtensionAPI</code>、<code>ExtensionEvent</code>、<code>ExtensionContext</code>、<code>ExtensionCommandContext</code>、<code>ExtensionToolContext</code></td>
+			</tr>
+			<tr>
+					<td>各模式的 ui 和错误呈现</td>
+					<td><code>src/modes/rpc/rpc-mode.ts</code> → <code>createExtensionUIContext</code>；<code>src/modes/print-mode.ts</code>；<code>src/modes/interactive/interactive-mode.ts</code></td>
+			</tr>
+			<tr>
+					<td>官方说明</td>
+					<td><code>packages/coding-agent/docs/extensions.md</code>、<code>rpc-extension-ui.md</code>、<code>security.md</code>、<code>packages.md</code>；示例 <code>examples/extensions/</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><strong>下一章</strong>：运行模式与界面。看交互、print、JSON、RPC 四种模式怎样驱动同一个 <code>AgentSession</code>。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/15.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的"
+              class="lazyload"
+            /><a
+          href="/harness/pi/08-context-engineering/"
+          aria-label="Prev:Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的"
+          title="Prev:Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--扩展从哪来">1 · 扩展从哪来</a>
+      <ul>
+        <li><a href="#11-八类来源和加载顺序">1.1 八类来源和加载顺序</a></li>
+        <li><a href="#12-目录里什么算一个扩展">1.2 目录里什么算一个扩展</a></li>
+        <li><a href="#13-typescript-怎么加载">1.3 TypeScript 怎么加载</a></li>
+        <li><a href="#14-同名与重复">1.4 同名与重复</a></li>
+        <li><a href="#15-项目信任">1.5 项目信任</a></li>
+        <li><a href="#16-加载失败">1.6 加载失败</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--扩展怎么装进会话">2 · 扩展怎么装进会话</a>
+      <ul>
+        <li><a href="#21-三个对象">2.1 三个对象</a></li>
+        <li><a href="#22-绑定session_start-从这里发出">2.2 绑定：session_start 从这里发出</a></li>
+        <li><a href="#23-reload重新导入模块整体换掉运行器">2.3 /reload：重新导入模块，整体换掉运行器</a></li>
+        <li><a href="#24-newresumefork换一个会话模块不重新导入">2.4 /new、/resume、/fork：换一个会话，模块不重新导入</a></li>
+        <li><a href="#25-ctx-什么时候失效">2.5 ctx 什么时候失效</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--extensionapi-能注册什么">3 · ExtensionAPI 能注册什么</a>
+      <ul>
+        <li><a href="#31-33-个成员">3.1 33 个成员</a></li>
+        <li><a href="#32-每项注册落到哪里">3.2 每项注册落到哪里</a></li>
+        <li><a href="#33-动作对会话的影响">3.3 动作对会话的影响</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--事件全表">4 · 事件全表</a>
+      <ul>
+        <li><a href="#41-41-个事件两种方法核对">4.1 41 个事件，两种方法核对</a></li>
+        <li><a href="#42-一次-prompt-里的先后">4.2 一次 prompt 里的先后</a></li>
+        <li><a href="#43-分组表">4.3 分组表</a></li>
+        <li><a href="#44-返回值的五种合并规则">4.4 返回值的五种合并规则</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--extensioncontext三种-ctx">5 · ExtensionContext：三种 ctx</a></li>
+    <li><a href="#6--隔离与出错">6 · 隔离与出错</a>
+      <ul>
+        <li><a href="#61-处理函数抛错">6.1 处理函数抛错</a></li>
+        <li><a href="#62-有没有权限边界">6.2 有没有权限边界</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--用法一个-todo-扩展">7 · 用法：一个 /todo 扩展</a></li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程",
+          url: "https:\/\/example.org\/harness\/pi\/09-extensions-events\/",
+          description: "接着第八章往下讲：把扩展当成一个整体，看它从哪八类来源按什么顺序加载、TypeScript 怎样被 jiti 转译、怎样装进 AgentSession、\/reload 和 \/new 时会不会重新执行、ExtensionAPI 的 33 个成员各落到哪个子系统、41 个事件在一次 prompt 里的先后和多个扩展的返回值怎样合并、三种 ctx 有什么不同，以及处理函数出错时会怎样。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

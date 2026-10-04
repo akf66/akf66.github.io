@@ -466,7 +466,7 @@ This article does not have a corresponding language version
 <li>第七章 3.4 节：摘要请求用 <code>cacheRetention: &quot;none&quot;</code>，不触发缓存预热。</li>
 </ul>
 </li>
-<li>文中的行为都用探针实际跑过。探针用 npm 上的 1.0.1，用 <code>createAgentSession</code> 加 pi-ai 的 faux 供应商（从 <code>@earendil-works/pi-ai/compat</code> 导入 <code>registerFauxProvider</code>、<code>fauxAssistantMessage</code>），在临时目录里放几层 AGENTS.md、技能和提示词模板，把 <code>HOME</code> 也指向临时目录，记录每次发给模型的消息列表和会话文件。faux 的每个回复都用工厂函数在请求到达时才创建。faux 不触发 <code>before_provider_request</code>，所以涉及请求体的探针（P4）改用本地 mock 服务模拟 Anthropic 的流式接口。探针编号 P1–P8。</li>
+<li>文中的行为都用探针实际跑过。探针用 npm 上的 1.0.1，用 <code>createAgentSession</code> 加 pi-ai 的 faux 供应商（从 <code>@earendil-works/pi-ai/compat</code> 导入 <code>registerFauxProvider</code>、<code>fauxAssistantMessage</code>），在临时目录里放几层 AGENTS.md、技能和提示词模板，把 <code>HOME</code> 也指向临时目录，记录每次发给模型的消息列表和会话文件。faux 的每个回复都用工厂函数在请求到达时才创建。faux 不触发 <code>before_provider_request</code>（<code>before_provider_headers</code> 和 <code>after_provider_response</code> 照常触发），所以涉及请求体的探针（P4）改用本地 mock 服务模拟 Anthropic 的流式接口。探针编号 P1–P8。</li>
 <li>术语：
 <ul>
 <li><strong>段</strong>：<code>SystemMessage.sections</code> 里的一项，键是段名，值是包好标签的文字。</li>
@@ -878,6 +878,9 @@ This article does not have a corresponding language version
 <li><strong>每次 prompt</strong>：<code>before_agent_start</code> 处理完之后，用它改过的选项计算。这份选项存为运行级选项 <code>_runSystemPromptOptions</code>，补丁插在本次新消息的最前面。</li>
 <li><strong>同一次运行的后续每一轮</strong>：<code>AgentSession</code> 包在 <code>prepareNextTurnWithContext</code> 外面的那层，取运行级选项，把 <code>selectedTools</code> 换成当前激活的工具，再算一次，补丁作为这一轮的新消息交给循环。</li>
 </ol>
+<blockquote>
+<p>⚠️ 扩展用 <code>pi.sendMessage(message, { triggerTurn: true })</code> 在空闲时启动的运行不走 <code>prompt()</code>：不触发 <code>input</code> 和 <code>before_agent_start</code>，也不经过第一个时机，消息直接交给 <code>Agent</code>。会话里已经有提示词时，这次请求照常从会话树投影出提示词；在全新的会话上第一个动作就是它时，这次请求只带一条文字为空的 system 消息（只有工具声明），没有系统提示词，要等之后一次正常的 prompt 才把完整的段作为补丁写进来（第九章 3.3 节的探针 P6b）。需要提示词和 <code>before_agent_start</code> 的场景，用 <code>pi.sendUserMessage</code>。</p>
+</blockquote>
 <p><code>_preparePromptAndToolLoadout</code> 做三件事：</p>
 <ul>
 <li>按 <code>selectedTools</code> 设好可执行的工具，这一步会运行各工具的 <code>prepareLoadout</code>（第五章）。</li>
@@ -1422,7 +1425,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/10.webp"
+              data-src="/random/22.webp"
               data-sizes="auto"
               alt="Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的"
               class="lazyload"
@@ -1434,7 +1437,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/9.webp"
+              data-src="/random/11.webp"
               data-sizes="auto"
               alt="Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程"
               class="lazyload"

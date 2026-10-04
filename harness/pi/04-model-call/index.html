@@ -432,7 +432,7 @@ This article does not have a corresponding language version
   </span></div>
 <div class="article-category"></div>
 </div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
-<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.1（2026-10-03），commit <code>a7229ddc2</code>。文中所有行为、数字和代码均以该版本为准。</p>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.2-1-g200387122（2026-10-04），commit <code>200387122</code>。这个提交在 v1.0.2 之上只给各包的 CHANGELOG 加了 <code>[Unreleased]</code> 段，代码与 v1.0.2 相同。文中所有行为、数字和代码均以该版本为准。</p>
 </blockquote>
 <p>第三章讲到，<code>runLoop</code> 每一轮把消息交给 <code>streamFn</code>，然后消费它返回的事件流。本章接着往下讲，打开 L1 的 pi-ai，从 <code>streamFn</code> 被调用开始，一直讲到供应商的原始流变成统一的事件。</p>
 <p>本章要点：</p>
@@ -449,7 +449,7 @@ This article does not have a corresponding language version
 0 · 阅读说明
 </h2><ul>
 <li>本章只讲已发布的 pi-ai（<code>@earendil-works/pi-ai</code>），而且只讲对话模型的流式请求。图像生成、分类模型、延迟返回（deferred）这几条支线只在需要时提一句。</li>
-<li>文中的事件顺序、错误信息和计数都用探针脚本实际跑过。探针在本地起一个假的 HTTP 服务，按 Anthropic 和 OpenAI 的格式返回 SSE 流，再把模型的 <code>baseUrl</code> 指向它，不需要真实的 API key。脚本用的是 npm 上的 <code>@earendil-works/pi-ai@1.0.1</code>，和基线是同一个版本。</li>
+<li>文中的事件顺序、错误信息和计数都用探针脚本实际跑过。探针在本地起一个假的 HTTP 服务，按 Anthropic 和 OpenAI 的格式返回 SSE 流，再把模型的 <code>baseUrl</code> 指向它，不需要真实的 API key。脚本用的是 npm 上的 <code>@earendil-works/pi-ai@1.0.2</code>，和基线是同一个版本。</li>
 <li>本章的术语：
 <ul>
 <li><strong>供应商</strong>（provider）：一个运行时单元，带着自己的 id、凭据规则、模型目录和请求方法，例如 <code>anthropic</code>、<code>deepseek</code>。</li>
@@ -608,7 +608,7 @@ This article does not have a corresponding language version
 3.2 协议实现这一段：换算选项，拼请求体
 </h3><p>供应商把请求交给协议实现。如果这是第一次请求这种线协议，会先加载协议实现的模块（第 6 节）。以 <code>anthropic-messages</code> 为例，<code>streamSimple</code> 先换算选项：</p>
 <ul>
-<li><code>buildBaseOptions</code>（复制通用选项，并把 <code>maxTokens</code> 夹紧到上下文窗口减去估算的输入 token、再留 4096 的余量）</li>
+<li><code>buildBaseOptions</code>（复制通用选项，并把 <code>maxTokens</code> 夹紧到上下文窗口减去估算的输入 token、再留 4096 的余量）。它还按思考级别合并采样参数：模型的 <code>samplingParams</code>、模型 <code>samplingParamsByThinkingLevel</code> 里对应级别（按模型支持的级别夹紧后）的那一组、请求的 <code>samplingParams</code>，后面的逐键覆盖前面的。只有 OpenAI 兼容的三种协议实现（<code>openai-completions</code>、<code>openai-responses</code>、<code>azure-openai-responses</code>）把这些参数写进请求体，其他协议忽略它们。coding-agent 的 <code>models.json</code> 可以给模型配 <code>samplingParamsByThinkingLevel</code></li>
 <li>没有 <code>reasoning</code>：<code>thinkingEnabled: false</code></li>
 <li>模型声明了自适应思考：<code>reasoning</code> 映射成 <code>effort</code>（<code>minimal</code> 和 <code>low</code> 都映射成 <code>low</code>）</li>
 <li>其他模型：按默认预算表取思考 token 数（<code>minimal</code> 1024、<code>low</code> 2048、<code>medium</code> 8192、<code>high</code> 16384），给回答至少留 1024 个 token</li>
@@ -1024,7 +1024,7 @@ This article does not have a corresponding language version
 			</tr>
 			<tr>
 					<td><code>src/api/</code></td>
-					<td>39 个文件，12,859 行</td>
+					<td>39 个文件，12,891 行</td>
 			</tr>
 			<tr>
 					<td><code>packages/ai</code> 的提交（北京时间 2026-08-01 至 2026-10-01，不含合并提交）</td>
@@ -1206,7 +1206,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 03 · Agent Loop：一次运行是怎么转起来的</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/11.webp"
+              data-src="/random/4.webp"
               data-sizes="auto"
               alt="Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么"
               class="lazyload"

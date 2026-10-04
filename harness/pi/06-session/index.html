@@ -870,6 +870,7 @@ This article does not have a corresponding language version
 <p>几点补充：</p>
 <ul>
 <li><code>ReadonlySessionManager</code> 只在类型上只读，运行时拿到的就是同一个 <code>SessionManager</code> 对象。扩展要写会话，应该通过上面列出的 API。</li>
+<li><code>pi.appendEntry(customType, data)</code> 不复制 <code>data</code>，条目在内存里保存的是这个对象本身。会话文件还没创建时（2.3 节），条目要等第一条 assistant 消息出现才序列化，之后对 <code>data</code> 的修改会一起写进文件；文件已经存在时立即序列化，但内存里的条目仍跟着变，<code>getBranch()</code> 读到的是改过的值。要保存某一时刻的状态，传 <code>structuredClone(data)</code>。</li>
 <li>会话列表（<code>SessionManager.list</code>）里的名字、消息数、第一条消息，统计的是整个文件，不区分分支。</li>
 <li>RPC 模式提供 <code>get_entries</code>、<code>get_tree</code>、<code>fork</code>、<code>clone</code>、<code>switch_session</code>、<code>new_session</code> 等命令，但没有直接的分支导航命令。</li>
 </ul>
@@ -1197,7 +1198,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/20.webp"
+              data-src="/random/3.webp"
               data-sizes="auto"
               alt="Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么"
               class="lazyload"
@@ -1209,7 +1210,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Pi 源码分析 05 · 工具：一个工具从定义到执行完都经过了什么</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/3.webp"
+              data-src="/random/19.webp"
               data-sizes="auto"
               alt="Pi 源码分析 07 · 上下文压缩：压缩条目是怎么产生的"
               class="lazyload"

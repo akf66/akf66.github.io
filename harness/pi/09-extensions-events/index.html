@@ -308,7 +308,7 @@ This article does not have a corresponding language version
             <div class="sidebar-common-btn"></div>
           </div></div>
   </div><div class="sidebar-widget"></div></div></aside>
-<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.3cf30c7271bec63efd7f486bce6e5fb5d736af11ecc46b715600952e59d2bb1a.css" />
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.b05e08ae4ad369facc40054b6c3585ec82021a651f5361cbe764a4de328eb83e.css" />
     <article class="article harness-intro" data-aos="fade-up">
       <div class="article-inner">
         <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
@@ -1426,36 +1426,22 @@ This article does not have a corresponding language version
 </li>
 </ul>
 <p><strong><code>ctx.ui</code> 在各模式下的行为</strong>：</p>
-<table>
-	<thead>
-			<tr>
-					<th>模式</th>
-					<th><code>mode</code></th>
-					<th><code>hasUI</code></th>
-					<th><code>ui</code> 的行为</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>交互</td>
-					<td><code>tui</code></td>
-					<td>true</td>
-					<td>完整的终端界面：对话框、通知、状态栏、组件</td>
-			</tr>
-			<tr>
-					<td>RPC</td>
-					<td><code>rpc</code></td>
-					<td>true</td>
-					<td><code>select</code>、<code>confirm</code>、<code>input</code>、<code>editor</code> 作为 <code>extension_ui_request</code> 发给客户端并等待回复；<code>notify</code>、<code>setStatus</code>、<code>setWidget</code>（只转发字符串数组）、<code>setTitle</code>、<code>setEditorText</code> / <code>pasteToEditor</code>（<code>set_editor_text</code>）单向发送；<code>custom</code> 和自定义组件是空操作</td>
-			</tr>
-			<tr>
-					<td>print / JSON</td>
-					<td><code>print</code> / <code>json</code></td>
-					<td>false</td>
-					<td>交互和显示都是空操作：<code>select</code>、<code>input</code>、<code>editor</code> 返回 <code>undefined</code>，<code>confirm</code> 返回 <code>false</code>，<code>getEditorText</code> 返回空串，<code>setTheme</code> 返回 <code>{ success: false, error: &quot;UI not available&quot; }</code>；<code>theme</code> 仍返回当前主题</td>
-			</tr>
-	</tbody>
-</table>
+<ul>
+<li><strong>交互模式</strong>（<code>mode</code> 为 <code>tui</code>，<code>hasUI</code> 为 true）：完整的终端界面，对话框、通知、状态栏、组件都可用。</li>
+<li><strong>RPC 模式</strong>（<code>mode</code> 为 <code>rpc</code>，<code>hasUI</code> 为 true）：
+<ul>
+<li><code>select</code>、<code>confirm</code>、<code>input</code>、<code>editor</code> 作为 <code>extension_ui_request</code> 发给客户端，等客户端回复。</li>
+<li><code>notify</code>、<code>setStatus</code>、<code>setWidget</code>（只转发字符串数组）、<code>setTitle</code>、<code>setEditorText</code> / <code>pasteToEditor</code>（发 <code>set_editor_text</code>）单向发送。</li>
+<li><code>custom</code> 和自定义组件是空操作。</li>
+</ul>
+</li>
+<li><strong>print / JSON 模式</strong>（<code>mode</code> 为 <code>print</code> / <code>json</code>，<code>hasUI</code> 为 false）：交互和显示都是空操作。
+<ul>
+<li><code>select</code>、<code>input</code>、<code>editor</code> 返回 <code>undefined</code>，<code>confirm</code> 返回 <code>false</code>，<code>getEditorText</code> 返回空串。</li>
+<li><code>setTheme</code> 返回 <code>{ success: false, error: &quot;UI not available&quot; }</code>；<code>theme</code> 仍返回当前主题。</li>
+</ul>
+</li>
+</ul>
 <p>SDK 不传 <code>uiContext</code> 时和 print 模式一样（P5：<code>hasUI=false mode=print select=undefined confirm=false</code>）。只在终端里有意义的功能用 <code>ctx.mode === &quot;tui&quot;</code> 判断，需要用户回答的交互用 <code>ctx.hasUI</code> 判断。</p>
 <hr>
 <h2 id="6--隔离与出错">
@@ -1853,7 +1839,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/9.webp"
+              data-src="/random/21.webp"
               data-sizes="auto"
               alt="Pi 源码分析 08 · 上下文工程：系统提示词和上下文是怎么拼出来的"
               class="lazyload"

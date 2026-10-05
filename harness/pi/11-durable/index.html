@@ -1,0 +1,1639 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 番外 · pi-durable：先提交、再展示的持久化引擎 | AKF
+</title>
+<meta name="description" content="接着第三章和第六章往下讲：pi 仓库里的第二套 Agent 引擎 pi-durable。它把一次运行拆成带检查点的任务，所有改动只走 Session 的一条提交线，提交成功后界面才能看到；进程被杀之后重新打开，生成任务重发请求，工具调用按 replay 策略重跑或记为中断。本章用崩溃探针实际验证这些行为，并和第三章的 Agent 逐项对照。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 番外 · pi-durable：先提交、再展示的持久化引擎 | AKF" />
+  <meta
+    property="og:description"
+    content="接着第三章和第六章往下讲：pi 仓库里的第二套 Agent 引擎 pi-durable。它把一次运行拆成带检查点的任务，所有改动只走 Session 的一条提交线，提交成功后界面才能看到；进程被杀之后重新打开，生成任务重发请求，工具调用按 replay 策略重跑或记为中断。本章用崩溃探针实际验证这些行为，并和第三章的 Agent 逐项对照。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/11-durable/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-05T17:30:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-05T17:30:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 番外 · pi-durable：先提交、再展示的持久化引擎"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 番外 · pi-durable：先提交、再展示的持久化引擎</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--它在仓库里的位置">1 · 它在仓库里的位置</a>
+      <ul>
+        <li><a href="#11-两套引擎两种持久化分工">1.1 两套引擎，两种持久化分工</a></li>
+        <li><a href="#12-包的事实">1.2 包的事实</a></li>
+        <li><a href="#13-谁在用它">1.3 谁在用它</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--骨架">2 · 骨架</a>
+      <ul>
+        <li><a href="#21-最小用法">2.1 最小用法</a></li>
+        <li><a href="#22-四层">2.2 四层</a></li>
+        <li><a href="#23-存储后端">2.3 存储后端</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--唯一的写路径">3 · 唯一的写路径</a>
+      <ul>
+        <li><a href="#31-一次提交的六步">3.1 一次提交的六步</a></li>
+        <li><a href="#32-探针提交和视图的先后">3.2 探针：提交和视图的先后</a></li>
+        <li><a href="#33-流式输出也走同一条路">3.3 流式输出也走同一条路</a></li>
+        <li><a href="#34-三种观察方式">3.4 三种观察方式</a></li>
+        <li><a href="#35-已提交能扛住什么">3.5 &ldquo;已提交&quot;能扛住什么</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--一次运行是一串任务">4 · 一次运行是一串任务</a>
+      <ul>
+        <li><a href="#41-从输入到回答">4.1 从输入到回答</a></li>
+        <li><a href="#42-任务是什么">4.2 任务是什么</a></li>
+        <li><a href="#43-生成任务的五个阶段">4.3 生成任务的五个阶段</a></li>
+        <li><a href="#44-工具任务与效果夹心">4.4 工具任务与效果夹心</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--崩溃之后">5 · 崩溃之后</a>
+      <ul>
+        <li><a href="#51-重新打开">5.1 重新打开</a></li>
+        <li><a href="#52-生成到一半">5.2 生成到一半</a></li>
+        <li><a href="#53-工具执行到一半">5.3 工具执行到一半</a></li>
+        <li><a href="#54-中止和关闭">5.4 中止和关闭</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--忙碌的对话">6 · 忙碌的对话</a></li>
+    <li><a href="#7--扩展点">7 · 扩展点</a>
+      <ul>
+        <li><a href="#71-扩展与注册表">7.1 扩展与注册表</a></li>
+        <li><a href="#72-七个钩子">7.2 七个钩子</a></li>
+        <li><a href="#73-宿主提供的东西">7.3 宿主提供的东西</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--与第三章的-agent-对照">8 · 与第三章的 Agent 对照</a></li>
+    <li><a href="#9--对-coding-agent-意味着什么">9 · 对 coding-agent 意味着什么</a></li>
+    <li><a href="#10--关键数字">10 · 关键数字</a></li>
+    <li><a href="#11--术语表">11 · 术语表</a></li>
+    <li><a href="#12--源码导航">12 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.b05e08ae4ad369facc40054b6c3585ec82021a651f5361cbe764a4de328eb83e.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 番外 · pi-durable：先提交、再展示的持久化引擎</p>
+</div>
+      </div>
+    </article><link rel="stylesheet" href="/css/immersive.min.2db92d937938ad74c3f0da9f094e4878ceeb590da6c1a4e7129c8e526ba57363.css" /><h1 class="immersive-title">Pi 源码分析 番外 · pi-durable：先提交、再展示的持久化引擎</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><div class="immersive-side-row">
+  <button type="button" class="immersive-side" data-immersive-toggle>
+    <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+    <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
+    <span class="immersive-side-text-on">沉浸阅读</span>
+    <span class="immersive-side-text-off">退出沉浸</span>
+  </button>
+  <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+</div><button
+  type="button"
+  class="immersive-toggle"
+  data-immersive-toggle
+  data-label-on="进入沉浸阅读"
+  data-label-off="退出沉浸阅读"
+  title="进入沉浸阅读"
+  aria-label="进入沉浸阅读"
+  aria-pressed="false"
+>
+  <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </svg>
+  <span class="immersive-toggle-text-on">沉浸阅读</span>
+  <span class="immersive-toggle-text">退出沉浸阅读</span>
+  <kbd class="immersive-toggle-kbd">Esc</kbd>
+</button>
+<script>
+  (() => {
+    const KEY = "immersive-reading";
+    const root = document.documentElement;
+    const btn = document.querySelector(".immersive-toggle");
+    const entry = document.querySelector(".immersive-entry");
+
+    const apply = (on) => {
+      root.classList.toggle("immersive", on);
+      const label = on ? btn.dataset.labelOff : btn.dataset.labelOn;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", String(on));
+      const sideBtn = document.querySelector(".immersive-side");
+      if (sideBtn) sideBtn.title = label;
+      try {
+        localStorage.setItem(KEY, on ? "1" : "0");
+      } catch (e) {}
+    };
+
+    const nav = document.querySelector(".immersive-nav");
+    const side = document.querySelector(".immersive-side-row");
+
+    const title = document.querySelector(".immersive-title");
+
+    const placeEntry = () => {
+      const inner = document.querySelector("article.h-entry .article-inner");
+      if (inner) inner.prepend(title);
+      const date = document.querySelector(".article-meta .article-date");
+      if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
+      const sidebar = document.querySelector("#sidebar .sidebar-wrapper-container");
+      if (sidebar) {
+        sidebar.appendChild(side);
+        root.classList.add("immersive-has-side");
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", placeEntry);
+    } else {
+      placeEntry();
+    }
+
+    apply(root.classList.contains("immersive"));
+    document.querySelectorAll("[data-immersive-toggle]").forEach((el) =>
+      el.addEventListener("click", () => {
+        apply(!root.classList.contains("immersive"));
+        window.scrollTo({ top: 0 });
+      })
+    );
+    side.querySelector(".immersive-side-top").addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
+    });
+  })();
+</script>
+<article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-05 17:30:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-05</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-05</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.3-2-gb9ab918c6（2026-10-05），commit <code>b9ab918c6</code>。v1.0.3 之后的两个提交都没有改动 <code>packages/durable</code>。pi-durable 的 README 第一行写着 <strong>Experimental. The API changes without notice between releases.</strong>，所以本章是 2026-10-05 这一天的快照：结构和机制以该版本源码为准，API 细节以后可能会变。</p>
+</blockquote>
+<p>第三章讲了 <code>Agent</code> 和 <code>agentLoop</code> 怎样在内存里跑完一次运行，第六章讲了 coding-agent 怎样在事件到来时把消息写进会话文件。这一章讲仓库里的另一套引擎 <code>@earendil-works/pi-durable</code>：它把持久化放进引擎内部，任何东西都先提交到存储，再让界面看到。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>与 Agent 并存，不在 pi 命令里</strong>：pi-durable 只依赖 pi-ai、chord 和两个第三方库（diff、typebox），不依赖 pi-agent-core。它的使用者只有 coding-agent 的 <code>src/experimental/</code> 目录：一个终端 Agent、一个旅行规划示例和客户端/服务端的会话 worker。这些目录不参与编译，也不随 npm 发布，coding-agent 的 <code>package.json</code> 里也没有声明这个依赖。1.0.0 版的 agent-core 删掉了旧的实验引擎 <code>AgentHarness</code>，CHANGELOG 里写的接替者就是它。</li>
+<li><strong>唯一的写路径</strong>：所有改动都排进 <code>Session</code> 的一条提交队列，按&quot;回调 → 收集写入 → <code>storage.commit</code> → 合并进内存 → 通知监听者&quot;的顺序走。视图、<code>watch</code> 和 <code>watchEvents</code> 都挂在最后一步上，没有别的发布通道。探针里一次带工具调用的运行共 运行本身有 16 次提交（连同之前创建根对话共 17 次），没有一帧视图出现在某次存储提交进行期间。</li>
+<li><strong>一次运行是一串任务</strong>：<code>pi.generation</code> 任务分 <code>prepare</code>、<code>request</code>、<code>retry</code>、<code>poll</code>、<code>tools</code> 五个阶段，每个工具调用是一个 <code>pi.tool</code> 任务。每次换阶段都提交检查点。工具遵循&quot;效果夹心&quot;：先提交意图（最终参数和 replay 策略），再执行副作用，最后把结果和任务终态放在同一次提交里写入。</li>
+<li><strong>崩溃之后</strong>：重新打开时，状态为 running 的任务改回 pending，检查点不动；<code>resume()</code>，或 <code>submit()</code>、<code>wait()</code> 这类需要进展的调用，才让调度器开始派发。生成任务把已提交的部分答案追加成 <code>aborted</code> 条目（模型看不到它），再发一次请求。工具任务如果已经提交了意图，只有存储的策略和当前注册的工具都声明 <code>replay: &quot;safe&quot;</code> 才重跑；否则写入 <code>interrupted</code> 错误结果，附带崩溃前已提交的输出。内置的 read、write、edit、bash 都没有声明，一律不重跑。</li>
+<li><strong>流式进度会丢一点</strong>：部分答案和工具输出默认每 100 ms 提交一次，崩溃最多丢掉这个窗口。SQLite 后端是 WAL 模式加 <code>synchronous = NORMAL</code>，JSONL 后端从不在普通提交时刷 <code>main.jsonl</code>，所以&quot;已提交&quot;能扛住进程崩溃，不保证扛住掉电。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章只讲 <code>packages/durable</code>。用到第三章（<code>Agent</code>、<code>agentLoop</code>、钩子与事件）和第六章（<code>SessionManager</code>、<code>appendMessage</code>）的结论时不再重复。</li>
+<li>pi-durable 的源码约 1.95 万行，其中 <code>harness/</code> 6.7 千行、<code>storage/</code> 2.9 千行、<code>testing/</code>（给自定义后端用的一致性测试）2.7 千行、<code>env/</code> 2.2 千行。本章讲 <code>session/</code>、<code>harness/</code> 和 <code>storage/</code> 的核心路径，<code>env/</code> 和 <code>tools/</code> 只交代它们的位置。压缩（<code>pi.compaction</code>）、任务图和子任务只简单带过。</li>
+<li>行为都用探针跑过。探针安装 npm 上的 <code>@earendil-works/pi-durable</code>、<code>pi-ai</code>、<code>chord</code> 1.0.3，用 pi-ai 的 faux 供应商代替真实模型：
+<ul>
+<li><strong>P1</strong>：装一个提示词片段，把一次问答写到 JSONL 存储，查看磁盘上的文件和转录。</li>
+<li><strong>P2</strong>：工具执行到一半时用 <code>SIGKILL</code> 杀掉进程，再用同一个 SQLite 文件重新打开；<code>replay</code> 分别为默认值和 <code>&quot;safe&quot;</code>。</li>
+<li><strong>P3</strong>：模型流式输出到一半时 <code>SIGKILL</code>，再重新打开。</li>
+<li><strong>P4</strong>：给 <code>MemoryStorage.commit</code> 包一层日志，把每次存储提交的开始和结束、视图帧、<code>watchEvents</code> 批次和钩子调用记在同一条时间线上。</li>
+<li><strong>P5</strong>：工具运行时插入 steer 和 follow-up，以及在同样情况下调用 <code>abort()</code>。</li>
+</ul>
+</li>
+<li>术语：
+<ul>
+<li><strong>Session</strong>：一个打开的存储加上一条提交队列。所有读写都经过它。</li>
+<li><strong>Harness</strong>：Session 加上调度器、扩展注册表和内置任务。<code>Harness.open()</code> 返回它。</li>
+<li><strong>对话</strong>（conversation）：一份转录，由不可变的条目组成。<code>Conversation</code> 句柄本身不带状态。</li>
+<li><strong>条目</strong>（entry）：转录里的一条记录，例如 <code>pi.user</code>、<code>pi.assistant</code>。</li>
+<li><strong>文档</strong>（document）：和转录存在一起的带类型 JSON，在提交里修改。</li>
+<li><strong>任务</strong>（task）：带检查点的持久状态机，每换一个阶段都提交一次。</li>
+<li><strong>提交</strong>（commit）：一次原子写入，可以同时追加条目、改文档、建任务。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1--它在仓库里的位置">
+<a class="header-anchor" href="#1--%e5%ae%83%e5%9c%a8%e4%bb%93%e5%ba%93%e9%87%8c%e7%9a%84%e4%bd%8d%e7%bd%ae"></a>
+1 · 它在仓库里的位置
+</h2><p><img src="/images/harness/pi/ch11/durable-fig1-position.png" alt="图 1 · pi-durable 在仓库里的位置：与 Agent 并列的第二套引擎"></p>
+<h3 id="11-两套引擎两种持久化分工">
+<a class="header-anchor" href="#11-%e4%b8%a4%e5%a5%97%e5%bc%95%e6%93%8e%e4%b8%a4%e7%a7%8d%e6%8c%81%e4%b9%85%e5%8c%96%e5%88%86%e5%b7%a5"></a>
+1.1 两套引擎，两种持久化分工
+</h3><p>pi 命令走的是左边这条路。<code>Agent</code> 自己不写任何文件，agent-core 的源码里没有一处文件系统 import。持久化是 coding-agent 的事：<code>AgentSession</code> 订阅 <code>Agent</code> 的事件，在 <code>message_end</code> 时调用 <code>sessionManager.appendMessage</code> 把消息追加到会话文件（第六章）。</p>
+<p>pi-durable 把这件事放进了引擎内部。README 的第二句就是它的承诺：</p>
+<blockquote>
+<p>Conversations, model turns, tool calls, and your own state are committed to storage before anything is shown. If the process dies mid-turn, reopening the storage picks the work up where it stopped.</p>
+</blockquote>
+<p>两套引擎在同一层，互不 import。规范文件 <code>docs/spec.md</code>（标题是 &ldquo;Pico5 specification&rdquo;，约 4700 行）没有拿 <code>Agent</code> 做比较，也没有计划把 pi 命令迁过来。它的来历写在 agent-core 1.0.0 的 CHANGELOG 里：那一版删掉了实验性的 <code>AgentHarness</code>、会话存储和 pico3，并写明 &ldquo;Use <code>@earendil-works/pi-durable</code> for durable sessions&rdquo;。</p>
+<h3 id="12-包的事实">
+<a class="header-anchor" href="#12-%e5%8c%85%e7%9a%84%e4%ba%8b%e5%ae%9e"></a>
+1.2 包的事实
+</h3><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>值</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>npm 包名</td>
+					<td><code>@earendil-works/pi-durable</code>，2026-09-19 首次发布（0.0.1），1.0.0 起附带 README 和 CHANGELOG，当前 1.0.3</td>
+			</tr>
+			<tr>
+					<td>运行时依赖</td>
+					<td><code>@earendil-works/pi-ai</code>、<code>@earendil-works/chord</code>、<code>diff</code>（edit 工具算差异）、<code>typebox</code>（工具参数 schema）</td>
+			</tr>
+			<tr>
+					<td>导出入口</td>
+					<td>10 个：<code>.</code>、<code>./env</code>、<code>./env/node</code>、<code>./tools</code>、<code>./storage/memory</code>、<code>./storage/jsonl</code>、<code>./storage/jsonl/node</code>、<code>./storage/sqlite</code>、<code>./storage/sqlite/node</code>、<code>./testing</code></td>
+			</tr>
+			<tr>
+					<td>体积约束</td>
+					<td>仓库根目录的 <code>check:entry-graphs</code> 限制 <code>.</code> 入口最多引入 62 个源文件，且不能引入 pi-ai 的根入口；<code>check:browser-smoke</code> 用 esbuild 按浏览器平台打包 <code>.</code>、<code>/env</code>、<code>/storage/jsonl</code>、<code>/storage/sqlite</code> 四个入口，结果里不能出现 env、jsonl、sqlite 的三个 Node 适配器 <code>node.ts</code></td>
+			</tr>
+			<tr>
+					<td>历史</td>
+					<td>2026-09-18 从 agent-core 的 <code>src/pico/</code> 移成独立包，到基线共 96 次非合并提交</td>
+			</tr>
+	</tbody>
+</table>
+<p>从 pi-ai 只取用了很窄的一组子路径：模型调用的类型、<code>validateToolArguments</code>（按 schema 校验并转换工具参数）、<code>uuidv7</code>（生成供应商会话 ID）、<code>isContextOverflow</code>（判断&quot;上下文过长&quot;错误）、<code>isRetryableAssistantError</code>、<code>retryDelayMs</code>（判断可重试错误、计算退避）、<code>utils/transcript</code> 里比较和生成工具声明的函数，以及几个上下文估算函数。根入口只导入类型。</p>
+<p>chord 是仓库里的通用库（<code>package.json</code> 的描述是 &ldquo;Application composition runtime for services, replicated state, RPC, and plugins&rdquo;），不依赖任何 Pi 包。pi-durable 用它的三样东西：<code>Context</code>（每个异步调用都要传，负责取消）、<code>chord/delta</code>（跟踪 JSON 的改动并生成操作列表）和 <code>replicatedState</code>（可订阅的只读状态）。</p>
+<h3 id="13-谁在用它">
+<a class="header-anchor" href="#13-%e8%b0%81%e5%9c%a8%e7%94%a8%e5%ae%83"></a>
+1.3 谁在用它
+</h3><p>运行时的使用者只有 coding-agent 的实验目录（另外还有 coding-agent 的实验测试和仓库的浏览器打包检查脚本），三个使用者：</p>
+<table>
+	<thead>
+			<tr>
+					<th>使用者</th>
+					<th>入口</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>终端 coding agent</td>
+					<td><code>src/experimental/durable/main.ts</code></td>
+			</tr>
+			<tr>
+					<td>旅行规划示例</td>
+					<td><code>src/experimental/vacation/main.ts</code></td>
+			</tr>
+			<tr>
+					<td>会话 worker</td>
+					<td><code>src/experimental/session-worker.ts</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>它们都没有 npm 脚本或 bin，要在仓库根目录用源码运行。终端 Agent 的 README 给的命令是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-bash" data-lang="bash"><span class="line"><span class="cl">node --import ./packages/coding-agent/src/experimental/source-resolver.ts packages/coding-agent/src/experimental/durable/main.ts
+</span></span><span class="line"><span class="cl">node --import ./packages/coding-agent/src/experimental/source-resolver.ts packages/coding-agent/src/experimental/durable/main.ts --continue
+</span></span></code></pre></div><p>旅行规划示例换成 <code>vacation/main.ts</code>；会话 worker 由 <code>PI_EXPERIMENTAL=1 ./pi-test.sh server</code> 和 <code>client</code> 启动。</p>
+<p>它们不会出现在用户安装的 pi 里：</p>
+<ul>
+<li>coding-agent 的 <code>tsconfig.build.json</code> 不编译 <code>src/experimental</code>；</li>
+<li><code>package.json</code> 的 <code>files</code> 用 <code>!dist/experimental</code> 再排除一次；</li>
+<li>发布前的 <code>coding-agent-consumer.mjs</code> 检查已安装的包里没有 <code>dist/experimental</code>。</li>
+</ul>
+<p>pi-durable 在 coding-agent 的依赖列表里也没有出现，实验代码靠工作区和根 <code>tsconfig.json</code> 的路径映射找到它。</p>
+<p>终端 Agent 的 README 写明了它演示什么：&ldquo;Kill the process in the middle of a tool call and start it again with <code>--continue</code>: the interrupted call gets an interrupted result and the turn finishes. Nothing in the TUI handles recovery; it only renders the conversation view.&rdquo; 它也列出了还没有的东西：会话列表和恢复选择器、分叉与树导航、扩展、提示词模板、图片、<code>/login</code>。</p>
+<hr>
+<h2 id="2--骨架">
+<a class="header-anchor" href="#2--%e9%aa%a8%e6%9e%b6"></a>
+2 · 骨架
+</h2><p><img src="/images/harness/pi/ch11/durable-fig2-layers.png" alt="图 2 · 包内四层：从存储到对话句柄"></p>
+<h3 id="21-最小用法">
+<a class="header-anchor" href="#21-%e6%9c%80%e5%b0%8f%e7%94%a8%e6%b3%95"></a>
+2.1 最小用法
+</h3><p>README 的 Quick Start（原样摘录）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">BACKGROUND_CONTEXT</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/chord/context&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">createModels</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/models&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">openaiProvider</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai/providers/openai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">AssistantEntry</span><span class="p">,</span> <span class="nx">createRegistry</span><span class="p">,</span> <span class="nx">Harness</span><span class="p">,</span> <span class="nx">MemoryStorage</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-durable&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">context</span> <span class="o">=</span> <span class="nx">BACKGROUND_CONTEXT</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">models</span> <span class="o">=</span> <span class="nx">createModels</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="nx">models</span><span class="p">.</span><span class="nx">setProvider</span><span class="p">(</span><span class="nx">openaiProvider</span><span class="p">());</span> <span class="c1">// reads OPENAI_API_KEY
+</span></span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">harness</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">Harness</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="k">new</span> <span class="nx">MemoryStorage</span><span class="p">(),</span> <span class="p">{</span> <span class="nx">models</span><span class="p">,</span> <span class="nx">registry</span>: <span class="kt">createRegistry</span><span class="p">()</span> <span class="p">},</span> <span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">root</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">harness</span><span class="p">.</span><span class="nx">root</span><span class="p">(</span><span class="nx">context</span><span class="p">,</span> <span class="p">{</span> <span class="nx">agent</span><span class="o">:</span> <span class="p">{</span> <span class="nx">model</span><span class="o">:</span> <span class="p">{</span> <span class="nx">provider</span><span class="o">:</span> <span class="s2">&#34;openai&#34;</span><span class="p">,</span> <span class="nx">modelId</span><span class="o">:</span> <span class="s2">&#34;gpt-6-sol&#34;</span> <span class="p">}</span> <span class="p">}</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">submission</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">root</span><span class="p">.</span><span class="nx">submit</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;input&#34;</span><span class="p">,</span> <span class="nx">content</span><span class="o">:</span> <span class="s2">&#34;What is the capital of France?&#34;</span> <span class="p">},</span> <span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">settled</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">submission</span><span class="p">.</span><span class="nx">wait</span><span class="p">(</span><span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">if</span> <span class="p">(</span><span class="nx">settled</span><span class="p">.</span><span class="nx">status</span> <span class="o">===</span> <span class="s2">&#34;done&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">settled</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;input&#34;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">answer</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">root</span><span class="p">.</span><span class="nx">commit</span><span class="p">((</span><span class="nx">tx</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">tx</span><span class="p">.</span><span class="nx">entry</span><span class="p">(</span><span class="nx">AssistantEntry</span><span class="p">,</span> <span class="nx">settled</span><span class="p">.</span><span class="nx">answer</span><span class="p">),</span> <span class="nx">context</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">answer</span><span class="o">?</span><span class="p">.</span><span class="nx">model</span><span class="o">?</span><span class="p">.[</span><span class="mi">0</span><span class="p">]);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">harness</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="nx">context</span><span class="p">);</span>
+</span></span></code></pre></div><p>和第三章的 <code>agent.prompt()</code> 对比，有三处不同：</p>
+<ul>
+<li>每个异步调用都多一个 <code>context</code> 参数。取消一次 <code>wait</code> 只取消这次等待，不取消后台的工作。</li>
+<li><code>submit()</code> 不等运行结束。它把输入持久地收下，返回一个 <code>Submission</code>；<code>wait()</code> 等到这条输入被回答（<code>done</code>）或确定没有回答（<code>unanswered</code>，带原因）。</li>
+<li>结果不在返回值里，而在存储里：<code>settled.answer</code> 是一个条目 ID，要通过 <code>root.commit(tx =&gt; tx.entry(...))</code> 读出来。</li>
+</ul>
+<h3 id="22-四层">
+<a class="header-anchor" href="#22-%e5%9b%9b%e5%b1%82"></a>
+2.2 四层
+</h3><table>
+	<thead>
+			<tr>
+					<th>层</th>
+					<th>主要类型</th>
+					<th>做什么</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>对外句柄</td>
+					<td><code>Harness</code>、<code>Conversation</code></td>
+					<td><code>Harness.open(storage, options, context)</code> 打开；<code>root()</code>、<code>createConversation()</code>、<code>fork()</code> 取得对话；对话上有 <code>submit</code>（提交输入）、<code>configure</code>（改模型、工具、指令）、<code>abort</code>（中止）、<code>reset</code>（开始新上下文）、<code>compact</code>（手动压缩）、<code>viewState</code> / <code>watch</code>（观察）</td>
+			</tr>
+			<tr>
+					<td>调度与扩展</td>
+					<td>调度器、<code>Registry</code>、内置任务</td>
+					<td>调度器负责派发任务、恢复、中止级联；注册表持有本进程安装的扩展；三个内置任务 <code>pi.generation</code>、<code>pi.tool</code>、<code>pi.compaction</code></td>
+			</tr>
+			<tr>
+					<td>唯一写入线</td>
+					<td><code>Session</code>、<code>Transaction</code></td>
+					<td>所有改动排队提交；条目、任务、submission 和文档在同一个事务里写</td>
+			</tr>
+			<tr>
+					<td>存储后端</td>
+					<td><code>Storage</code></td>
+					<td>16 个方法，<code>commit(writes)</code> 原子写入 8 种 <code>StorageWrite</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>存进存储的东西分四类：</p>
+<ul>
+<li><strong>条目</strong>：内置 6 种：<code>pi.user</code>（用户消息）、<code>pi.assistant</code>（模型回复）、<code>pi.tool-result</code>（工具结果）、<code>pi.system</code>（系统提示词或工具列表的变化）、<code>pi.reset</code>（新上下文的起点）、<code>pi.compaction</code>（压缩摘要）。用 <code>defineEntry</code> 可以加自己的种类。</li>
+<li><strong>文档</strong>：内置 5 个，每个对话一份：<code>pi.agent</code>（这个对话用的模型、扩展、工具、指令、工作目录）、<code>pi.provider</code>（发给供应商的会话 ID）、<code>pi.live</code>（正在进行的生成和工具调用）、<code>pi.inbox</code>（排队的输入）、<code>pi.usage</code>（用量和花费）。</li>
+<li><strong>任务</strong>：每个任务存一条完整记录，包括状态和检查点。</li>
+<li><strong>submission</strong>：每条收下的输入，带可选的 <code>requestId</code> 用来去重。</li>
+</ul>
+<p>P1 把一次问答写到 JSONL 存储后，目录里有一个 <code>main.jsonl</code> 和 5 个 <code>doc-N.jsonl</code>（每个内置文档一个边车文件）。<code>main.jsonl</code> 里是 6 行 <code>{&quot;type&quot;:&quot;commit&quot;,&quot;seq&quot;:N,&quot;writes&quot;:[…]}</code>，转录是 <code>pi.user → pi.system → pi.assistant</code>。</p>
+<h3 id="23-存储后端">
+<a class="header-anchor" href="#23-%e5%ad%98%e5%82%a8%e5%90%8e%e7%ab%af"></a>
+2.3 存储后端
+</h3><table>
+	<thead>
+			<tr>
+					<th>后端</th>
+					<th>导入</th>
+					<th>说明</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>内存</td>
+					<td>包根的 <code>MemoryStorage</code></td>
+					<td>不持久化</td>
+			</tr>
+			<tr>
+					<td>SQLite</td>
+					<td><code>openNodeSqliteStorage(file)</code>，来自 <code>/storage/sqlite/node</code></td>
+					<td>一个数据库文件，用 Node 自带的 <code>node:sqlite</code>。WAL 模式、<code>synchronous = NORMAL</code>：提交能扛住进程崩溃，掉电或宿主机故障可能丢最新的一次</td>
+			</tr>
+			<tr>
+					<td>JSONL</td>
+					<td><code>openNodeJsonlStorage(directory, context)</code>，来自 <code>/storage/jsonl/node</code></td>
+					<td>一个目录里的只追加文件。每次提交先写边车文件，最后在 <code>main.jsonl</code> 追加提交标记；打开时截掉没有标记的尾巴。传 <code>{ fsync: true }</code> 会在写标记前刷边车文件；<code>main.jsonl</code> 本身在普通提交时不刷盘</td>
+			</tr>
+	</tbody>
+</table>
+<p>同一时刻只能有一个进程打开同一个存储，包里没有跨进程锁。终端 Agent 自己在会话目录上加了锁文件，崩溃留下的锁 10 秒后失效。</p>
+<p><code>/storage/sqlite</code> 和 <code>/storage/jsonl</code> 是不依赖 Node API 的核心实现。给它一个异步的 SQLite 门面或一个 <code>FileSystem</code>，就能在 Bun 或 Cloudflare Durable Objects 里跑。自定义后端可以用 <code>/testing</code> 里的 <code>registerStorageConformance</code> 跑同一套一致性测试。</p>
+<hr>
+<h2 id="3--唯一的写路径">
+<a class="header-anchor" href="#3--%e5%94%af%e4%b8%80%e7%9a%84%e5%86%99%e8%b7%af%e5%be%84"></a>
+3 · 唯一的写路径
+</h2><p><img src="/images/harness/pi/ch11/durable-fig3-commit.png" alt="图 3 · 唯一的写路径：Session 的一次提交"></p>
+<h3 id="31-一次提交的六步">
+<a class="header-anchor" href="#31-%e4%b8%80%e6%ac%a1%e6%8f%90%e4%ba%a4%e7%9a%84%e5%85%ad%e6%ad%a5"></a>
+3.1 一次提交的六步
+</h3><p>&ldquo;先提交、再展示&quot;由 <code>Session</code> 的一个私有方法 <code>#runCommit</code> 保证。所有调用方（<code>conversation.commit</code>、任务里的 <code>runtime.commit</code>、工具里的 <code>api.commit</code>，以及引擎自己写部分答案、工具输出、检查点）最终都走到这里：</p>
+<ol>
+<li><strong>排队</strong>：<code>#enqueue</code> 把这次提交挂到同一条 Promise 链的尾部，一次只跑一个。</li>
+<li><strong>回调</strong>：在一个新的 <code>Transaction</code> 上运行调用方的 <code>change(tx)</code>。回调里追加条目、通过 <code>tx.doc(...)</code> 拿到文档草稿直接改字段、建任务。</li>
+<li><strong>收集</strong>：<code>tx.settleSuccess()</code> 把这些改动收集成一批 <code>StorageWrite</code>。文档草稿由 chord 的 <code>track()</code> 跟踪，改动变成一组操作，存成增量；满足 <code>checkpointWhen</code> 条件时改存完整的基值（<code>pi.live</code> 在没有任何东西运行时存基值）。批次为空就直接返回。</li>
+<li><strong>落盘</strong>：<code>await this.#storage.commit(writes, …)</code>。一旦开始，调用方的取消信号不再打断它。</li>
+<li><strong>合并</strong>：<code>tx.adopt(seq)</code> 把改动并入内存里的文档跟踪器。</li>
+<li><strong>发布</strong>：<code>#publish</code> 同步调用所有提交监听者。</li>
+</ol>
+<p>视图、<code>watch</code>、<code>watchEvents</code> 和任务图都只通过 <code>subscribeCommits</code> 拿到改动，所以它们看到的永远是已经落盘的状态。规范把这条写成必须满足的不变式：&ldquo;A document update is published only after its storage commit succeeds.&rdquo; 和 &ldquo;All visible progress is durable. There is no volatile publication path.&rdquo;</p>
+<p>失败分三种：</p>
+<ul>
+<li>回调抛错：事务回滚，什么都不写，错误抛给调用方。</li>
+<li>存储抛 <code>StorageRejected</code>：保证这批写入一条都没生效，Session 还能继续用。</li>
+<li>存储抛其他错误，或者存储已提交但合并失败：Session 被&quot;毒化&rdquo;，之后的所有操作都失败，必须重新打开。规范的说法是 &ldquo;An uncertain storage failure is fatal to the open Session.&rdquo;</li>
+</ul>
+<h3 id="32-探针提交和视图的先后">
+<a class="header-anchor" href="#32-%e6%8e%a2%e9%92%88%e6%8f%90%e4%ba%a4%e5%92%8c%e8%a7%86%e5%9b%be%e7%9a%84%e5%85%88%e5%90%8e"></a>
+3.2 探针：提交和视图的先后
+</h3><p>P4 给 <code>MemoryStorage.commit</code> 包了一层，在开始和结束时各记一行，同时订阅 <code>viewState()</code> 和 <code>watchEvents()</code>。一次&quot;模型调用工具 → 工具输出两段 → 模型回答&quot;的运行，时间线的开头是这样的：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">storage.commit#2 start [entry,submission,task,document.change]
+</span></span><span class="line"><span class="cl">storage.commit#2 end seq=2
+</span></span><span class="line"><span class="cl">  view frame entries=1
+</span></span><span class="line"><span class="cl">  events: message_start message_end submission run_start turn_start
+</span></span><span class="line"><span class="cl">storage.commit#3 start [task]
+</span></span><span class="line"><span class="cl">storage.commit#3 end seq=3
+</span></span><span class="line"><span class="cl">storage.commit#4 start [entry,task]
+</span></span><span class="line"><span class="cl">storage.commit#4 end seq=4
+</span></span><span class="line"><span class="cl">  view frame entries=2
+</span></span><span class="line"><span class="cl">  events: message_start message_end
+</span></span></code></pre></div><p>提交 #1 是 <code>harness.root()</code> 创建根对话和 5 个内置文档，运行本身是 #2 到 #17 共 16 次提交。脚本检查&quot;有没有视图帧出现在某次 <code>start</code> 和它的 <code>end</code> 之间&quot;，结果是 0。</p>
+<h3 id="33-流式输出也走同一条路">
+<a class="header-anchor" href="#33-%e6%b5%81%e5%bc%8f%e8%be%93%e5%87%ba%e4%b9%9f%e8%b5%b0%e5%90%8c%e4%b8%80%e6%9d%a1%e8%b7%af"></a>
+3.3 流式输出也走同一条路
+</h3><p>模型的流式事件不会直接交给界面。<code>streamResponse</code> 只在内存里留着最新的部分答案，用定时器节流，每隔 <code>progress.partialIntervalMs</code>（默认 100 ms）提交一次到 <code>pi.live.generation.message</code>，同一时刻最多有一次这样的提交在进行。流结束后，<code>classify</code> 在一次提交里追加最终的 <code>pi.assistant</code> 条目并清掉部分答案。工具运行中的输出用同样的方式按 <code>outputIntervalMs</code>（默认 100 ms）提交到 <code>pi.live</code> 的工具槽位。</p>
+<p>所以界面上的流式文字其实是&quot;已提交的部分答案&quot;。崩溃时，最多丢掉最后一个节流窗口里的内容，而界面从来不会显示存储里没有的东西。P3 在模型流式输出到一半时杀掉进程：被杀前视图里显示的是 <code>&quot;one two three four five six seve&quot;</code>，重新打开后从存储读到的 <code>pi.live.generation.message</code> 也是这一串，一字不差。存储在远端的宿主可以把间隔调大，例如 <code>{ partialIntervalMs: 500, outputIntervalMs: 500 }</code>。</p>
+<h3 id="34-三种观察方式">
+<a class="header-anchor" href="#34-%e4%b8%89%e7%a7%8d%e8%a7%82%e5%af%9f%e6%96%b9%e5%bc%8f"></a>
+3.4 三种观察方式
+</h3><table>
+	<thead>
+			<tr>
+					<th>方式</th>
+					<th>拿到什么</th>
+					<th>慢消费者</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>conversation.viewState(context)</code></td>
+					<td>只读的 chord 状态：<code>entries</code>（当前上下文的转录）和 <code>docs</code>（5 个内置文档）</td>
+					<td>订阅者总是看到最新值</td>
+			</tr>
+			<tr>
+					<td><code>conversation.watch(context)</code></td>
+					<td>连接时的视图，加上每次提交的精确 chord 操作，一次一个回调</td>
+					<td>积压超过 100 帧时，换成一帧完整的最新视图</td>
+			</tr>
+			<tr>
+					<td><code>watchEvents(harness, conversationId, context)</code></td>
+					<td>一个 <code>snapshot</code>，加上从每次提交翻译出来的事件批次（实验性）</td>
+					<td>落后超过 100 批时，重新发一个 <code>snapshot</code></td>
+			</tr>
+	</tbody>
+</table>
+<p><code>watchEvents</code> 是给习惯第十章 JSON 模式事件的消费者准备的适配层，共 22 种事件：</p>
+<ul>
+<li>和 coding-agent 的会话事件同名的：<code>message_start</code> / <code>message_update</code> / <code>message_end</code>（消息开始、增量、结束）、<code>tool_execution_start</code> / <code>tool_execution_update</code> / <code>tool_execution_end</code>（工具开始、输出增量、结束）、<code>turn_start</code> / <code>turn_end</code>（一轮开始、结束）、<code>auto_retry_start</code> / <code>auto_retry_end</code>（自动重试）、<code>compaction_start</code> / <code>compaction_end</code>（压缩）。前 8 个也是第三章 <code>Agent</code> 的事件。</li>
+<li>这里独有的：<code>snapshot</code>（完整初始状态）、<code>run_start</code> / <code>run_end</code>（一次运行的开始和结束，带输入 ID）、<code>inbox_update</code>（排队内容变化）、<code>submission</code>（submission 状态变化）、<code>deferred_poll</code>（延迟响应的下次轮询时间）、<code>entry_appended</code>（其他条目被追加）、<code>agent_changed</code>（对话配置变化）、<code>usage_changed</code>（用量变化）、<code>task_failed</code>（某个任务失败）。</li>
+</ul>
+<p>这些事件都是从提交里推出来的，不是另一条通道。晚加入或断线重连的客户端从当前视图开始，不会补发历史事件。</p>
+<h3 id="35-已提交能扛住什么">
+<a class="header-anchor" href="#35-%e5%b7%b2%e6%8f%90%e4%ba%a4%e8%83%bd%e6%89%9b%e4%bd%8f%e4%bb%80%e4%b9%88"></a>
+3.5 &ldquo;已提交&quot;能扛住什么
+</h3><table>
+	<thead>
+			<tr>
+					<th>故障</th>
+					<th>结果</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>进程崩溃、<code>SIGKILL</code></td>
+					<td>已提交的都在。没提交的是：最后一个节流窗口里的部分答案和工具输出、正在运行的副作用（见第 5 节）</td>
+			</tr>
+			<tr>
+					<td>掉电、宿主机故障</td>
+					<td>SQLite（<code>synchronous = NORMAL</code>）可能丢最新的提交；JSONL 不论是否开 <code>fsync</code> 都可能丢最新一次提交，<code>fsync</code> 只保证留下来的提交标记不会跑在边车数据前面</td>
+			</tr>
+			<tr>
+					<td>两个进程同时打开</td>
+					<td>不支持，没有跨进程锁</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="4--一次运行是一串任务">
+<a class="header-anchor" href="#4--%e4%b8%80%e6%ac%a1%e8%bf%90%e8%a1%8c%e6%98%af%e4%b8%80%e4%b8%b2%e4%bb%bb%e5%8a%a1"></a>
+4 · 一次运行是一串任务
+</h2><p><img src="/images/harness/pi/ch11/durable-fig4-run.png" alt="图 4 · 一次运行拆成的任务与提交（探针 P4，一轮工具调用）"></p>
+<h3 id="41-从输入到回答">
+<a class="header-anchor" href="#41-%e4%bb%8e%e8%be%93%e5%85%a5%e5%88%b0%e5%9b%9e%e7%ad%94"></a>
+4.1 从输入到回答
+</h3><p>README 用一张小图概括一次被回答的输入：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">submit(input) → pi.user
+</span></span><span class="line"><span class="cl">  pi.generation → pi.system (only if the prompt or tools changed), pi.assistant (tool calls)
+</span></span><span class="line"><span class="cl">    pi.tool × n → pi.tool-result × n   (owned by the generation, which waits for them)
+</span></span><span class="line"><span class="cl">  pi.generation → pi.assistant (answer) → submission done
+</span></span></code></pre></div><p>第三章的 <code>runLoop</code> 是外层处理后续消息、内层处理工具调用和插队消息的两层 <code>while</code> 循环，全部在一次函数调用里完成。这里没有这样的循环：每一轮模型调用是一个新的 <code>pi.generation</code> 任务，它为本轮的每个工具调用建一个 <code>pi.tool</code> 任务，等这些任务结束后再建下一个 <code>pi.generation</code> 任务交棒。任务之间的数据都在存储里：哪条输入在跑、谁在等谁，都记在 <code>pi.live.run</code> 和任务记录里。</p>
+<h3 id="42-任务是什么">
+<a class="header-anchor" href="#42-%e4%bb%bb%e5%8a%a1%e6%98%af%e4%bb%80%e4%b9%88"></a>
+4.2 任务是什么
+</h3><p>任务由 <code>defineTask</code> 定义：一个名字、一个版本号、一个初始检查点，以及一组按名字区分的阶段处理器和一个 <code>abort</code> 处理器。处理器通过 <code>runtime.commit</code> 返回下一个状态：</p>
+<ul>
+<li><code>running</code> + 新检查点：进入下一阶段；</li>
+<li><code>waiting</code> + <code>on</code>（等哪些任务）+ <code>policy</code>（<code>allSettled</code> 或 <code>failFast</code>）：不运行任何代码，等它们结束；</li>
+<li><code>terminal</code> + 结果：结束。</li>
+</ul>
+<p>调度器每次从任务的当前检查点取出 <code>phase</code> 字段，调用同名的处理器。重新打开存储后也是这样，所以恢复不需要单独的代码路径：一个阶段的处理器必须能接受&quot;我上次可能跑到一半&rdquo;。</p>
+<h3 id="43-生成任务的五个阶段">
+<a class="header-anchor" href="#43-%e7%94%9f%e6%88%90%e4%bb%bb%e5%8a%a1%e7%9a%84%e4%ba%94%e4%b8%aa%e9%98%b6%e6%ae%b5"></a>
+4.3 生成任务的五个阶段
+</h3><table>
+	<thead>
+			<tr>
+					<th>阶段</th>
+					<th>做什么</th>
+					<th>结束时提交</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>prepare</code></td>
+					<td>解析这个对话的 agent（模型、工具、提示词片段），渲染系统提示词；只有片段或工具变了才追加 <code>pi.system</code> 条目；必要时先等一次阻塞压缩</td>
+					<td>检查点改为 <code>request</code>，固定模型、思考级别、请求选项和 <code>cutoff</code>（这次请求包含的最新条目）</td>
+			</tr>
+			<tr>
+					<td><code>request</code></td>
+					<td>先把上次留下的部分答案转成条目（第 5 节），再设 <code>pi.live.generation = { attempt }</code>；运行 <code>beforeRequest</code> 钩子，流式请求模型，节流提交部分答案</td>
+					<td>由 <code>classify</code> 决定：回答、进入工具轮、重试、轮询或失败</td>
+			</tr>
+			<tr>
+					<td><code>retry</code></td>
+					<td>睡到退避时间</td>
+					<td>检查点改回 <code>prepare</code>，<code>attempt + 1</code></td>
+			</tr>
+			<tr>
+					<td><code>poll</code></td>
+					<td>供应商返回&quot;延迟响应&quot;时，按句柄轮询结果</td>
+					<td>同 <code>request</code></td>
+			</tr>
+			<tr>
+					<td><code>tools</code></td>
+					<td>等本轮的工具任务；顺序执行的工具在这里一个一个启动</td>
+					<td>交棒：新建下一个生成任务，或结束运行</td>
+			</tr>
+	</tbody>
+</table>
+<p><code>classify</code> 里，&ldquo;上下文过长&quot;的错误会触发一次压缩后重试；可重试的错误按 <code>retry</code> 设置退避（默认最多 3 次，基础延迟 2000 ms）；带工具调用的回复由 <code>startToolRound</code> 在一次提交里追加 <code>pi.assistant</code> 条目、建好 <code>pi.tool</code> 任务并在 <code>pi.live</code> 里开好工具槽位：并行的一轮一次建好全部任务，顺序的一轮只建第一个，其余在 <code>tools</code> 阶段逐个启动；请求里没有提供的工具直接得到 <code>tool_unavailable</code> 结果。</p>
+<p><code>request</code> 阶段的检查点固定了这次请求要发什么，所以重新打开后重发的是同一组消息。供应商会话 ID 存在 <code>pi.provider</code> 文档里，每个对话一个 UUIDv7，跨重启、重试、重置和压缩都不变，作为 <code>sessionId</code> 传给 pi-ai，用于提示词缓存和会话亲和。</p>
+<h3 id="44-工具任务与效果夹心">
+<a class="header-anchor" href="#44-%e5%b7%a5%e5%85%b7%e4%bb%bb%e5%8a%a1%e4%b8%8e%e6%95%88%e6%9e%9c%e5%a4%b9%e5%bf%83"></a>
+4.4 工具任务与效果夹心
+</h3><p><code>pi.tool</code> 只有两个阶段：</p>
+<ul>
+<li><code>call</code>：读出工具调用，在当前 agent 的工具里找到实现，校验参数，运行 <code>beforeTool</code> 钩子，再校验一次。然后提交意图：检查点改为 <code>{ phase: &quot;execute&quot;, arguments: final, replay: tool.replay ?? &quot;unsafe&quot; }</code>，工具槽位标为 running。接着调用 <code>execute(args, api, context)</code>；<code>finalResult</code> 运行 <code>afterTool</code> 钩子，随后 <code>settle</code> 在一次提交里追加 <code>pi.tool-result</code> 条目并把任务置为终态。</li>
+<li><code>execute</code>：只有恢复时才会进入，见第 5 节。</li>
+</ul>
+<p>规范把这种结构叫作效果夹心（effect sandwich）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">commit intent phase
+</span></span><span class="line"><span class="cl">perform external effect
+</span></span><span class="line"><span class="cl">commit outcome or next phase
+</span></span></code></pre></div><p>副作用发生在两次提交之间，不在任何事务里（规范的不变式 4：&ldquo;External effects do not run inside the Session mutation transaction.&quot;）。P4 的时间线里能看到这个顺序：<code>hook beforeTool deploy</code> 之后是提交 #8（<code>[task,document.change]</code>，意图加槽位），两段输出各一次提交（#9、#10），<code>hook afterTool</code> 之后是提交 #11（<code>[entry,task,document.change]</code>，结果条目、任务终态和槽位）。</p>
+<p>工具失败都变成 <code>pi.tool-result</code> 条目，诊断信息以 <code>&lt;harness&gt;</code> 块附在内容后面：</p>
+<table>
+	<thead>
+			<tr>
+					<th>诊断码</th>
+					<th>什么时候</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>tool_unavailable</code></td>
+					<td>调用的工具不在当前 agent 里</td>
+			</tr>
+			<tr>
+					<td><code>invalid_arguments</code></td>
+					<td>参数修复（<code>prepareArguments</code>）抛错或校验失败</td>
+			</tr>
+			<tr>
+					<td><code>blocked</code></td>
+					<td><code>beforeTool</code> 返回 <code>{ block }</code> 或抛错</td>
+			</tr>
+			<tr>
+					<td><code>tool_error</code></td>
+					<td><code>execute()</code> 或构建执行环境时抛错；任务以 failed 结束</td>
+			</tr>
+			<tr>
+					<td><code>interrupted</code></td>
+					<td>崩溃打断了一个不能重跑的调用</td>
+			</tr>
+			<tr>
+					<td><code>aborted</code></td>
+					<td>调用被中止</td>
+			</tr>
+	</tbody>
+</table>
+<p>工具结果还能带 <code>usage</code>（计入对话用量）和 <code>control</code>：<code>{ terminate: true }</code>（本轮所有结果都要求时，不再请求模型）、<code>{ handoff: &quot;…&quot; }</code>（以交接说明开始新上下文）、<code>{ addTools: [...] }</code>（按名字给后续请求加工具）。</p>
+<hr>
+<h2 id="5--崩溃之后">
+<a class="header-anchor" href="#5--%e5%b4%a9%e6%ba%83%e4%b9%8b%e5%90%8e"></a>
+5 · 崩溃之后
+</h2><p><img src="/images/harness/pi/ch11/durable-fig5-recovery.png" alt="图 5 · 进程被杀之后：重新打开时每个任务怎么收尾"></p>
+<h3 id="51-重新打开">
+<a class="header-anchor" href="#51-%e9%87%8d%e6%96%b0%e6%89%93%e5%bc%80"></a>
+5.1 重新打开
+</h3><p><code>Harness.open</code> 创建调度器时，调度器读出所有还活着的任务（pending、running、waiting、completing）。状态为 running 的任务被改回 pending，检查点保持不变，然后重新对齐中止级联。这时还不派发任何任务：要等 <code>harness.resume()</code>，或者调用 <code>submit()</code>、<code>wait()</code> 这类需要进展的方法。</p>
+<p>恢复就是&quot;从最后一个检查点重新调用那个阶段的处理器&rdquo;。存储里没有事件日志，也不会重放历史事件。每个处理器自己决定上次跑到一半意味着什么。</p>
+<p>提交时带 <code>requestId</code> 可以让重试变得安全：同一个 <code>requestId</code> 再提交一次，返回的是已有的 submission，不会重复提交。P2 的两个进程都提交了 <code>{ content: &quot;Deploy it&quot;, requestId: &quot;deploy-1&quot; }</code>，拿到的都是 submission 8，第二次提交同时让调度器开始派发。</p>
+<h3 id="52-生成到一半">
+<a class="header-anchor" href="#52-%e7%94%9f%e6%88%90%e5%88%b0%e4%b8%80%e5%8d%8a"></a>
+5.2 生成到一半
+</h3><p><code>request</code> 阶段重跑时，第一件事是 <code>convertPartial</code>：如果 <code>pi.live.generation.message</code> 里有上次提交的部分答案，就把它追加成一条 <code>stopReason: &quot;aborted&quot;</code> 的 <code>pi.assistant</code> 条目。推导模型上下文时，<code>stopReason</code> 为 <code>aborted</code>、<code>error</code>、<code>deferred</code> 的回复都会被排除，所以模型看不到这段残稿。然后用检查点里固定的 <code>cutoff</code> 重新发请求。</p>
+<p>P3 的结果：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">--- killed by SIGKILL ; UI had shown: &#34;one two three four five six seve&#34;
+</span></span><span class="line"><span class="cl">[resume] pi.live.generation at reopen: {&#34;attempt&#34;:1,&#34;message&#34;:{… &#34;text&#34;:&#34;one two three four five six seve&#34; … &#34;stopReason&#34;:&#34;pending&#34;}}
+</span></span><span class="line"><span class="cl">[resume] request messages: [ &#39;user&#39; ]
+</span></span><span class="line"><span class="cl">[resume] entry pi.user  &#34;Count&#34;
+</span></span><span class="line"><span class="cl">[resume] entry pi.assistant aborted [&#34;one two three four five six seve&#34;]
+</span></span><span class="line"><span class="cl">[resume] entry pi.assistant stop [&#34;fresh answer&#34;]
+</span></span></code></pre></div><p>转录保留了用户看到过的残稿，重发的请求里只有那条用户消息。</p>
+<h3 id="53-工具执行到一半">
+<a class="header-anchor" href="#53-%e5%b7%a5%e5%85%b7%e6%89%a7%e8%a1%8c%e5%88%b0%e4%b8%80%e5%8d%8a"></a>
+5.3 工具执行到一半
+</h3><p>工具任务崩溃时可能停在两个位置：</p>
+<ul>
+<li><strong>意图提交之前</strong>（还在 <code>call</code> 阶段）：从头再跑 <code>call</code>。解析工具、校验参数、<code>beforeTool</code> 都会再执行一次，所以钩子也要能接受重跑。</li>
+<li><strong>意图提交之后</strong>（检查点是 <code>execute</code>）：副作用可能已经发生了一部分。<code>execute</code> 处理器只在一种情况下重跑：存储的策略是 <code>&quot;safe&quot;</code>，并且当前注册的同名工具也声明了 <code>replay: &quot;safe&quot;</code>。重跑前先清掉上次发布的输出和细节，再用存储的参数调用 <code>execute</code>，不再经过 <code>beforeTool</code>。其他情况都写入一条错误结果：&ldquo;Tool X was interrupted and may have partially run&rdquo;，内容是崩溃前已提交的输出；任务以 failed 结束，它拥有的子对话被中止。</li>
+</ul>
+<p>P2 的工具在执行时先往文件里记一行&quot;在哪个进程里跑过&rdquo;，输出 <code>attempt in run</code>，然后一直挂起，直到被 <code>SIGKILL</code>：</p>
+<table>
+	<thead>
+			<tr>
+					<th>replay</th>
+					<th>重新打开后的工具结果</th>
+					<th>工具实际执行过的进程</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>不声明（<code>unsafe</code>）</td>
+					<td><code>isError=true</code>：<code>attempt in run</code> + <code>[error] Tool deploy was interrupted and may have partially run</code></td>
+					<td><code>run</code></td>
+			</tr>
+			<tr>
+					<td><code>&quot;safe&quot;</code></td>
+					<td><code>isError=false</code>：<code>deployed in resume</code></td>
+					<td><code>run</code>、<code>resume</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>两种情况下，模型都在拿到结果后回答了 <code>finished after restart</code>，submission 以 <code>done</code> 结束。</p>
+<p>内置的 <code>read</code>、<code>write</code>、<code>edit</code>、<code>bash</code> 都没有声明 <code>replay</code>，连只读的 <code>read</code> 也是 <code>unsafe</code>。README 里声明了 <code>&quot;safe&quot;</code> 的例子是子 Agent 工具：它在 <code>api.commit</code> 里先按 <code>ownerTaskId</code> 查已有的子对话，有就复用，并用 <code>subagent:${api.taskId}</code> 作 <code>requestId</code> 提交任务，所以重跑会找到同一个子对话和同一条 submission。要让工具能安全重跑，常用的就是这两样：存储里的去重键，以及 <code>api.memo(name, candidate, context)</code>（先写者胜的小值，候选值的写入和读出赢家是同一次提交，跨检查点保留）。</p>
+<h3 id="54-中止和关闭">
+<a class="header-anchor" href="#54-%e4%b8%ad%e6%ad%a2%e5%92%8c%e5%85%b3%e9%97%ad"></a>
+5.4 中止和关闭
+</h3><p><code>conversation.abort(context)</code> 和崩溃不同，它会写下结果：</p>
+<ul>
+<li>排队的输入被撤回（排队的写入保留），当前工作的每个任务都被中止，等对话空闲后才返回。</li>
+<li>中止自下而上进行：先中止任务拥有的工作，等它们结束后，才调用这个任务自己的 <code>abort</code> 处理器，让每个任务撤销自己的效果。</li>
+<li>工具任务的 <code>abort</code> 处理器写入 <code>aborted</code> 结果，带上已提交的输出。</li>
+</ul>
+<p>P5 的场景 B 在工具运行时插入一条 steer 和一条 follow-up，然后调用 <code>abort()</code>：三条 submission 都以 <code>unanswered</code> / <code>aborted</code> 结束，工具结果是 <code>working\n</code> 加上 <code>[error] Tool slow was aborted</code>，模型只被请求过一次。</p>
+<p><code>harness.close()</code> 不写任何结果。没做完的工作留在存储里，下次打开时继续。</p>
+<hr>
+<h2 id="6--忙碌的对话">
+<a class="header-anchor" href="#6--%e5%bf%99%e7%a2%8c%e7%9a%84%e5%af%b9%e8%af%9d"></a>
+6 · 忙碌的对话
+</h2><p>一次运行进行中，对话处于忙碌状态。这时 <code>submit</code> 的输入进入 <code>pi.inbox</code> 文档排队，<code>whenBusy</code> 决定怎么处理：</p>
+<ul>
+<li><code>&quot;followUp&quot;</code>（默认）：这次运行回答后放入，开始下一次运行。</li>
+<li><code>&quot;steer&quot;</code>：放在当前工具轮之后，加入正在进行的运行。</li>
+<li><code>&quot;reject&quot;</code>：抛出 <code>ConversationBusy</code>。</li>
+</ul>
+<p>另外，<code>{ type: &quot;write&quot;, entry }</code> 这种 submission 只追加一条条目、不问模型，忙碌时同样进 inbox 排队。</p>
+<p>P5 的场景 A 在工具运行时先后提交 steer 和 follow-up，三次模型请求里的用户消息依次是：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&#39;go&#39;
+</span></span><span class="line"><span class="cl">&#39;go | steer: use staging&#39;
+</span></span><span class="line"><span class="cl">&#39;go | steer: use staging | follow: then report&#39;
+</span></span></code></pre></div><p>设置 <code>steeringMode: &quot;all&quot;</code> 或 <code>followUpMode: &quot;all&quot;</code> 时，每次把排队的全部放入，而不是每轮一条。运行失败时，排队的内容留在 inbox 里，下一次提交时按先后放入。</p>
+<hr>
+<h2 id="7--扩展点">
+<a class="header-anchor" href="#7--%e6%89%a9%e5%b1%95%e7%82%b9"></a>
+7 · 扩展点
+</h2><h3 id="71-扩展与注册表">
+<a class="header-anchor" href="#71-%e6%89%a9%e5%b1%95%e4%b8%8e%e6%b3%a8%e5%86%8c%e8%a1%a8"></a>
+7.1 扩展与注册表
+</h3><p>扩展是一个有名字的包，由 <code>defineExtension</code> 创建，可以带五样东西：</p>
+<ul>
+<li><code>tools</code>：工具，<code>defineTool</code> 按 TypeBox schema 推出参数类型；</li>
+<li><code>sections</code>：系统提示词片段，<code>section(name, render)</code>，每次请求前按顺序渲染；</li>
+<li><code>hooks</code>：钩子，<code>hook(GenerationTask | ToolTask | CompactionTask, {...})</code>；</li>
+<li><code>wraps</code>：按名字包装工具或片段，<code>wrapTool</code>、<code>wrapSection</code>；</li>
+<li><code>tasks</code>：自定义的持久任务。</li>
+</ul>
+<p>注册表（<code>createRegistry()</code>）属于进程，不进存储；对话只在 <code>pi.agent</code> 里存扩展和工具的名字，每次使用时再到注册表里解析。因此：</p>
+<ul>
+<li>用同名扩展再 <code>install</code> 一次就是原地替换。已经开始的工具调用用旧代码跑完；每个任务阶段开始时解析一次钩子和 agent，下一阶段用新代码。</li>
+<li>扩展被卸载后，选了它的对话只是暂时用不到它。重启后要重新安装同样的扩展，它的待办任务才会继续。</li>
+</ul>
+<p>后安装的扩展里的同名工具会替换先安装的，<code>wrapTool</code> 包装最终胜出的那个。</p>
+<h3 id="72-七个钩子">
+<a class="header-anchor" href="#72-%e4%b8%83%e4%b8%aa%e9%92%a9%e5%ad%90"></a>
+7.2 七个钩子
+</h3><table>
+	<thead>
+			<tr>
+					<th>任务</th>
+					<th>钩子</th>
+					<th>作用</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>生成</td>
+					<td><code>beforeRequest</code></td>
+					<td>替换这一次请求的消息</td>
+			</tr>
+			<tr>
+					<td>生成</td>
+					<td><code>afterResponse</code></td>
+					<td>观察模型回复</td>
+			</tr>
+			<tr>
+					<td>生成</td>
+					<td><code>onYield</code></td>
+					<td>模型给出最终回答时，追加一条用户消息让运行继续</td>
+			</tr>
+			<tr>
+					<td>生成</td>
+					<td><code>afterTools</code></td>
+					<td>一轮工具全部结束后调用</td>
+			</tr>
+			<tr>
+					<td>工具</td>
+					<td><code>beforeTool</code></td>
+					<td>拦截（<code>{ block }</code>）或改写参数</td>
+			</tr>
+			<tr>
+					<td>工具</td>
+					<td><code>afterTool</code></td>
+					<td>替换结果</td>
+			</tr>
+			<tr>
+					<td>压缩</td>
+					<td><code>beforeCompact</code></td>
+					<td>拒绝这次压缩，或自己提供摘要</td>
+			</tr>
+	</tbody>
+</table>
+<p>钩子只在选了它所在扩展的对话里生效。规范说明钩子在崩溃后可能再跑一次，并且 &ldquo;There is no public semantic event channel; current UI status is document state.&rdquo;</p>
+<h3 id="73-宿主提供的东西">
+<a class="header-anchor" href="#73-%e5%ae%bf%e4%b8%bb%e6%8f%90%e4%be%9b%e7%9a%84%e4%b8%9c%e8%a5%bf"></a>
+7.3 宿主提供的东西
+</h3><p><code>Harness.open</code> 的选项：</p>
+<ul>
+<li><code>models</code>：pi-ai 的模型注册表；</li>
+<li><code>registry</code>：扩展注册表；</li>
+<li><code>settings</code>：运行策略，每次使用时读取、从不存储，可以用 getter 让它随设置文件变化（<code>extensions</code>、<code>stream</code>、<code>retry</code>、<code>compaction</code>、<code>progress</code>、<code>toolExecution</code>、<code>steeringMode</code>、<code>followUpMode</code>）；</li>
+<li><code>env</code>：按对话 ID、工作目录和已提交的读数据构建执行环境，所以可以一个对话一个目录或一个容器；</li>
+<li><code>conversationCreated</code>：在每次创建或分叉对话的同一次提交里运行，用来给对话写入自己的文档；</li>
+<li><code>now</code>、<code>onReport</code>：时钟和错误上报。</li>
+</ul>
+<p>工具只通过调用时拿到的执行环境接触文件和进程。没有配置 <code>env</code> 时，内置工具直接返回错误结果。</p>
+<p>自己的状态用 <code>defineDoc</code> 定义成文档，在提交里和条目一起写；<code>history: &quot;rewindable&quot;</code> 的文档可以用 <code>snapshotAsOf()</code> 读历史值，<code>fork</code> 字段决定分叉时复制初始值、当前值还是分叉点的值。</p>
+<hr>
+<h2 id="8--与第三章的-agent-对照">
+<a class="header-anchor" href="#8--%e4%b8%8e%e7%ac%ac%e4%b8%89%e7%ab%a0%e7%9a%84-agent-%e5%af%b9%e7%85%a7"></a>
+8 · 与第三章的 Agent 对照
+</h2><table>
+	<thead>
+			<tr>
+					<th>问题</th>
+					<th><code>Agent</code> + <code>agentLoop</code>（pi 命令在用）</th>
+					<th>pi-durable</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>状态放在哪里</td>
+					<td>内存。<code>AgentSession</code> 在 <code>message_end</code> 时写会话文件</td>
+					<td>存储。每次改动都是一次提交，界面只看提交后的状态</td>
+			</tr>
+			<tr>
+					<td>循环结构</td>
+					<td>一次函数调用里的两层 <code>while</code>：外层后续消息，内层工具调用和插队</td>
+					<td>每轮一个 <code>pi.generation</code> 任务，每个调用一个 <code>pi.tool</code> 任务，阶段之间提交检查点</td>
+			</tr>
+			<tr>
+					<td>钩子</td>
+					<td><code>AgentLoopConfig</code> 的字段，例如 <code>transformContext</code>、<code>beforeToolCall</code>、<code>afterToolCall</code>、<code>getSteeringMessages</code>、<code>getFollowUpMessages</code></td>
+					<td>扩展里的 7 个钩子，按对话选择的扩展生效；系统提示词由片段拼成</td>
+			</tr>
+			<tr>
+					<td>工具失败</td>
+					<td>在内存里变成错误结果，随事件发出</td>
+					<td>变成带诊断码的 <code>pi.tool-result</code> 条目</td>
+			</tr>
+			<tr>
+					<td>中止</td>
+					<td><code>abort()</code> 触发 <code>AbortController</code>，被中止的回复结束运行</td>
+					<td>先提交中止标记，自下而上中止拥有的工作，每个任务的 <code>abort</code> 处理器提交终态；排队输入被撤回</td>
+			</tr>
+			<tr>
+					<td>崩溃恢复</td>
+					<td>引擎不负责。会话文件里只有写过的消息</td>
+					<td>重新打开后从检查点继续：生成重发请求，工具按 <code>replay</code> 重跑或记为中断</td>
+			</tr>
+			<tr>
+					<td>事件出口</td>
+					<td><code>subscribe</code> 的 10 种事件，在内存里同步派发</td>
+					<td>视图、操作流或 22 种派生事件，全部来自提交</td>
+			</tr>
+			<tr>
+					<td>插队与后续</td>
+					<td>两个内存队列</td>
+					<td><code>pi.inbox</code> 文档，<code>whenBusy</code> 选择方式</td>
+			</tr>
+			<tr>
+					<td>子 Agent</td>
+					<td>不提供</td>
+					<td>对话可以被任务拥有，中止与空闲沿拥有关系传递；<code>background: true</code> 的任务是边界</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="9--对-coding-agent-意味着什么">
+<a class="header-anchor" href="#9--%e5%af%b9-coding-agent-%e6%84%8f%e5%91%b3%e7%9d%80%e4%bb%80%e4%b9%88"></a>
+9 · 对 coding-agent 意味着什么
+</h2><p>在这个基线上，pi-durable 对 pi 命令的用户没有影响：它不在 pi 的依赖树里，实验目录也不会被安装。</p>
+<p>实验目录里能看到 coding-agent 用这套引擎时的接法：</p>
+<ul>
+<li><strong>终端 Agent</strong>：
+<ul>
+<li>存储：一个会话一个 SQLite 文件，在 <code>~/.pi/agent/experimental/durable-sessions/&lt;cwd-hash&gt;/&lt;session&gt;/session.sqlite</code>。</li>
+<li>工具和环境：注册 <code>CodingTools</code>，<code>env</code> 用 <code>NodeExecutionEnv</code> 跟随对话的工作目录。</li>
+<li>界面：只渲染 <code>viewState()</code> 和 <code>taskGraph()</code>。</li>
+<li>复用 pi 的部分：模型运行时、认证、设置、系统提示词、快捷键、主题和交互组件。</li>
+</ul>
+</li>
+<li><strong>会话 worker</strong>：把 coding-agent 的 <code>AgentController</code>（prompt、steer、followUp、abort）映射到 <code>conversation.submit</code> 和 <code>abort</code>，把 <code>Transcript</code> 映射到 <code>viewState()</code>。它的 README 列出了从旧 <code>AgentHarness</code> 迁过来时暂时去掉的能力：
+<ul>
+<li><strong>树导航</strong>：在 durable 里分支要分叉出新对话，还需要一条开始新上下文的摘要条目和一个&quot;当前对话&quot;指针。</li>
+<li><strong>下一次运行队列</strong>：durable 只排队插队消息和后续消息。</li>
+<li><strong>子 Agent 服务</strong>：目前的服务只覆盖根对话。</li>
+<li><strong>历史分页</strong>：视图只含最近一次重置或压缩之后的条目。</li>
+</ul>
+</li>
+</ul>
+<p>和第六章的会话树相比，最明显的差别在分支。<code>SessionManager</code> 在同一个文件里用 <code>parentId</code> 组成树，<code>/tree</code> 只移动叶子指针；pi-durable 的转录是一条只追加的线，分支靠 <code>fork(entryId)</code> 创建一个新对话，它能看到父对话到 <code>entryId</code> 为止的条目，之后各自独立。</p>
+<hr>
+<h2 id="10--关键数字">
+<a class="header-anchor" href="#10--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+10 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>数字</th>
+					<th>值</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>源码</td>
+					<td>约 1.95 万行（<code>harness/</code> 6.7 千、<code>storage/</code> 2.9 千、<code>testing/</code> 2.7 千、<code>env/</code> 2.2 千、<code>session/</code> 2.0 千）</td>
+			</tr>
+			<tr>
+					<td>导出入口</td>
+					<td>10 个</td>
+			</tr>
+			<tr>
+					<td>内置条目 / 文档 / 任务</td>
+					<td>6 / 5 / 3</td>
+			</tr>
+			<tr>
+					<td><code>StorageWrite</code> 种类</td>
+					<td>8</td>
+			</tr>
+			<tr>
+					<td><code>Storage</code> 方法</td>
+					<td>16</td>
+			</tr>
+			<tr>
+					<td>钩子</td>
+					<td>7</td>
+			</tr>
+			<tr>
+					<td><code>watchEvents</code> 事件</td>
+					<td>22</td>
+			</tr>
+			<tr>
+					<td>进度提交间隔</td>
+					<td>部分答案、工具输出都是 100 ms</td>
+			</tr>
+			<tr>
+					<td><code>watch</code> / 事件流积压上限</td>
+					<td>100 帧 / 100 批</td>
+			</tr>
+			<tr>
+					<td>默认重试</td>
+					<td>最多 3 次，基础延迟 2000 ms</td>
+			</tr>
+			<tr>
+					<td>默认压缩</td>
+					<td><code>reserveTokens</code> 16384、<code>keepRecentTokens</code> 20000、<code>backgroundTokens</code> 32768</td>
+			</tr>
+			<tr>
+					<td>P4 一次工具运行的提交数</td>
+					<td>16（另有 1 次创建根对话）</td>
+			</tr>
+			<tr>
+					<td><code>.</code> 入口的文件预算</td>
+					<td>62</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="11--术语表">
+<a class="header-anchor" href="#11--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+11 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>定义</th>
+					<th>别和它混淆</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Session</td>
+					<td>打开的存储 + 一条提交队列</td>
+					<td>第六章的会话文件（<code>SessionManager</code>）</td>
+			</tr>
+			<tr>
+					<td>Harness</td>
+					<td>Session + 调度器 + 注册表 + 内置任务</td>
+					<td>已删除的 <code>AgentHarness</code></td>
+			</tr>
+			<tr>
+					<td>对话</td>
+					<td>一份只追加的转录，可以被任务拥有</td>
+					<td>第六章会话树里的一个分支</td>
+			</tr>
+			<tr>
+					<td>文档</td>
+					<td>和转录一起提交的带类型 JSON</td>
+					<td>条目（不可变的转录记录）</td>
+			</tr>
+			<tr>
+					<td>任务</td>
+					<td>带检查点的持久状态机</td>
+					<td>第三章的一&quot;轮&quot;（turn）</td>
+			</tr>
+			<tr>
+					<td>运行（run）</td>
+					<td>从一条输入到最终回答的若干轮</td>
+					<td>一次 <code>submit</code></td>
+			</tr>
+			<tr>
+					<td>意图</td>
+					<td>工具执行前提交的最终参数和 replay 策略</td>
+					<td>模型发出的原始工具调用</td>
+			</tr>
+			<tr>
+					<td>replay</td>
+					<td>工具的 <code>&quot;safe&quot;</code> / <code>&quot;unsafe&quot;</code>，决定意图提交后崩溃时是否重跑</td>
+					<td>重放事件（这里没有事件日志）</td>
+			</tr>
+			<tr>
+					<td>毒化</td>
+					<td>存储结果不确定时 Session 拒绝后续操作</td>
+					<td><code>StorageRejected</code>（确定没写入，可继续）</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="12--源码导航">
+<a class="header-anchor" href="#12--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+12 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>总体说明和示例</td>
+					<td><code>packages/durable/README.md</code>；<code>test/examples/14-chat.ts</code>（问答）、<code>13-recovery.ts</code>（恢复）、<code>19-json.ts</code>（事件流）、<code>22-subagent-foreground.ts</code>（replay-safe 子 Agent）</td>
+			</tr>
+			<tr>
+					<td>规范</td>
+					<td><code>packages/durable/docs/spec.md</code>：§1 不变式、§5.2 效果夹心、§8 内置任务、§9 观察、§11 存储后端、§12 易错点；<code>docs/pico-v5-handoff.md</code>（实现计划）</td>
+			</tr>
+			<tr>
+					<td>提交</td>
+					<td><code>src/session/session.ts</code> → <code>#runCommit</code>、<code>#enqueue</code>、<code>#publish</code>、<code>subscribeCommits</code>；<code>src/session/transaction.ts</code></td>
+			</tr>
+			<tr>
+					<td>存储</td>
+					<td><code>src/types.ts</code> → <code>Storage</code>、<code>StorageWrite</code>；<code>src/storage/memory.ts</code>；<code>src/storage/jsonl/storage.ts</code> → <code>commit</code>、<code>open</code>；<code>src/storage/sqlite/storage.ts</code>、<code>migrations.ts</code>、<code>node.ts</code></td>
+			</tr>
+			<tr>
+					<td>Harness 与调度</td>
+					<td><code>src/harness/harness.ts</code> → <code>Harness.open</code>；<code>src/harness/scheduler.ts</code> → <code>open</code>、<code>resume</code>；<code>src/tasks.ts</code> → <code>defineTask</code></td>
+			</tr>
+			<tr>
+					<td>生成</td>
+					<td><code>src/harness/generation.ts</code> → <code>GenerationTask</code>、<code>streamResponse</code>、<code>classify</code>、<code>convertPartial</code>、<code>startToolRound</code>、<code>finishToolRound</code>；<code>src/harness/context.ts</code> → <code>EXCLUDED_STOP_REASONS</code></td>
+			</tr>
+			<tr>
+					<td>工具</td>
+					<td><code>src/harness/tool.ts</code> → <code>ToolTask</code>、<code>run</code>、<code>finalResult</code>、<code>settle</code>、<code>publishProgress</code>；<code>src/harness/types.ts</code> → <code>ToolRegistration</code>、<code>ToolExecutionApi</code></td>
+			</tr>
+			<tr>
+					<td>文档与视图</td>
+					<td><code>src/harness/live.ts</code>、<code>inbox.ts</code>、<code>agent.ts</code>、<code>provider.ts</code>、<code>usage.ts</code>；<code>src/harness/view.ts</code>；<code>src/harness/events.ts</code> → <code>watchEvents</code>、<code>AgentEvent</code></td>
+			</tr>
+			<tr>
+					<td>扩展</td>
+					<td><code>src/harness/define.ts</code>、<code>registry.ts</code>、<code>prompt.ts</code></td>
+			</tr>
+			<tr>
+					<td>环境与工具</td>
+					<td><code>src/env/index.ts</code>、<code>src/env/node.ts</code>；<code>src/tools/index.ts</code></td>
+			</tr>
+			<tr>
+					<td>使用者</td>
+					<td><code>packages/coding-agent/src/experimental/durable/</code>（<code>runtime.ts</code>、<code>harness-setup.ts</code>、<code>README.md</code>）、<code>vacation/</code>、<code>session-worker.ts</code>、<code>services/README.md</code></td>
+			</tr>
+			<tr>
+					<td>构建约束</td>
+					<td><code>scripts/check-entry-graphs.mjs</code>、<code>scripts/check-browser-smoke.mjs</code>；<code>packages/coding-agent/tsconfig.build.json</code>、<code>scripts/coding-agent-consumer.mjs</code></td>
+			</tr>
+	</tbody>
+</table></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/11.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession"
+              class="lazyload"
+            /><a
+          href="/harness/pi/10-run-modes-ui/"
+          aria-label="Prev:Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession"
+          title="Prev:Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--它在仓库里的位置">1 · 它在仓库里的位置</a>
+      <ul>
+        <li><a href="#11-两套引擎两种持久化分工">1.1 两套引擎，两种持久化分工</a></li>
+        <li><a href="#12-包的事实">1.2 包的事实</a></li>
+        <li><a href="#13-谁在用它">1.3 谁在用它</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--骨架">2 · 骨架</a>
+      <ul>
+        <li><a href="#21-最小用法">2.1 最小用法</a></li>
+        <li><a href="#22-四层">2.2 四层</a></li>
+        <li><a href="#23-存储后端">2.3 存储后端</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--唯一的写路径">3 · 唯一的写路径</a>
+      <ul>
+        <li><a href="#31-一次提交的六步">3.1 一次提交的六步</a></li>
+        <li><a href="#32-探针提交和视图的先后">3.2 探针：提交和视图的先后</a></li>
+        <li><a href="#33-流式输出也走同一条路">3.3 流式输出也走同一条路</a></li>
+        <li><a href="#34-三种观察方式">3.4 三种观察方式</a></li>
+        <li><a href="#35-已提交能扛住什么">3.5 &ldquo;已提交&quot;能扛住什么</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--一次运行是一串任务">4 · 一次运行是一串任务</a>
+      <ul>
+        <li><a href="#41-从输入到回答">4.1 从输入到回答</a></li>
+        <li><a href="#42-任务是什么">4.2 任务是什么</a></li>
+        <li><a href="#43-生成任务的五个阶段">4.3 生成任务的五个阶段</a></li>
+        <li><a href="#44-工具任务与效果夹心">4.4 工具任务与效果夹心</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--崩溃之后">5 · 崩溃之后</a>
+      <ul>
+        <li><a href="#51-重新打开">5.1 重新打开</a></li>
+        <li><a href="#52-生成到一半">5.2 生成到一半</a></li>
+        <li><a href="#53-工具执行到一半">5.3 工具执行到一半</a></li>
+        <li><a href="#54-中止和关闭">5.4 中止和关闭</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--忙碌的对话">6 · 忙碌的对话</a></li>
+    <li><a href="#7--扩展点">7 · 扩展点</a>
+      <ul>
+        <li><a href="#71-扩展与注册表">7.1 扩展与注册表</a></li>
+        <li><a href="#72-七个钩子">7.2 七个钩子</a></li>
+        <li><a href="#73-宿主提供的东西">7.3 宿主提供的东西</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--与第三章的-agent-对照">8 · 与第三章的 Agent 对照</a></li>
+    <li><a href="#9--对-coding-agent-意味着什么">9 · 对 coding-agent 意味着什么</a></li>
+    <li><a href="#10--关键数字">10 · 关键数字</a></li>
+    <li><a href="#11--术语表">11 · 术语表</a></li>
+    <li><a href="#12--源码导航">12 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 番外 · pi-durable：先提交、再展示的持久化引擎",
+          url: "https:\/\/example.org\/harness\/pi\/11-durable\/",
+          description: "接着第三章和第六章往下讲：pi 仓库里的第二套 Agent 引擎 pi-durable。它把一次运行拆成带检查点的任务，所有改动只走 Session 的一条提交线，提交成功后界面才能看到；进程被杀之后重新打开，生成任务重发请求，工具调用按 replay 策略重跑或记为中断。本章用崩溃探针实际验证这些行为，并和第三章的 Agent 逐项对照。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

@@ -1,0 +1,2178 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession | AKF
+</title>
+<meta name="description" content="接着第九章往下讲：pi 命令怎样解析参数、选出交互、print、JSON、RPC 四种模式之一并建好 AgentSessionRuntime；一次性运行往 stdout 和 stderr 写什么、退出码是多少；RPC 的 33 条命令、事件流和扩展 UI 怎样在 stdin/stdout 上往返；交互模式的界面结构和输入分派；pi-tui 怎样只重写变化的行；以及用 SDK 自己驱动时要补哪些接线。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession | AKF" />
+  <meta
+    property="og:description"
+    content="接着第九章往下讲：pi 命令怎样解析参数、选出交互、print、JSON、RPC 四种模式之一并建好 AgentSessionRuntime；一次性运行往 stdout 和 stderr 写什么、退出码是多少；RPC 的 33 条命令、事件流和扩展 UI 怎样在 stdin/stdout 上往返；交互模式的界面结构和输入分派；pi-tui 怎样只重写变化的行；以及用 SDK 自己驱动时要补哪些接线。"
+  />
+  <meta property="og:url" content="https://example.org/harness/pi/10-run-modes-ui/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-10-05T10:30:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-10-05T10:30:00&#43;08:00" /><meta property="article:tag" content="HarnessPi源码分析" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--从命令行到会话">1 · 从命令行到会话</a>
+      <ul>
+        <li><a href="#11-main-的步骤">1.1 main() 的步骤</a></li>
+        <li><a href="#12-选模式">1.2 选模式</a></li>
+        <li><a href="#13-初始消息管道文件和位置参数">1.3 初始消息：管道、@文件和位置参数</a></li>
+        <li><a href="#14-启动检查和退出码">1.4 启动检查和退出码</a></li>
+        <li><a href="#15-四种模式共同做的三件事">1.5 四种模式共同做的三件事</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--print-与-json-模式">2 · print 与 JSON 模式</a>
+      <ul>
+        <li><a href="#21-一次性运行的流程">2.1 一次性运行的流程</a></li>
+        <li><a href="#22-stdoutstderr-和退出码">2.2 stdout、stderr 和退出码</a></li>
+        <li><a href="#23-json-事件流">2.3 JSON 事件流</a></li>
+        <li><a href="#24-出错重试和中止">2.4 出错、重试和中止</a></li>
+        <li><a href="#25-排队消息和扩展的动作在一次性运行里会怎样">2.5 排队消息和扩展的动作在一次性运行里会怎样</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--rpc-模式">3 · RPC 模式</a>
+      <ul>
+        <li><a href="#31-记录和帧格式">3.1 记录和帧格式</a></li>
+        <li><a href="#32-33-条命令">3.2 33 条命令</a></li>
+        <li><a href="#33-请求与响应">3.3 请求与响应</a></li>
+        <li><a href="#34-扩展-ui-的往返">3.4 扩展 UI 的往返</a></li>
+        <li><a href="#35-运行中的输入和中止">3.5 运行中的输入和中止</a></li>
+        <li><a href="#36-会话替换和退出">3.6 会话替换和退出</a></li>
+        <li><a href="#37-与官方文档对照">3.7 与官方文档对照</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--交互模式">4 · 交互模式</a>
+      <ul>
+        <li><a href="#41-结构一组固定的容器">4.1 结构：一组固定的容器</a></li>
+        <li><a href="#42-输入分派">4.2 输入分派</a></li>
+        <li><a href="#43-斜杠命令">4.3 斜杠命令</a></li>
+        <li><a href="#44-事件怎样变成画面">4.4 事件怎样变成画面</a></li>
+        <li><a href="#45-会话替换和-reload-时界面怎样重建">4.5 会话替换和 /reload 时界面怎样重建</a></li>
+        <li><a href="#46-ctxui-在交互模式里落到哪里">4.6 ctx.ui 在交互模式里落到哪里</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--pi-tui终端界面怎样画出来">5 · pi-tui：终端界面怎样画出来</a>
+      <ul>
+        <li><a href="#51-组件接口">5.1 组件接口</a></li>
+        <li><a href="#52-渲染调度">5.2 渲染调度</a></li>
+        <li><a href="#53-两种差分">5.3 两种差分</a></li>
+        <li><a href="#54-什么时候整屏重画">5.4 什么时候整屏重画</a></li>
+        <li><a href="#55-按键和输入">5.5 按键和输入</a></li>
+        <li><a href="#56-主题和暗色适配">5.6 主题和暗色适配</a></li>
+        <li><a href="#57-单独使用">5.7 单独使用</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--sdk-与远程">6 · SDK 与远程</a>
+      <ul>
+        <li><a href="#61-自己驱动时要补的接线">6.1 自己驱动时要补的接线</a></li>
+        <li><a href="#62-直接复用模式">6.2 直接复用模式</a></li>
+        <li><a href="#63-clientserverprotocol-的边界">6.3 client、server、protocol 的边界</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--用法一个最小-rpc-客户端">7 · 用法：一个最小 RPC 客户端</a></li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.b05e08ae4ad369facc40054b6c3585ec82021a651f5361cbe764a4de328eb83e.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/pi/">Pi</a> /
+    Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession</p>
+</div>
+      </div>
+    </article><link rel="stylesheet" href="/css/immersive.min.2db92d937938ad74c3f0da9f094e4878ceeb590da6c1a4e7129c8e526ba57363.css" /><h1 class="immersive-title">Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><div class="immersive-side-row">
+  <button type="button" class="immersive-side" data-immersive-toggle>
+    <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+    <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
+    <span class="immersive-side-text-on">沉浸阅读</span>
+    <span class="immersive-side-text-off">退出沉浸</span>
+  </button>
+  <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+</div><button
+  type="button"
+  class="immersive-toggle"
+  data-immersive-toggle
+  data-label-on="进入沉浸阅读"
+  data-label-off="退出沉浸阅读"
+  title="进入沉浸阅读"
+  aria-label="进入沉浸阅读"
+  aria-pressed="false"
+>
+  <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </svg>
+  <span class="immersive-toggle-text-on">沉浸阅读</span>
+  <span class="immersive-toggle-text">退出沉浸阅读</span>
+  <kbd class="immersive-toggle-kbd">Esc</kbd>
+</button>
+<script>
+  (() => {
+    const KEY = "immersive-reading";
+    const root = document.documentElement;
+    const btn = document.querySelector(".immersive-toggle");
+    const entry = document.querySelector(".immersive-entry");
+
+    const apply = (on) => {
+      root.classList.toggle("immersive", on);
+      const label = on ? btn.dataset.labelOff : btn.dataset.labelOn;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", String(on));
+      const sideBtn = document.querySelector(".immersive-side");
+      if (sideBtn) sideBtn.title = label;
+      try {
+        localStorage.setItem(KEY, on ? "1" : "0");
+      } catch (e) {}
+    };
+
+    const nav = document.querySelector(".immersive-nav");
+    const side = document.querySelector(".immersive-side-row");
+
+    const title = document.querySelector(".immersive-title");
+
+    const placeEntry = () => {
+      const inner = document.querySelector("article.h-entry .article-inner");
+      if (inner) inner.prepend(title);
+      const date = document.querySelector(".article-meta .article-date");
+      if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
+      const sidebar = document.querySelector("#sidebar .sidebar-wrapper-container");
+      if (sidebar) {
+        sidebar.appendChild(side);
+        root.classList.add("immersive-has-side");
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", placeEntry);
+    } else {
+      placeEntry();
+    }
+
+    apply(root.classList.contains("immersive"));
+    document.querySelectorAll("[data-immersive-toggle]").forEach((el) =>
+      el.addEventListener("click", () => {
+        apply(!root.classList.contains("immersive"));
+        window.scrollTo({ top: 0 });
+      })
+    );
+    side.querySelector(".immersive-side-top").addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
+    });
+  })();
+</script>
+<article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-10-05 10:30:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-10-05</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-10-05</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：<code>earendil-works/pi</code> v1.0.2-18-gb2b5c42f6（2026-10-05），commit <code>b2b5c42f6</code>。v1.0.2 之后的 18 个提交里，与本章有关的只有交互模式的两处修复：终端断开时的 <code>EIO</code> 不再报告为崩溃；pi 的安装被更新或删除后，界面给出重启提示。它们不影响文中的探针结果。文中所有行为、数字和代码均以该版本为准。</p>
+</blockquote>
+<p>前九章讲的都是同一个 <code>AgentSession</code> 内部怎么运转；本章讲外面的四种入口（交互、print、JSON、RPC）和 SDK 怎样启动、驱动和呈现它，以及终端界面是怎么画出来的。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>一条启动流水线，末尾才分叉</strong>：<code>main()</code> 先分流子命令、解析参数，再由 <code>resolveAppMode</code> 选模式：<code>--mode rpc</code> / <code>json</code> 优先，<code>-p</code> 或 stdin、stdout 任一端不是终端就进 print，否则进交互。之后建会话管理器和 <code>AgentSessionRuntime</code>、读管道输入、做启动检查，最后才交给 <code>InteractiveMode</code>、<code>runPrintMode</code> 或 <code>runRpcMode</code>。每种模式拿到运行时都做同样三件事：注册重新绑定的回调、<code>bindExtensions</code>、订阅事件。</li>
+<li><strong>一次性运行只看最后一条回复</strong>：非交互模式会把 <code>process.stdout.write</code> 转到 stderr，stdout 只留给结果。text 模式打印最后一条 assistant 消息的文字，失败时写 stderr 并以 1 退出；JSON 模式先写一行会话头，再把每个会话事件写成一行，<code>message_update</code> 去掉累积的消息快照，只留增量和用量。JSON 模式里模型出错也以 0 退出。</li>
+<li><strong>RPC 是并发的 JSONL 协议</strong>：33 条命令（类型定义和 <code>switch</code> 分支两种方法核对，与文档一致），每行都立即异步处理，响应靠 <code>id</code> 配对。<code>prompt</code> 在预检通过时就回 <code>started</code> / <code>queued</code> / <code>handled</code>，不等运行结束。扩展的 <code>select</code>、<code>confirm</code>、<code>input</code>、<code>editor</code> 变成 <code>extension_ui_request</code>，超时或中止时 pi 自己给出默认值，不通知客户端。<code>abort</code> 不清空排队的消息，它们会跟着下一次 prompt 发出。</li>
+<li><strong>交互模式是一组固定容器加一条分派链</strong>：聊天区、排队消息、状态、上方组件、编辑器、下方组件、页脚从上到下挂在 TUI 上，全屏时上半部分放进 <code>ScrollView</code>。Enter 先过内置命令的 <code>if</code> 链，再看是在压缩、运行还是空闲；扩展命令、<code>input</code> 事件、技能和模板在 <code>AgentSession.prompt</code> 里处理，所以 RPC 和 print 也走这一段，内置命令却只有交互模式有。</li>
+<li><strong>pi-tui 按行做差分</strong>：组件只实现 <code>render(width): string[]</code>；渲染器把整棵树渲染成行，与上一帧逐行比较，只重写变化的行。常规模式用相对光标移动，全屏模式用绝对定位，都包在同步输出（<code>CSI ?2026h … l</code>）里。探针里流式输出每来一段文字，终端只收到一行约 130 字节的写入。pi-tui 只依赖两个第三方包，可以单独使用。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>本章只讲已发布的 <code>pi</code> 命令走的路径：pi-coding-agent 的 <code>main()</code>、三个运行模式、<code>AgentSessionRuntime</code>，以及 pi-tui。</li>
+<li>引用前几章的结论，不再重复：
+<ul>
+<li>第一章 6.3 节：四种运行模式的启动方式。</li>
+<li>第三章 2.2 节：插队消息（steer）和后续消息（followUp）两个队列分别在什么时候被取出。</li>
+<li>第四章 5.3 节：请求失败后的自动重试。</li>
+<li>第六章 6 节：命令行里选会话的参数（<code>--continue</code>、<code>--resume</code>、<code>--session</code>、<code>--fork</code>、<code>--no-session</code>）。</li>
+<li>第九章 2.2 节：<code>bindExtensions</code> 接上什么、为什么 <code>session_start</code> 在绑定时才发；2.4 节：<code>/new</code>、<code>/resume</code>、<code>/fork</code> 怎样替换会话；5 节：<code>ctx.ui</code> 在各模式下的行为；6.1 节：扩展出错在各模式下怎样呈现。</li>
+</ul>
+</li>
+<li>行为都用探针实际跑过。探针 P1–P6 运行 npm 上 1.0.2 版的 <code>pi</code> 命令和包：
+<ul>
+<li><code>HOME</code> 指向临时目录，<code>models.json</code> 配一个自定义供应商 <code>mock</code>（<code>api: &quot;anthropic-messages&quot;</code>，<code>baseUrl</code> 指向本地 mock 服务，模型 <code>mock-1</code>），设置 <code>PI_OFFLINE=1</code> 关掉联网刷新。</li>
+<li>mock 服务按用户消息里的关键字回复：含 <code>TOOL</code> 时先调用工具 <code>deploy</code>，含 <code>SLOW</code> 时每 150 ms 流出一段文字、共 40 段，含 <code>ERR</code> 时返回 HTTP 500，其余回复 <code>Hello from mock.</code>。</li>
+<li>用 <code>-e</code> 加载一个探针扩展：工具 <code>deploy</code> 在执行时调用 <code>ctx.ui.confirm(&quot;Deploy?&quot;, …, { timeout: 30000 })</code>，再用 <code>ctx.ui.notify</code> 报告结果（第 7 节有源码）。</li>
+<li>交互模式（P4）用 node-pty 开伪终端，用 <code>@xterm/headless</code> 当终端：它负责回答 pi 发出的终端查询，也能读回屏幕内容。探针记录每一帧屏幕和每一次原始写入。</li>
+</ul>
+</li>
+<li>术语：
+<ul>
+<li><strong>运行时</strong>：<code>AgentSessionRuntime</code>，持有当前的 <code>AgentSession</code> 和它的服务，负责替换会话。</li>
+<li><strong>重新绑定</strong>：会话被替换后，模式对新会话再做一次 <code>bindExtensions</code> 和事件订阅。</li>
+<li><strong>CSI</strong>：终端控制序列的前缀 <code>ESC [</code>。<code>CSI 2K</code> 清除整行，<code>CSI 5A</code> 光标上移 5 行，<code>CSI 17;1H</code> 光标移到第 17 行第 1 列。</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2 id="1--从命令行到会话">
+<a class="header-anchor" href="#1--%e4%bb%8e%e5%91%bd%e4%bb%a4%e8%a1%8c%e5%88%b0%e4%bc%9a%e8%af%9d"></a>
+1 · 从命令行到会话
+</h2><p><img src="/images/harness/pi/ch10/fig1-modes-startup.png" alt="图 1 · 从命令行到会话：四种入口共用的启动流程与分叉点"></p>
+<h3 id="11-main-的步骤">
+<a class="header-anchor" href="#11-main-%e7%9a%84%e6%ad%a5%e9%aa%a4"></a>
+1.1 main() 的步骤
+</h3><p><code>pi</code> 命令的入口 <code>cli.ts</code> 先调用 <code>setupCli</code>（设置进程名、<code>PI_CODING_AGENT=true</code> 和 <code>AI_AGENT=pi</code> 两个环境标记、HTTP 代理），再调用 <code>main(argv)</code>。<code>main</code> 按下面的顺序走：</p>
+<table>
+	<thead>
+			<tr>
+					<th>阶段</th>
+					<th>做什么</th>
+					<th>模式</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>子命令</td>
+					<td><code>pi auth</code>、包管理（install / remove / update / list）、<code>pi config</code>、<code>pi mcp</code> 在解析参数之前就分流出去，处理完退出</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>解析参数</td>
+					<td><code>parseArgs</code> 认识 40 个参数；未知的 <code>--x</code> 先存起来，等扩展注册的参数来认领；<code>--version</code>、<code>--export</code> 立即退出</td>
+					<td>全部</td>
+			</tr>
+			<tr>
+					<td>选模式</td>
+					<td><code>resolveAppMode</code>（1.2 节）</td>
+					<td>全部</td>
+			</tr>
+			<tr>
+					<td>接管 stdout</td>
+					<td><code>takeOverStdout</code>：把 <code>process.stdout.write</code> 改写到 stderr，只有 <code>writeRawStdout</code> 能写真正的 stdout</td>
+					<td>交互以外</td>
+			</tr>
+			<tr>
+					<td>会话</td>
+					<td>迁移旧数据、读设置、<code>createSessionManager</code> 按会话参数打开或新建会话（第六章 6 节）</td>
+					<td>全部</td>
+			</tr>
+			<tr>
+					<td>运行时</td>
+					<td><code>createAgentSessionRuntime(createRuntime, …)</code>：工厂函数里建设置、资源加载器、扩展、模型运行时和 <code>AgentSession</code>。<code>--help</code>（要列出扩展注册的参数）和 <code>--list-models</code> 在这一步之后才退出</td>
+					<td>全部</td>
+			</tr>
+			<tr>
+					<td>初始消息</td>
+					<td><code>readPipedStdin</code> 读管道输入，<code>prepareInitialMessage</code> 处理 <code>@文件</code>（1.3 节）</td>
+					<td>RPC 以外</td>
+			</tr>
+			<tr>
+					<td>启动检查</td>
+					<td>打印诊断；有 error 级诊断或没有可用模型就退出（1.4 节）</td>
+					<td>见 1.4 节</td>
+			</tr>
+			<tr>
+					<td>分叉</td>
+					<td><code>new InteractiveMode(runtime, …).run()</code>、<code>runPrintMode(runtime, …)</code> 或 <code>runRpcMode(runtime)</code></td>
+					<td>—</td>
+			</tr>
+	</tbody>
+</table>
+<p>工厂函数 <code>createRuntime</code> 存在运行时里，<code>/new</code>、<code>/resume</code>、<code>/fork</code> 替换会话时会再调用它（第九章 2.4 节）。</p>
+<h3 id="12-选模式">
+<a class="header-anchor" href="#12-%e9%80%89%e6%a8%a1%e5%bc%8f"></a>
+1.2 选模式
+</h3><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">resolveAppMode</span><span class="p">(</span><span class="nx">parsed</span>: <span class="kt">Args</span><span class="p">,</span> <span class="nx">stdinIsTTY</span>: <span class="kt">boolean</span><span class="p">,</span> <span class="nx">stdoutIsTTY</span>: <span class="kt">boolean</span><span class="p">)</span><span class="o">:</span> <span class="nx">AppMode</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">parsed</span><span class="p">.</span><span class="nx">mode</span> <span class="o">===</span> <span class="s2">&#34;rpc&#34;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="s2">&#34;rpc&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">parsed</span><span class="p">.</span><span class="nx">mode</span> <span class="o">===</span> <span class="s2">&#34;json&#34;</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="s2">&#34;json&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">parsed</span><span class="p">.</span><span class="nx">print</span> <span class="o">||</span> <span class="o">!</span><span class="nx">stdinIsTTY</span> <span class="o">||</span> <span class="o">!</span><span class="nx">stdoutIsTTY</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="s2">&#34;print&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="s2">&#34;interactive&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li><code>--mode</code> 只接受 <code>text</code>、<code>json</code>、<code>rpc</code>。<code>--mode text</code> 不带 <code>-p</code> 时在终端里仍是交互模式；<code>text</code> 只决定 print 模式的输出格式。</li>
+<li>没有环境变量参与选择。stdin 或 stdout 被重定向（管道、文件）就自动进 print 模式，所以 <code>echo 问题 | pi</code> 和 <code>pi &gt; out.txt</code> 都是一次性运行。</li>
+<li>RPC 模式里 stdin 留给命令：启动时不读管道输入，位置参数里的消息被忽略，带 <code>@文件</code> 参数直接以 1 退出。</li>
+</ul>
+<h3 id="13-初始消息管道文件和位置参数">
+<a class="header-anchor" href="#13-%e5%88%9d%e5%a7%8b%e6%b6%88%e6%81%af%e7%ae%a1%e9%81%93%e6%96%87%e4%bb%b6%e5%92%8c%e4%bd%8d%e7%bd%ae%e5%8f%82%e6%95%b0"></a>
+1.3 初始消息：管道、@文件和位置参数
+</h3><p>print 和交互模式把三段内容拼成第一条消息：管道输入（去掉首尾空白）、<code>@文件</code> 展开的内容、第一个位置参数。三段直接相连，中间不加分隔符，所以 <code>echo foo | pi -p bar</code> 发出去的是 <code>foobar</code>。<code>@文件</code> 展开成 <code>&lt;file name=&quot;绝对路径&quot;&gt;…&lt;/file&gt;</code> 块，块尾有换行，不会和后面粘在一起；图片文件按内容识别后作为图片附上，文件不存在时打印错误并以 1 退出，空文件直接跳过。</p>
+<p>其余位置参数各成一条消息。print 模式逐条 <code>await session.prompt()</code>；P1 里 <code>pi -p first second</code>，mock 依次收到 <code>first</code> 和 <code>second</code> 两次请求，stdout 只有最后一次的回复。</p>
+<blockquote>
+<p>📌 <strong>管道输入要等到 EOF</strong>。<code>readPipedStdin</code> 在 stdin 不是终端时一直读到流结束。父进程用管道启动 pi 却不关闭它的 stdin，pi 会停在这一步。P1 第一次运行就卡在这里：探针脚本自己的 stdin 是一个不会关闭的管道，<code>pi -p</code> 继承了它。给子进程 <code>&lt; /dev/null</code> 或关掉它的 stdin 即可。</p>
+</blockquote>
+<h3 id="14-启动检查和退出码">
+<a class="header-anchor" href="#14-%e5%90%af%e5%8a%a8%e6%a3%80%e6%9f%a5%e5%92%8c%e9%80%80%e5%87%ba%e7%a0%81"></a>
+1.4 启动检查和退出码
+</h3><table>
+	<thead>
+			<tr>
+					<th>情形</th>
+					<th>交互</th>
+					<th>print / JSON / RPC</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>参数错误（未知选项、<code>--mode</code> 取值不对、<code>--name</code> 为空等）</td>
+					<td>stderr 一行 <code>Error: …</code>，退出码 1</td>
+					<td>同左</td>
+			</tr>
+			<tr>
+					<td>启动诊断（设置、信任、扩展包的警告和错误）</td>
+					<td>没有错误时显示在界面里</td>
+					<td>打印到 stderr</td>
+			</tr>
+			<tr>
+					<td>有 error 级诊断（扩展加载失败、未知的扩展参数等）</td>
+					<td>打印后退出码 1；扩展加载失败时多一行 <code>pi -ne</code> 的提示</td>
+					<td>同左</td>
+			</tr>
+			<tr>
+					<td>没有任何可用模型</td>
+					<td>照常启动，在界面里处理</td>
+					<td><code>No models available.</code> 加登录说明，退出码 1</td>
+			</tr>
+			<tr>
+					<td>有模型但没有密钥</td>
+					<td>到 prompt 时才报错</td>
+					<td>prompt 时抛错：print / JSON 写 stderr、退出码 1；RPC 返回失败的响应</td>
+			</tr>
+			<tr>
+					<td><code>--model</code> 指定的模型不存在</td>
+					<td>启动诊断，退出码 1</td>
+					<td>同左</td>
+			</tr>
+	</tbody>
+</table>
+<p>P1 里 <code>HOME</code> 指向一个空目录时，内置的模型目录仍然有模型可选，所以走的是&quot;没有密钥&quot;这一行：stderr 是 <code>No API key found for the selected model.</code> 加两份文档路径，退出码 1。<code>--model nope/none</code> 得到 <code>Error: Model &quot;nope/none&quot; not found. Use --list-models to see available models.</code>，退出码 1。</p>
+<h3 id="15-四种模式共同做的三件事">
+<a class="header-anchor" href="#15-%e5%9b%9b%e7%a7%8d%e6%a8%a1%e5%bc%8f%e5%85%b1%e5%90%8c%e5%81%9a%e7%9a%84%e4%b8%89%e4%bb%b6%e4%ba%8b"></a>
+1.5 四种模式共同做的三件事
+</h3><p>拿到运行时之后，三个模式函数的开头几乎一样：</p>
+<ol>
+<li><code>runtime.setRebindSession(rebind)</code>：注册一个回调。会话被 <code>/new</code>、<code>/resume</code>、<code>/fork</code> 替换后，运行时调用它。</li>
+<li><code>rebind()</code> 里调用 <code>session.bindExtensions({ … })</code>，发出 <code>session_start</code>（第九章 2.2 节）。</li>
+<li>同在 <code>rebind()</code> 里，退订旧会话、<code>session.subscribe()</code> 订阅新会话的事件，交给各自的呈现方式。</li>
+</ol>
+<p>不同之处在于绑定时传什么：</p>
+<table>
+	<thead>
+			<tr>
+					<th>绑定项</th>
+					<th>交互</th>
+					<th>print / JSON</th>
+					<th>RPC</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>mode</code></td>
+					<td><code>tui</code></td>
+					<td><code>print</code> / <code>json</code></td>
+					<td><code>rpc</code></td>
+			</tr>
+			<tr>
+					<td><code>uiContext</code>（<code>ctx.ui</code> 的实现）</td>
+					<td>终端界面（4.6 节）</td>
+					<td>不传，扩展拿到空操作的实现</td>
+					<td>转成协议消息（3.5 节）</td>
+			</tr>
+			<tr>
+					<td><code>commandContextActions</code>（命令里的 <code>newSession</code>、<code>fork</code>、<code>reload</code> 等）</td>
+					<td>有，替换后重画界面</td>
+					<td>有</td>
+					<td>有</td>
+			</tr>
+			<tr>
+					<td><code>abortHandler</code>（<code>ctx.abort()</code> 时额外做的事）</td>
+					<td>把排队消息退回编辑器</td>
+					<td>不传</td>
+					<td>不传</td>
+			</tr>
+			<tr>
+					<td><code>shutdownHandler</code>（<code>ctx.shutdown()</code>）</td>
+					<td>空闲时退出，否则等运行结束</td>
+					<td>不传</td>
+					<td>记下请求，命令处理完或 <code>agent_settled</code> 时退出</td>
+			</tr>
+			<tr>
+					<td><code>onError</code>（扩展出错，第九章 6.1 节）</td>
+					<td>对话区显示错误和调用栈</td>
+					<td>stderr 一行</td>
+					<td><code>extension_error</code> 记录</td>
+			</tr>
+			<tr>
+					<td>订阅事件后做什么</td>
+					<td>更新界面组件</td>
+					<td>JSON 模式写一行；text 模式不订阅输出</td>
+					<td>写一行</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="2--print-与-json-模式">
+<a class="header-anchor" href="#2--print-%e4%b8%8e-json-%e6%a8%a1%e5%bc%8f"></a>
+2 · print 与 JSON 模式
+</h2><h3 id="21-一次性运行的流程">
+<a class="header-anchor" href="#21-%e4%b8%80%e6%ac%a1%e6%80%a7%e8%bf%90%e8%a1%8c%e7%9a%84%e6%b5%81%e7%a8%8b"></a>
+2.1 一次性运行的流程
+</h3><p><code>runPrintMode(runtime, { mode, messages, initialMessage, initialImages })</code> 的全部工作：</p>
+<ol>
+<li>注册 <code>SIGTERM</code>（Windows 以外还有 <code>SIGHUP</code>）的处理函数：结束跟踪的子进程，<code>runtime.dispose()</code>，再以 143（<code>SIGHUP</code> 是 129）退出。</li>
+<li>JSON 模式先写一行会话头（<code>sessionManager.getHeader()</code>）。</li>
+<li><code>rebind()</code>：绑定扩展，订阅事件。</li>
+<li><code>await session.prompt(initialMessage)</code>，然后逐条 <code>await session.prompt(其余消息)</code>。</li>
+<li>text 模式读会话里的最后一条消息，按 2.2 节的规则输出。</li>
+<li>无论成败，<code>finally</code> 里先退订事件，再 <code>runtime.dispose()</code>（发 <code>session_shutdown</code>，<code>reason</code> 为 <code>quit</code>），最后等 stdout 写完。</li>
+</ol>
+<p><code>main</code> 拿到返回值后只设置 <code>process.exitCode</code>，不调用 <code>process.exit()</code>，进程在事件循环空了之后自然结束。</p>
+<p>print 模式默认也写会话文件，探针的临时 <code>HOME</code> 下每次运行都多一个 <code>.jsonl</code>；不想留记录加 <code>--no-session</code>。</p>
+<h3 id="22-stdoutstderr-和退出码">
+<a class="header-anchor" href="#22-stdoutstderr-%e5%92%8c%e9%80%80%e5%87%ba%e7%a0%81"></a>
+2.2 stdout、stderr 和退出码
+</h3><p>text 模式只输出最后一条消息：它是 assistant 消息、<code>stopReason</code> 不是 <code>error</code> 或 <code>aborted</code> 时，把其中每个文字块写一行到 stdout，思考和工具调用块不输出；是 <code>error</code> 或 <code>aborted</code> 时，把 <code>errorMessage</code> 写到 stderr，退出码 1。最后一条不是 assistant 消息时什么也不输出，退出码 0，例如新会话里这次输入被扩展命令处理掉了。用 <code>--continue</code> 接着旧会话时，最后一条可能是上一次的回复，它会被打印出来。</p>
+<p>P1 的几种情况：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">运行                                  stdout                      stderr                    退出码
+</span></span><span class="line"><span class="cl">pi -p &#34;say hi&#34;                        Hello from mock.            —                         0
+</span></span><span class="line"><span class="cl">echo &#39;piped question&#39; | pi            Hello from mock.            —                         0
+</span></span><span class="line"><span class="cl">pi -p @note.txt summarize             Hello from mock.            —                         0
+</span></span><span class="line"><span class="cl">pi -p &#34;ERR please&#34;                    —                           500 {&#34;type&#34;:&#34;error&#34;,…}    1
+</span></span><span class="line"><span class="cl">pi -e ext-deploy.ts -p &#34;TOOL go&#34;      Deployed (tool said ok).    [ext] session_start …     0
+</span></span><span class="line"><span class="cl">pi -p /model                          Hello from mock.            —                         0
+</span></span></code></pre></div><p><code>TOOL go</code> 那一行的 stderr 是探针扩展自己打的两行日志：<code>[ext] session_start reason=startup mode=print hasUI=false</code> 和 <code>[ext] session_shutdown reason=quit</code>。</p>
+<p>最后两行值得注意：</p>
+<ul>
+<li>没有界面时 <code>ctx.ui.confirm</code> 直接返回 <code>false</code>，工具的结果是 <code>user declined</code>，模型照常收到工具结果、给出回复（第九章 5 节）。</li>
+<li><code>/model</code> 是交互模式的内置命令，print 模式里不存在。它被当作普通文字发给了模型（mock 的日志里 <code>last=&quot;/model&quot;</code>）。扩展命令、技能和模板在 print 模式里照常可用（4.3 节）。</li>
+</ul>
+<p>扩展、工具在运行中调用 <code>console.log</code> 也不会弄脏 stdout：<code>takeOverStdout</code> 已经把 <code>process.stdout.write</code> 转到 stderr，只有模式自己通过 <code>writeRawStdout</code> 写的内容进 stdout。这一点对 text 模式同样成立。</p>
+<h3 id="23-json-事件流">
+<a class="header-anchor" href="#23-json-%e4%ba%8b%e4%bb%b6%e6%b5%81"></a>
+2.3 JSON 事件流
+</h3><p>JSON 模式先写会话头，再把 <code>session.subscribe</code> 收到的每个事件经 <code>toJsonEvent</code> 转换后写成一行。P2 一次普通问答的完整事件流（每行只保留类型和关键字段）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">session version=3 id=… cwd=&lt;ws&gt;
+</span></span><span class="line"><span class="cl">agent_start
+</span></span><span class="line"><span class="cl">turn_start
+</span></span><span class="line"><span class="cl">message_start role=system
+</span></span><span class="line"><span class="cl">message_end role=system
+</span></span><span class="line"><span class="cl">message_start role=user content=[&#34;say hi&#34;]
+</span></span><span class="line"><span class="cl">message_end role=user content=[&#34;say hi&#34;]
+</span></span><span class="line"><span class="cl">message_start role=assistant stopReason=pending content=[&#34;&#34;]
+</span></span><span class="line"><span class="cl">message_update ame=text_start keys=[type,usage,assistantMessageEvent]
+</span></span><span class="line"><span class="cl">message_update ame=text_delta delta=&#34;Hello&#34; keys=[type,usage,assistantMessageEvent]
+</span></span><span class="line"><span class="cl">message_update ame=text_delta delta=&#34; from&#34; keys=[type,usage,assistantMessageEvent]
+</span></span><span class="line"><span class="cl">message_update ame=text_delta delta=&#34; mock.&#34; keys=[type,usage,assistantMessageEvent]
+</span></span><span class="line"><span class="cl">message_update ame=text_end content=&#34;Hello from mock.&#34; keys=[type,usage,assistantMessageEvent]
+</span></span><span class="line"><span class="cl">message_end role=assistant stopReason=stop content=[&#34;Hello from mock.&#34;]
+</span></span><span class="line"><span class="cl">turn_end role=assistant stopReason=stop content=[&#34;Hello from mock.&#34;]
+</span></span><span class="line"><span class="cl">agent_end messages=3 willRetry=false
+</span></span><span class="line"><span class="cl">agent_settled
+</span></span></code></pre></div><p>开头的 system 消息是第八章讲的提示词补丁，它和 user 消息一样作为消息事件发出。</p>
+<p><strong>&ldquo;message_update 只带增量&quot;的具体含义</strong>：会话内部的 <code>message_update</code> 事件带着 <code>message</code>（到目前为止累积的整条消息）和 <code>assistantMessageEvent</code>（pi-ai 的流式事件，里面还有一份累积快照 <code>partial</code>）。<code>toJsonEvent</code> 只对这一种事件做转换：</p>
+<ul>
+<li>去掉 <code>message</code>，只保留它的 <code>usage</code>（当前的用量）；</li>
+<li>去掉 <code>assistantMessageEvent.partial</code>，留下 <code>type</code>、<code>contentIndex</code>，以及 <code>delta</code>（新增的文字或参数片段）或块结束时的完整 <code>content</code> / <code>toolCall</code>；</li>
+<li><code>toolcall_start</code> 去掉 <code>partial</code> 后补上 <code>id</code> 和 <code>toolName</code>，客户端不必等参数流完就知道调用的是哪个工具。</li>
+</ul>
+<p>所以每行的大小只和这一段增量有关。要拿到完整的消息，看 <code>message_end</code>，或者自己把 <code>delta</code> 按 <code>contentIndex</code> 拼起来。其他事件原样输出。</p>
+<p>JSON 模式输出的事件就是 <code>AgentSessionEvent</code> 的全部 23 种：</p>
+<table>
+	<thead>
+			<tr>
+					<th>组</th>
+					<th>事件（字段）</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>运行（5）</td>
+					<td><code>agent_start</code>；<code>agent_end</code>（<code>messages</code>、<code>willRetry</code>：是否还会自动重试）；<code>agent_settled</code>（不会再自动继续）；<code>turn_start</code>；<code>turn_end</code>（<code>message</code>、<code>toolResults</code>）</td>
+			</tr>
+			<tr>
+					<td>消息（3）</td>
+					<td><code>message_start</code>、<code>message_update</code>、<code>message_end</code></td>
+			</tr>
+			<tr>
+					<td>工具（3）</td>
+					<td><code>tool_execution_start</code> / <code>_update</code> / <code>_end</code>；工具里经 <code>ctx.executeTool()</code> 嵌套调用时带 <code>parentToolCallId</code></td>
+			</tr>
+			<tr>
+					<td>队列与状态（4）</td>
+					<td><code>queue_update</code>（<code>steering</code>、<code>followUp</code> 两个队列的文字）；<code>entry_appended</code>（新写入的会话条目）；<code>session_info_changed</code>（会话名）；<code>thinking_level_changed</code></td>
+			</tr>
+			<tr>
+					<td>压缩（2）</td>
+					<td><code>compaction_start</code>（<code>reason</code>）、<code>compaction_end</code>（<code>result</code>、<code>aborted</code>、<code>willRetry</code>、<code>errorMessage</code>）</td>
+			</tr>
+			<tr>
+					<td>重试（5）</td>
+					<td><code>auto_retry_start</code>（<code>attempt</code>、<code>maxAttempts</code>、<code>delayMs</code>、<code>errorMessage</code>）、<code>auto_retry_end</code>；<code>summarization_retry_scheduled</code>、<code>summarization_retry_attempt_start</code>、<code>summarization_retry_finished</code>（摘要请求的重试，第七章 4.3 节）</td>
+			</tr>
+			<tr>
+					<td>shell（1）</td>
+					<td><code>bash_execution_update</code>（<code>delta</code>：用户 <code>!</code> 命令的输出片段）</td>
+			</tr>
+	</tbody>
+</table>
+<p>其中 10 种来自 pi-agent-core 的 <code>AgentEvent</code>（<code>agent_end</code> 被换成多了 <code>willRetry</code> 的版本），13 种是 <code>AgentSession</code> 自己加的。</p>
+<h3 id="24-出错重试和中止">
+<a class="header-anchor" href="#24-%e5%87%ba%e9%94%99%e9%87%8d%e8%af%95%e5%92%8c%e4%b8%ad%e6%ad%a2"></a>
+2.4 出错、重试和中止
+</h3><p>P2 让 mock 返回 HTTP 500，JSON 模式下的事件（省略 <code>message_update</code>）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">message_start role=assistant stopReason=error content=[] err=500 {&#34;type&#34;:&#34;error&#34;,…}
+</span></span><span class="line"><span class="cl">message_end   role=assistant stopReason=error …
+</span></span><span class="line"><span class="cl">turn_end … 
+</span></span><span class="line"><span class="cl">agent_end messages=3 willRetry=true
+</span></span><span class="line"><span class="cl">auto_retry_start {&#34;attempt&#34;:1,&#34;maxAttempts&#34;:3,&#34;delayMs&#34;:2000,…}
+</span></span><span class="line"><span class="cl">entry_appended entry=context_edit
+</span></span><span class="line"><span class="cl">agent_start
+</span></span><span class="line"><span class="cl">…（第 2、3 次：delayMs 4000、8000）
+</span></span><span class="line"><span class="cl">agent_end messages=1 willRetry=false
+</span></span><span class="line"><span class="cl">auto_retry_end {&#34;success&#34;:false,&#34;attempt&#34;:3,&#34;finalError&#34;:&#34;500 …&#34;}
+</span></span><span class="line"><span class="cl">agent_settled
+</span></span></code></pre></div><ul>
+<li>失败的回复也是一条完整的 assistant 消息，<code>stopReason</code> 为 <code>error</code>，没有 <code>message_update</code>。</li>
+<li>每次重试前写一条 <code>context_edit</code> 条目，把失败的尝试从上下文里编辑掉（第六章 5.3 节）。</li>
+<li><strong>JSON 模式的退出码是 0</strong>，只有 text 模式检查最后一条消息的 <code>stopReason</code>。脚本用 JSON 模式时，要自己看 <code>message_end</code> 或 <code>auto_retry_end</code> 判断成败（官方的 <code>docs/cli-integration.md</code> 也这样说明）。</li>
+</ul>
+<p>退出码汇总（P1、P2）：</p>
+<table>
+	<thead>
+			<tr>
+					<th>情形</th>
+					<th>text 模式</th>
+					<th>JSON 模式</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>正常结束</td>
+					<td>0</td>
+					<td>0</td>
+			</tr>
+			<tr>
+					<td>最后一条回复 <code>error</code> / <code>aborted</code></td>
+					<td>1</td>
+					<td>0</td>
+			</tr>
+			<tr>
+					<td><code>prompt</code> 抛错（没有密钥、压缩进行中等）</td>
+					<td>1</td>
+					<td>1（会话头已经写出）</td>
+			</tr>
+			<tr>
+					<td><code>SIGTERM</code> / <code>SIGHUP</code></td>
+					<td>143 / 129，先 <code>dispose</code>，扩展收到 <code>session_shutdown</code></td>
+					<td>同左；<code>dispose</code> 之前已退订，关闭阶段的事件不再输出</td>
+			</tr>
+			<tr>
+					<td><code>SIGINT</code>（Ctrl+C）</td>
+					<td>没有处理函数，Node 默认终止，shell 看到 130；扩展收不到 <code>session_shutdown</code></td>
+					<td>同左</td>
+			</tr>
+	</tbody>
+</table>
+<h3 id="25-排队消息和扩展的动作在一次性运行里会怎样">
+<a class="header-anchor" href="#25-%e6%8e%92%e9%98%9f%e6%b6%88%e6%81%af%e5%92%8c%e6%89%a9%e5%b1%95%e7%9a%84%e5%8a%a8%e4%bd%9c%e5%9c%a8%e4%b8%80%e6%ac%a1%e6%80%a7%e8%bf%90%e8%a1%8c%e9%87%8c%e4%bc%9a%e6%80%8e%e6%a0%b7"></a>
+2.5 排队消息和扩展的动作在一次性运行里会怎样
+</h3><p><code>session.prompt()</code> 不只等这一次请求：它内部的循环在还有排队消息时继续调用 <code>agent.continue()</code>，结束时发 <code>agent_settled</code>，再执行 <code>agent_settled</code> 处理函数里调用的 <code>prompt()</code> 或 <code>sendMessage({ triggerTurn: true })</code>（这些调用会被推迟到 settle 之后执行）。所以一次性运行会把下面这些都跑完再输出：</p>
+<ul>
+<li>运行中由扩展 <code>sendMessage</code> 插入的消息、<code>deliverAs: &quot;followUp&quot;</code> 的后续消息（第九章 3.3 节）；</li>
+<li>自动重试、溢出后的压缩重试；</li>
+<li><code>agent_settled</code> 处理函数里发起的新一轮。</li>
+</ul>
+<p>之后才 <code>dispose</code>。扩展在 settle 之后用定时器异步发起的工作会被截断：print 模式在最后一条 prompt 返回后不再调用 <code>waitForIdle()</code>。</p>
+<hr>
+<h2 id="3--rpc-模式">
+<a class="header-anchor" href="#3--rpc-%e6%a8%a1%e5%bc%8f"></a>
+3 · RPC 模式
+</h2><p><img src="/images/harness/pi/ch10/fig2-rpc-sequence.png" alt="图 2 · RPC 的一次往返：prompt、扩展 confirm 和 abort"></p>
+<h3 id="31-记录和帧格式">
+<a class="header-anchor" href="#31-%e8%ae%b0%e5%bd%95%e5%92%8c%e5%b8%a7%e6%a0%bc%e5%bc%8f"></a>
+3.1 记录和帧格式
+</h3><p>RPC 模式下 stdin 和 stdout 上都是一行一个 JSON 对象：</p>
+<table>
+	<thead>
+			<tr>
+					<th>方向</th>
+					<th>记录</th>
+					<th>作用</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>stdin</td>
+					<td>命令（33 种，3.2 节）</td>
+					<td>发起 prompt、查询状态、改设置、管理会话</td>
+			</tr>
+			<tr>
+					<td>stdin</td>
+					<td><code>extension_ui_response</code></td>
+					<td>回答扩展的对话框，不产生响应</td>
+			</tr>
+			<tr>
+					<td>stdout</td>
+					<td><code>response</code></td>
+					<td>一条命令的结果</td>
+			</tr>
+			<tr>
+					<td>stdout</td>
+					<td>会话事件</td>
+					<td>与 JSON 模式相同的 23 种（2.3 节）</td>
+			</tr>
+			<tr>
+					<td>stdout</td>
+					<td><code>extension_ui_request</code></td>
+					<td>扩展要显示对话框或通知（3.5 节）</td>
+			</tr>
+			<tr>
+					<td>stdout</td>
+					<td><code>extension_error</code></td>
+					<td>扩展处理函数出错（<code>extensionPath</code>、<code>event</code>、<code>error</code>，不带调用栈）</td>
+			</tr>
+	</tbody>
+</table>
+<p>和 JSON 模式相比，RPC 不输出会话头；会话 ID 和文件路径用 <code>get_state</code> 查询。</p>
+<p>帧格式由 <code>jsonl.ts</code> 实现：输出是 <code>JSON.stringify(值) + &quot;\n&quot;</code>；读入只按 LF 切分，去掉行尾的一个 <code>\r</code>，用 <code>StringDecoder</code> 解码，跨块的多字节字符不会被切坏。它故意不用 Node 的 <code>readline</code>，因为 <code>readline</code> 还会在 U+2028、U+2029 处断行，而这两个字符可以合法地出现在 JSON 字符串里。客户端读 stdout 也应该这样做（第 7 节）。</p>
+<p>无法解析的一行（包括空行）得到一条没有 <code>id</code> 的响应：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;type&#34;</span><span class="p">:</span><span class="s2">&#34;response&#34;</span><span class="p">,</span><span class="nt">&#34;command&#34;</span><span class="p">:</span><span class="s2">&#34;parse&#34;</span><span class="p">,</span><span class="nt">&#34;success&#34;</span><span class="p">:</span><span class="kc">false</span><span class="p">,</span><span class="nt">&#34;error&#34;</span><span class="p">:</span><span class="s2">&#34;Failed to parse command: Unexpected token &#39;h&#39;, \&#34;this is not json\&#34; is not valid JSON&#34;</span><span class="p">}</span>
+</span></span></code></pre></div><p>未知的命令得到 <code>Unknown command: warp_drive</code>（P3）。</p>
+<h3 id="32-33-条命令">
+<a class="header-anchor" href="#32-33-%e6%9d%a1%e5%91%bd%e4%bb%a4"></a>
+3.2 33 条命令
+</h3><p>命令的联合类型 <code>RpcCommand</code> 有 33 个成员；<code>runRpcMode</code> 里处理命令的 <code>switch</code> 也恰好有 33 个 <code>case</code>（另有 <code>default</code> 处理未知命令），两份名单一致；<code>docs/rpc-commands.md</code> 的 33 个小节也一一对应。每条命令都可以带一个可选的字符串 <code>id</code>。</p>
+<table>
+	<thead>
+			<tr>
+					<th>组</th>
+					<th>数</th>
+					<th>命令</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>发起与中止</td>
+					<td>6</td>
+					<td><code>prompt</code>（发消息，可带 <code>images</code>、<code>streamingBehavior</code>）、<code>steer</code>（插队）、<code>follow_up</code>（排后续）、<code>abort</code>（中止并等到空闲）、<code>clear_queue</code>（清空两个队列，返回被清掉的文字）、<code>new_session</code>（新会话）</td>
+			</tr>
+			<tr>
+					<td>状态</td>
+					<td>2</td>
+					<td><code>get_state</code>（模型、思考级别、是否在运行、两种队列模式、会话文件和 ID、消息数、排队数）、<code>get_messages</code>（当前上下文里的消息）</td>
+			</tr>
+			<tr>
+					<td>模型</td>
+					<td>3</td>
+					<td><code>set_model</code>、<code>cycle_model</code>、<code>get_available_models</code></td>
+			</tr>
+			<tr>
+					<td>思考级别</td>
+					<td>3</td>
+					<td><code>set_thinking_level</code>、<code>cycle_thinking_level</code>、<code>get_available_thinking_levels</code></td>
+			</tr>
+			<tr>
+					<td>队列模式</td>
+					<td>2</td>
+					<td><code>set_steering_mode</code>、<code>set_follow_up_mode</code>（<code>all</code> 或 <code>one-at-a-time</code>，默认后者）</td>
+			</tr>
+			<tr>
+					<td>压缩</td>
+					<td>2</td>
+					<td><code>compact</code>（手动压缩，等压缩完才回）、<code>set_auto_compaction</code></td>
+			</tr>
+			<tr>
+					<td>重试</td>
+					<td>2</td>
+					<td><code>set_auto_retry</code>、<code>abort_retry</code></td>
+			</tr>
+			<tr>
+					<td>shell</td>
+					<td>2</td>
+					<td><code>bash</code>（执行命令，等它结束才回；输出片段以 <code>bash_execution_update</code> 发出，带这条命令的 <code>id</code>）、<code>abort_bash</code></td>
+			</tr>
+			<tr>
+					<td>会话</td>
+					<td>10</td>
+					<td><code>get_session_stats</code>、<code>export_html</code>、<code>switch_session</code>、<code>fork</code>、<code>clone</code>、<code>get_fork_messages</code>（可以 fork 的用户消息）、<code>get_entries</code>（会话条目，可从某条之后开始）、<code>get_tree</code>、<code>get_last_assistant_text</code>、<code>set_session_name</code></td>
+			</tr>
+			<tr>
+					<td>命令发现</td>
+					<td>1</td>
+					<td><code>get_commands</code>（扩展命令、模板和技能；不含交互模式的内置命令）</td>
+			</tr>
+	</tbody>
+</table>
+<p>交互模式的 <code>/tree</code> 导航、<code>/reload</code>、<code>/login</code> 这类操作在 RPC 里没有对应的命令（第六章 6 节已经提到没有分支导航命令）。</p>
+<h3 id="33-请求与响应">
+<a class="header-anchor" href="#33-%e8%af%b7%e6%b1%82%e4%b8%8e%e5%93%8d%e5%ba%94"></a>
+3.3 请求与响应
+</h3><p>响应的格式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;id&#34;</span><span class="p">:</span><span class="s2">&#34;req-1&#34;</span><span class="p">,</span><span class="nt">&#34;type&#34;</span><span class="p">:</span><span class="s2">&#34;response&#34;</span><span class="p">,</span><span class="nt">&#34;command&#34;</span><span class="p">:</span><span class="s2">&#34;prompt&#34;</span><span class="p">,</span><span class="nt">&#34;success&#34;</span><span class="p">:</span><span class="kc">true</span><span class="p">,</span><span class="nt">&#34;data&#34;</span><span class="p">:{</span><span class="nt">&#34;disposition&#34;</span><span class="p">:</span><span class="s2">&#34;started&#34;</span><span class="p">}}</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;id&#34;</span><span class="p">:</span><span class="s2">&#34;6&#34;</span><span class="p">,</span><span class="nt">&#34;type&#34;</span><span class="p">:</span><span class="s2">&#34;response&#34;</span><span class="p">,</span><span class="nt">&#34;command&#34;</span><span class="p">:</span><span class="s2">&#34;prompt&#34;</span><span class="p">,</span><span class="nt">&#34;success&#34;</span><span class="p">:</span><span class="kc">false</span><span class="p">,</span><span class="nt">&#34;error&#34;</span><span class="p">:</span><span class="s2">&#34;Agent is already processing. Specify streamingBehavior (&#39;steer&#39; or &#39;followUp&#39;) to queue the message.&#34;</span><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li><code>id</code> 原样回填；命令没有 <code>id</code>，响应里也没有。没有数据时省略 <code>data</code>；<code>cycle_model</code>、<code>cycle_thinking_level</code> 没东西可切换时返回 <code>&quot;data&quot;:null</code>。</li>
+<li><strong>命令并发处理</strong>。每读到一行就 <code>void handleInputLine(line)</code>，不等上一条处理完。一条要等很久的命令（<code>compact</code>、<code>bash</code>、<code>abort</code>）不会挡住后面的 <code>get_state</code>，所以客户端必须按 <code>id</code> 配对，不能按顺序。</li>
+<li><strong><code>prompt</code> 不等运行结束</strong>。它把 <code>preflightResult</code> 回调交给 <code>session.prompt()</code>，在三个时刻之一回响应：
+<ul>
+<li><code>handled</code>：被扩展命令或 <code>input</code> 事件处理掉了，不会开始运行；</li>
+<li><code>queued</code>：正在运行，按 <code>streamingBehavior</code> 排进了队列；</li>
+<li><code>started</code>：通过了模型和密钥检查、<code>before_agent_start</code> 也跑完了，马上开始运行。
+预检之前的失败（流式中没给 <code>streamingBehavior</code>、压缩进行中、没有模型或密钥）变成失败的响应；<code>started</code> 之后的失败只出现在事件流里。所以每个 <code>id</code> 恰好一条响应，运行有没有结束要看 <code>agent_settled</code>。</li>
+</ul>
+</li>
+<li><strong>扩展命令的 <code>handled</code> 要等命令执行完才回</strong>。<code>session.prompt()</code> 先 <code>await</code> 命令的处理函数，再调用 <code>preflightResult(&quot;handled&quot;)</code>。P3b 的 <code>/ask timeout</code> 里，命令弹出一个 1 秒超时的 confirm，响应在 1213 ms 时才到，和命令最后发的 <code>notify</code> 同时。</li>
+</ul>
+<p>P3 一次会话里的几条（<code>&lt;&lt;</code> 是 pi 写出的，<code>&gt;&gt;</code> 是客户端写入的）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&gt;&gt; {&#34;id&#34;:&#34;3&#34;,&#34;type&#34;:&#34;prompt&#34;,&#34;message&#34;:&#34;say hi&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;id&#34;:&#34;3&#34;,&#34;type&#34;:&#34;response&#34;,&#34;command&#34;:&#34;prompt&#34;,&#34;success&#34;:true,&#34;data&#34;:{&#34;disposition&#34;:&#34;started&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_start&#34;}
+</span></span><span class="line"><span class="cl">…
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_settled&#34;}
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;id&#34;:&#34;9&#34;,&#34;type&#34;:&#34;get_entries&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;id&#34;:&#34;9&#34;,&#34;type&#34;:&#34;response&#34;,&#34;command&#34;:&#34;get_entries&#34;,&#34;success&#34;:true,&#34;data&#34;:{&#34;entries&#34;:[…],&#34;leafId&#34;:&#34;…&#34;}}
+</span></span></code></pre></div><h3 id="34-扩展-ui-的往返">
+<a class="header-anchor" href="#34-%e6%89%a9%e5%b1%95-ui-%e7%9a%84%e5%be%80%e8%bf%94"></a>
+3.4 扩展 UI 的往返
+</h3><p>RPC 模式绑定扩展时传入自己的 <code>uiContext</code>，<code>ctx.ui</code> 的方法分三类（完整的空操作清单见第九章 5 节）：</p>
+<table>
+	<thead>
+			<tr>
+					<th>类别</th>
+					<th>方法</th>
+					<th>线上的记录</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>要等回复的对话框</td>
+					<td><code>select</code>、<code>confirm</code>、<code>input</code>、<code>editor</code></td>
+					<td><code>extension_ui_request</code>，<code>method</code> 为方法名，带一个随机 UUID 作 <code>id</code>，以及 <code>title</code>、<code>options</code> / <code>message</code> / <code>placeholder</code> / <code>prefill</code> 和 <code>timeout</code></td>
+			</tr>
+			<tr>
+					<td>单向通知</td>
+					<td><code>notify</code>、<code>setStatus</code>、<code>setWidget</code>（只转发字符串数组）、<code>setTitle</code>、<code>setEditorText</code> / <code>pasteToEditor</code>（都发 <code>set_editor_text</code>）</td>
+					<td><code>extension_ui_request</code>，不需要回复</td>
+			</tr>
+			<tr>
+					<td>空操作</td>
+					<td><code>custom</code>、<code>setFooter</code>、<code>setHeader</code>、<code>setEditorComponent</code> 等</td>
+					<td>不发任何记录</td>
+			</tr>
+	</tbody>
+</table>
+<p>客户端用三种形状之一回复，<code>id</code> 取自请求：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-json" data-lang="json"><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;type&#34;</span><span class="p">:</span><span class="s2">&#34;extension_ui_response&#34;</span><span class="p">,</span><span class="nt">&#34;id&#34;</span><span class="p">:</span><span class="s2">&#34;&lt;uuid&gt;&#34;</span><span class="p">,</span><span class="nt">&#34;value&#34;</span><span class="p">:</span><span class="s2">&#34;b&#34;</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;type&#34;</span><span class="p">:</span><span class="s2">&#34;extension_ui_response&#34;</span><span class="p">,</span><span class="nt">&#34;id&#34;</span><span class="p">:</span><span class="s2">&#34;&lt;uuid&gt;&#34;</span><span class="p">,</span><span class="nt">&#34;confirmed&#34;</span><span class="p">:</span><span class="kc">true</span><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">{</span><span class="nt">&#34;type&#34;</span><span class="p">:</span><span class="s2">&#34;extension_ui_response&#34;</span><span class="p">,</span><span class="nt">&#34;id&#34;</span><span class="p">:</span><span class="s2">&#34;&lt;uuid&gt;&#34;</span><span class="p">,</span><span class="nt">&#34;cancelled&#34;</span><span class="p">:</span><span class="kc">true</span><span class="p">}</span>
+</span></span></code></pre></div><p>回复不产生 <code>response</code>；<code>id</code> 对不上的回复被静默丢弃。对话框的等待由 <code>createDialogPromise</code> 管理，P3b 验证了三种结束方式：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">/ask timeout   confirm(…, { timeout: 1000 }) 无人回答   → 1 秒后 confirm 返回 false
+</span></span><span class="line"><span class="cl">/ask select    客户端回 { cancelled: true }             → select 返回 undefined
+</span></span><span class="line"><span class="cl">/ask abort     input(…, { signal })，300 ms 后 signal 中止 → input 返回 undefined
+</span></span></code></pre></div><p>超时和中止都由 pi 这边给出默认值（<code>select</code> / <code>input</code> 为 <code>undefined</code>，<code>confirm</code> 为 <code>false</code>），<strong>不会通知客户端</strong>：客户端显示的对话框不会自动关闭，之后再回复也会被丢弃。<code>editor</code> 的签名里没有选项参数，既没有超时也不能中止，没有回复就一直等。</p>
+<p><code>setWidget</code> 不传 <code>placement</code> 时，记录里就没有 <code>widgetPlacement</code> 字段（P3b：<code>{&quot;method&quot;:&quot;setWidget&quot;,&quot;widgetKey&quot;:&quot;probe&quot;,&quot;widgetLines&quot;:[&quot;line 1&quot;,&quot;line 2&quot;]}</code>），<code>rpc-extension-ui.md</code> 说明缺省时按 <code>aboveEditor</code> 处理，这个默认值要由客户端实现。</p>
+<h3 id="35-运行中的输入和中止">
+<a class="header-anchor" href="#35-%e8%bf%90%e8%a1%8c%e4%b8%ad%e7%9a%84%e8%be%93%e5%85%a5%e5%92%8c%e4%b8%ad%e6%ad%a2"></a>
+3.5 运行中的输入和中止
+</h3><p>P3、P3b 在 mock 慢速流出文字时依次发送：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&gt;&gt; {&#34;id&#34;:&#34;q1&#34;,&#34;type&#34;:&#34;prompt&#34;,&#34;message&#34;:&#34;SLOW one&#34;}            → started
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;id&#34;:&#34;q2&#34;,&#34;type&#34;:&#34;prompt&#34;,&#34;message&#34;:&#34;after that&#34;,&#34;streamingBehavior&#34;:&#34;followUp&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;queue_update&#34;,&#34;steering&#34;:[],&#34;followUp&#34;:[&#34;after that&#34;]}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;id&#34;:&#34;q2&#34;,…,&#34;data&#34;:{&#34;disposition&#34;:&#34;queued&#34;}}
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;id&#34;:&#34;q3&#34;,&#34;type&#34;:&#34;steer&#34;,&#34;message&#34;:&#34;be brief&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;queue_update&#34;,&#34;steering&#34;:[&#34;be brief&#34;],&#34;followUp&#34;:[&#34;after that&#34;]}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;id&#34;:&#34;q3&#34;,…,&#34;data&#34;:{&#34;disposition&#34;:&#34;queued&#34;}}
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;id&#34;:&#34;q4&#34;,&#34;type&#34;:&#34;abort&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_end&#34;,…}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_settled&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;id&#34;:&#34;q4&#34;,&#34;type&#34;:&#34;response&#34;,&#34;command&#34;:&#34;abort&#34;,&#34;success&#34;:true}
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;id&#34;:&#34;q5&#34;,&#34;type&#34;:&#34;get_state&#34;}                              → pendingMessageCount: 2
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;id&#34;:&#34;q6&#34;,&#34;type&#34;:&#34;prompt&#34;,&#34;message&#34;:&#34;say hi&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; message_start user &#34;say hi&#34; → queue_update → message_start user &#34;be brief&#34; → … assistant …
+</span></span><span class="line"><span class="cl">&lt;&lt; queue_update(空) → message_start user &#34;after that&#34; → … assistant … → agent_settled
+</span></span></code></pre></div><ul>
+<li>流式中的 <code>prompt</code> 必须带 <code>streamingBehavior</code>，否则失败；带了就和 <code>steer</code> / <code>follow_up</code> 一样排队，回 <code>queued</code>。</li>
+<li><code>abort</code> 等到会话空闲才回响应，所以它的响应排在 <code>agent_settled</code> 之后。</li>
+<li><strong><code>abort</code> 不清空队列</strong>。中止后 <code>pendingMessageCount</code> 仍是 2；下一次 <code>prompt</code> 时，插队消息紧跟在新的 user 消息后面进入第一轮，后续消息在这一轮结束后进入第二轮。交互模式按 Escape 中止时会先把排队消息退回编辑器（4.2 节）；RPC 客户端想要同样的效果，先发 <code>clear_queue</code> 取回文字，再发 <code>abort</code>。</li>
+</ul>
+<h3 id="36-会话替换和退出">
+<a class="header-anchor" href="#36-%e4%bc%9a%e8%af%9d%e6%9b%bf%e6%8d%a2%e5%92%8c%e9%80%80%e5%87%ba"></a>
+3.6 会话替换和退出
+</h3><p><code>new_session</code>、<code>switch_session</code>、<code>fork</code>、<code>clone</code> 由运行时替换整个 <code>AgentSession</code>。替换完成时运行时会调用 <code>setRebindSession</code> 注册的回调，RPC 模式的这几个 <code>case</code> 在返回前又自己调用了一次 <code>rebindSession()</code>，于是新会话被绑定两次。P3 里 <code>new_session</code> 之后探针扩展的日志：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">[ext] session_shutdown reason=new
+</span></span><span class="line"><span class="cl">[ext] session_start reason=new mode=rpc hasUI=true
+</span></span><span class="line"><span class="cl">[ext] session_start reason=new mode=rpc hasUI=true
+</span></span></code></pre></div><p>交互和 print 模式只靠回调，扩展只收到一次。在 RPC 模式下写扩展时，<code>session_start</code> 处理函数要能重复执行。</p>
+<p>退出：</p>
+<table>
+	<thead>
+			<tr>
+					<th>情形</th>
+					<th>结果</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>关闭 pi 的 stdin</td>
+					<td><code>shutdown()</code>：<code>runtime.dispose()</code>（扩展收到 <code>session_shutdown</code>，<code>reason</code> 为 <code>quit</code>），写完 stdout，退出码 0（P3）</td>
+			</tr>
+			<tr>
+					<td><code>SIGTERM</code> / <code>SIGHUP</code></td>
+					<td>结束跟踪的子进程，dispose，退出码 143 / 129；<code>SIGTERM</code> 时不等 stdout 写完</td>
+			</tr>
+			<tr>
+					<td>扩展调用 <code>ctx.shutdown()</code></td>
+					<td>记下请求，当前命令处理完或下一次 <code>agent_settled</code> 时执行 <code>shutdown()</code></td>
+			</tr>
+			<tr>
+					<td><code>SIGINT</code></td>
+					<td>没有处理函数</td>
+			</tr>
+	</tbody>
+</table>
+<p>不在离线模式时，RPC 模式启动后还会在后台刷新一次模型目录，最多 15 秒，不阻塞命令。</p>
+<h3 id="37-与官方文档对照">
+<a class="header-anchor" href="#37-%e4%b8%8e%e5%ae%98%e6%96%b9%e6%96%87%e6%a1%a3%e5%af%b9%e7%85%a7"></a>
+3.7 与官方文档对照
+</h3><p><code>docs/rpc.md</code>、<code>rpc-commands.md</code>、<code>rpc-extension-ui.md</code> 和 <code>json.md</code> 的命令名、字段、帧格式、<code>disposition</code> 的含义、关闭 stdin 即退出等说法都与代码一致。有出入或没写到的：</p>
+<ul>
+<li><code>rpc-extension-ui.md</code> 说带 <code>timeout</code> 的对话框会自动结束，这对 <code>select</code>、<code>confirm</code>、<code>input</code> 成立；<code>editor</code> 没有超时，也不能中止。超时和中止都不通知客户端，文档没有提。</li>
+<li><code>rpc-commands.md</code> 的 <code>get_state</code> 示例里 <code>steeringMode</code> 是 <code>&quot;all&quot;</code>，实际默认值是 <code>&quot;one-at-a-time&quot;</code>（P3 的 <code>get_state</code>），同一份文档后文也说默认是后者。</li>
+<li><code>json.md</code> 的示例把 user 消息的 <code>content</code> 写成字符串，实际是内容块数组（P2：<code>[{&quot;type&quot;:&quot;text&quot;,&quot;text&quot;:&quot;say hi&quot;}]</code>）。工具执行事件的 <code>parentToolCallId</code> 写在 <code>extensions.md</code> 里，<code>json.md</code> 没有列出。</li>
+<li><code>fork</code> 响应的类型把 <code>text</code> 声明为 <code>string</code>，被扩展取消时实际不带这个字段。</li>
+<li>文档推荐 TypeScript 用户使用导出的 <code>RpcClient</code>。它的 33 个方法和 <code>promptAndWait()</code> 等辅助方法都在，但没有回答 <code>extension_ui_request</code> 的接口，这类记录只会交给事件监听函数；每个请求还有 30 秒的固定超时，<code>compact</code>、<code>bash</code> 这类长命令也一样。</li>
+<li><code>new_session</code> 等命令让扩展收到两次 <code>session_start</code>（3.6 节），文档没有提。</li>
+</ul>
+<hr>
+<h2 id="4--交互模式">
+<a class="header-anchor" href="#4--%e4%ba%a4%e4%ba%92%e6%a8%a1%e5%bc%8f"></a>
+4 · 交互模式
+</h2><p><img src="/images/harness/pi/ch10/fig3-interactive.png" alt="图 3 · 交互模式：界面结构与输入分派"></p>
+<h3 id="41-结构一组固定的容器">
+<a class="header-anchor" href="#41-%e7%bb%93%e6%9e%84%e4%b8%80%e7%bb%84%e5%9b%ba%e5%ae%9a%e7%9a%84%e5%ae%b9%e5%99%a8"></a>
+4.1 结构：一组固定的容器
+</h3><p><code>InteractiveMode</code> 的构造函数先按 <code>--tui-mode</code> 或设置 <code>tuiMode</code> 选渲染器（默认全屏；只有明确设成 <code>regular</code> 才用常规模式），再建好一组容器；<code>init()</code> 把它们从上到下挂到 TUI 上：</p>
+<ul>
+<li><code>documentContainer</code>：包含 <code>headerContainer</code>（版本和快捷键提示）、<code>loadedResourcesContainer</code>（加载的扩展、技能等）、<code>chatContainer</code>（用户消息、回复、工具调用）。</li>
+<li><code>pendingMessagesContainer</code>：排队中的 <code>Steering: …</code>、<code>Follow-up: …</code>。</li>
+<li><code>statusContainer</code>：状态消息。Working 动画默认嵌在编辑器的上边框里，自定义编辑器不支持时才放到这里。</li>
+<li><code>widgetContainerAbove</code>：扩展 <code>setWidget</code> 的组件（默认位置）。</li>
+<li><code>editorContainer</code>：编辑器；扩展的对话框也显示在这里。</li>
+<li><code>widgetContainerBelow</code>：<code>setWidget</code> 指定 <code>placement: &quot;belowEditor&quot;</code> 的组件。</li>
+<li><code>footerContainer</code>：工作目录、上下文用量、模型名，以及扩展 <code>setStatus</code> 的状态文字。</li>
+</ul>
+<p>界面没有单独的状态栏：扩展的状态显示在页脚里。</p>
+<p>两种渲染器的区别：</p>
+<ul>
+<li><strong>全屏</strong>（<code>TuiAltScreen</code>）：进入终端的备用屏幕（<code>CSI ?1049h</code>），用 <code>VStack</code> 布局：<code>documentContainer</code> 放进一个跟随底部的 <code>ScrollView</code>，其余容器固定在底部。滚动、搜索、鼠标选择都由 pi-tui 自己实现。退出时按设置 <code>fullscreenExitOutput</code> 处理：默认的 <code>transcript</code> 先切回常规模式，把整个对话输出到主屏，退出后还能在终端里翻看；另一个取值是 <code>resume-hint</code>。</li>
+<li><strong>常规</strong>（<code>TuiMainScreen</code>）：同一组容器依次输出在主屏上，历史内容留在终端自己的回滚区里。</li>
+<li>运行中可以在 <code>/settings</code> 里切换：停掉旧渲染器，把同一组组件挂到新渲染器上。组件拿到的 <code>ui</code> 是一个代理对象，换渲染器不影响它们。</li>
+</ul>
+<p>P4 抓到的启动帧（80×24 的终端，全屏模式；常规模式内容相同，只是编辑器和页脚紧跟在内容下方，下面留空）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl"> 2| ▀▀█  v1.0.2
+</span></span><span class="line"><span class="cl"> 3| █▀ █ escape interrupt · ctrl+c/ctrl+d clear/exit · / commands · ! bash ·
+</span></span><span class="line"><span class="cl"> 4| ctrl+o more
+</span></span><span class="line"><span class="cl"> …
+</span></span><span class="line"><span class="cl">10|[Extensions]
+</span></span><span class="line"><span class="cl">11|  ext-deploy.ts
+</span></span><span class="line"><span class="cl"> …
+</span></span><span class="line"><span class="cl">20|────────────────────────────────────────────────────────────────────────────────
+</span></span><span class="line"><span class="cl">21|
+</span></span><span class="line"><span class="cl">22|────────────────────────────────────────────────────────────────────────────────
+</span></span><span class="line"><span class="cl">23|/private/tmp/ch10.Dbpr/ws
+</span></span><span class="line"><span class="cl">24|0.0%/100k (auto)                                                          mock-1
+</span></span></code></pre></div><p>第 20–22 行是编辑器，23–24 行是页脚。运行时 Working 动画就画在第 20 行编辑器的上边框上（4.2 节的帧）。</p>
+<h3 id="42-输入分派">
+<a class="header-anchor" href="#42-%e8%be%93%e5%85%a5%e5%88%86%e6%b4%be"></a>
+4.2 输入分派
+</h3><p>Enter 由 <code>setupEditorSubmitHandler</code> 处理，按顺序判断：</p>
+<ol>
+<li>文字是某个内置命令（4.3 节；<code>/model</code>、<code>/name</code>、<code>/compact</code> 等 8 个还可以带参数）：执行它，结束。</li>
+<li>以 <code>!</code> 开头：执行 shell 命令；<code>!!</code> 的输出不进上下文。已经有命令在跑时拒绝。</li>
+<li>正在压缩：扩展命令立即执行，其余文字排成插队消息，压缩完再发。</li>
+<li>正在运行：<code>session.prompt(text, { streamingBehavior: &quot;steer&quot; })</code>，排成插队消息。</li>
+<li>空闲：把文字交给 <code>run()</code> 里等待输入的循环，由循环调用 <code>session.prompt(text)</code>。</li>
+</ol>
+<p>其他按键（默认绑定，可在快捷键设置里改）：</p>
+<table>
+	<thead>
+			<tr>
+					<th>按键</th>
+					<th>运行中</th>
+					<th>空闲</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>Alt+Enter</td>
+					<td>排成后续消息（<code>streamingBehavior: &quot;followUp&quot;</code>）</td>
+					<td>和 Enter 一样</td>
+			</tr>
+			<tr>
+					<td>Escape</td>
+					<td>把排队的消息退回编辑器，再 <code>abort()</code></td>
+					<td>正在执行 <code>!</code> 命令时中止它；编辑器为空时连按两次打开 <code>/tree</code> 或 <code>/fork</code>（设置 <code>doubleEscapeAction</code>）</td>
+			</tr>
+			<tr>
+					<td>Alt+Up</td>
+					<td>把排队的消息全部取回编辑器</td>
+					<td>—</td>
+			</tr>
+			<tr>
+					<td>Ctrl+C</td>
+					<td>清空编辑器，500 ms 内连按两次退出；<strong>不中止运行</strong></td>
+					<td>同左</td>
+			</tr>
+			<tr>
+					<td>Ctrl+D</td>
+					<td>编辑器为空时退出</td>
+					<td>同左</td>
+			</tr>
+	</tbody>
+</table>
+<p>P4 在 mock 慢速输出时依次输入 <code>be brief</code> + Enter、<code>later please</code> + Alt+Enter，再按 Escape：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">帧 C（Enter 之后）              帧 D（Alt+Enter 之后）            帧 E（Escape 之后）
+</span></span><span class="line"><span class="cl">15| w0 w1 w2 w3 w4             14| w0 w1 w2 w3 w4               14| w0 w1 w2 w3 w4
+</span></span><span class="line"><span class="cl">16|                            15|                              15|
+</span></span><span class="line"><span class="cl">17| Steering: be brief         16| Steering: be brief           16| Operation aborted
+</span></span><span class="line"><span class="cl">18| ↳ Option+Up to edit all…   17| Follow-up: later please      17|
+</span></span><span class="line"><span class="cl">19|                            18| ↳ Option+Up to edit all…     18|──────────────────
+</span></span><span class="line"><span class="cl">20|── ⠋ Working ─────────      20|── ⠋ Working ─────────        19|be brief
+</span></span><span class="line"><span class="cl">                                                                20|
+</span></span><span class="line"><span class="cl">                                                                21|later please
+</span></span><span class="line"><span class="cl">                                                                22|──────────────────
+</span></span></code></pre></div><p>排队消息显示在聊天区和编辑器之间；Escape 之后两条消息回到了编辑器（中间隔一个空行），回复停在 <code>w4</code>，下面是 <code>Operation aborted</code>。这和 RPC 的 <code>abort</code> 不同：RPC 不动队列（3.5 节）。</p>
+<h3 id="43-斜杠命令">
+<a class="header-anchor" href="#43-%e6%96%9c%e6%9d%a0%e5%91%bd%e4%bb%a4"></a>
+4.3 斜杠命令
+</h3><p>斜杠命令分两段处理：</p>
+<ul>
+<li><strong>内置命令</strong>在 <code>InteractiveMode</code> 的 Enter 处理函数里，用一串 <code>if (text === &quot;/settings&quot;)</code>（带参数的用 <code>startsWith(&quot;/model &quot;)</code>）判断。<code>BUILTIN_SLASH_COMMANDS</code> 列出 24 个（<code>settings</code>、<code>model</code>、<code>tree</code>、<code>thinking</code>、<code>scoped-models</code>、<code>export</code>、<code>import</code>、<code>share</code>、<code>bug</code>、<code>copy</code>、<code>name</code>、<code>session</code>、<code>changelog</code>、<code>hotkeys</code>、<code>fork</code>、<code>clone</code>、<code>trust</code>、<code>login</code>、<code>logout</code>、<code>new</code>、<code>compact</code>、<code>resume</code>、<code>reload</code>、<code>quit</code>），这份列表只用于自动补全和冲突警告；<code>if</code> 链里另外还有 3 个不列出的命令（<code>/debug</code> 和两个彩蛋）。</li>
+<li><strong>其余的</strong>交给 <code>session.prompt()</code>，在 <code>AgentSession</code> 里依次处理：扩展命令（找到就执行，即使正在运行）→ <code>input</code> 事件（第八章 5 节）→ <code>/skill:名字</code> 展开 → 提示词模板展开 → 排队或开始运行。</li>
+</ul>
+<p>所以内置命令只存在于交互模式；扩展命令、技能和模板在四种模式里都能用（RPC 用 <code>get_commands</code> 列出它们）。扩展命令和内置命令同名时，内置命令先匹配，扩展命令从自动补全里隐去。</p>
+<h3 id="44-事件怎样变成画面">
+<a class="header-anchor" href="#44-%e4%ba%8b%e4%bb%b6%e6%80%8e%e6%a0%b7%e5%8f%98%e6%88%90%e7%94%bb%e9%9d%a2"></a>
+4.4 事件怎样变成画面
+</h3><p><code>subscribeToAgent</code> 用 <code>session.subscribe(handleEvent)</code> 订阅会话事件。<code>handleEvent</code> 对每个事件都让页脚失效重算，<code>switch</code> 里有 22 个 <code>case</code>（23 种里只少 <code>turn_end</code>，<code>bash_execution_update</code> 是空分支），大多数分支改完组件后请求重绘：</p>
+<ul>
+<li><code>message_start</code>（assistant）：建一个 <code>AssistantMessageComponent</code> 加进 <code>chatContainer</code>。</li>
+<li><code>message_update</code>：更新这个组件的内容；每遇到一个工具调用块，建或更新一个 <code>ToolExecutionComponent</code>。</li>
+<li><code>message_end</code>：定稿。中止或出错时，把还在等待的工具组件都标成错误。</li>
+<li><code>tool_execution_*</code>：更新工具组件的参数、进度和结果。</li>
+<li><code>queue_update</code>：重画排队消息区。</li>
+<li><code>entry_appended</code> 是压缩条目时：清空聊天区，按压缩后保留的条目重新渲染，加上摘要。</li>
+<li><code>agent_start</code> / <code>agent_end</code>、<code>compaction_*</code>、<code>auto_retry_*</code>：显示和收起 Working 动画、状态提示。</li>
+</ul>
+<p>组件只改自己的状态然后调用 <code>ui.requestRender()</code>，什么时候画、画哪些行由 pi-tui 决定（第 5 节）。</p>
+<h3 id="45-会话替换和-reload-时界面怎样重建">
+<a class="header-anchor" href="#45-%e4%bc%9a%e8%af%9d%e6%9b%bf%e6%8d%a2%e5%92%8c-reload-%e6%97%b6%e7%95%8c%e9%9d%a2%e6%80%8e%e6%a0%b7%e9%87%8d%e5%bb%ba"></a>
+4.5 会话替换和 /reload 时界面怎样重建
+</h3><ul>
+<li><strong><code>/new</code>、<code>/resume</code>、<code>/fork</code>、<code>/clone</code>、<code>/import</code></strong>：运行时替换 <code>AgentSession</code>。拆旧会话时先调用 <code>setBeforeSessionInvalidate</code> 注册的 <code>resetExtensionUI</code>，撤掉扩展留下的对话框、组件、页眉页脚、状态、快捷键和自定义编辑器；建好新会话后调用 <code>setRebindSession</code> 注册的回调 <code>rebindCurrentSession</code>：退订、应用设置、清空资源区、聊天区和排队区，按新会话重新渲染消息，再订阅、再 <code>bindExtensions</code>。</li>
+<li><strong><code>/tree</code></strong>：不替换会话，只在同一个会话里 <code>navigateTree</code>，然后清空聊天区、按新分支重新渲染。</li>
+<li><strong><code>/reload</code></strong>：运行中或压缩中拒绝执行。它先 <code>resetExtensionUI</code>，在编辑器位置显示 Reloading…，再调用 <code>session.reload()</code>。<code>AgentSession</code> 用上次保存的绑定重新接上新的扩展运行器（第九章 2.3 节），不经过 <code>rebindCurrentSession</code>；之后界面重新加载快捷键、主题、自动补全和资源清单。</li>
+</ul>
+<h3 id="46-ctxui-在交互模式里落到哪里">
+<a class="header-anchor" href="#46-ctxui-%e5%9c%a8%e4%ba%a4%e4%ba%92%e6%a8%a1%e5%bc%8f%e9%87%8c%e8%90%bd%e5%88%b0%e5%93%aa%e9%87%8c"></a>
+4.6 ctx.ui 在交互模式里落到哪里
+</h3><p>交互模式的 <code>uiContext</code> 由 <code>createExtensionUIContext</code> 创建，28 个成员（第九章 5 节）。它们落到 4.1 节的容器上：</p>
+<table>
+	<thead>
+			<tr>
+					<th>方法</th>
+					<th>落点</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>select</code>、<code>confirm</code>、<code>input</code>、<code>editor</code></td>
+					<td>替换 <code>editorContainer</code> 的内容并取得焦点，回答后换回编辑器</td>
+			</tr>
+			<tr>
+					<td><code>custom(factory, { overlay })</code></td>
+					<td>默认同上；<code>overlay: true</code> 时作为叠加层浮在界面上</td>
+			</tr>
+			<tr>
+					<td><code>setWidget(key, …, { placement })</code></td>
+					<td>按 key 放进编辑器上方或下方的组件区</td>
+			</tr>
+			<tr>
+					<td><code>setFooter</code> / <code>setHeader</code></td>
+					<td>替换页脚 / 页眉组件</td>
+			</tr>
+			<tr>
+					<td><code>setStatus</code></td>
+					<td>页脚里的状态文字</td>
+			</tr>
+			<tr>
+					<td><code>notify</code></td>
+					<td>聊天区里的一条提示</td>
+			</tr>
+			<tr>
+					<td><code>setEditorComponent</code></td>
+					<td>换掉默认的编辑器</td>
+			</tr>
+	</tbody>
+</table>
+<p>P4 让模型调用 <code>deploy</code>，确认框显示在编辑器的位置，带倒计时：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">12|────────────────────────────────────────────────────────────────────────────────
+</span></span><span class="line"><span class="cl">13|
+</span></span><span class="line"><span class="cl">14| Deploy?
+</span></span><span class="line"><span class="cl">15| Deploy to prod? (29s)
+</span></span><span class="line"><span class="cl">16|
+</span></span><span class="line"><span class="cl">17| → Yes
+</span></span><span class="line"><span class="cl">18|   No
+</span></span><span class="line"><span class="cl">19|
+</span></span><span class="line"><span class="cl">20| ↑↓ navigate  enter select  escape/ctrl+c cancel
+</span></span><span class="line"><span class="cl">21|
+</span></span><span class="line"><span class="cl">22|────────────────────────────────────────────────────────────────────────────────
+</span></span></code></pre></div><p>按 Enter 选 Yes 之后，聊天区依次出现工具结果 <code>deployed to prod</code>、通知 <code>deploying</code> 和回复 <code>Deployed (tool said ok).</code>。倒计时的数字每秒重画一次，这一行就是那一秒里唯一被重写的内容。</p>
+<hr>
+<h2 id="5--pi-tui终端界面怎样画出来">
+<a class="header-anchor" href="#5--pi-tui%e7%bb%88%e7%ab%af%e7%95%8c%e9%9d%a2%e6%80%8e%e6%a0%b7%e7%94%bb%e5%87%ba%e6%9d%a5"></a>
+5 · pi-tui：终端界面怎样画出来
+</h2><p><img src="/images/harness/pi/ch10/fig4-tui-pipeline.png" alt="图 4 · pi-tui 的渲染管线：从 requestRender() 到终端"></p>
+<h3 id="51-组件接口">
+<a class="header-anchor" href="#51-%e7%bb%84%e4%bb%b6%e6%8e%a5%e5%8f%a3"></a>
+5.1 组件接口
+</h3><p>pi-tui 里没有叫 <code>TUI</code> 的类，<code>TUI</code> 是一个接口；抽象基类 <code>TuiBase</code> 继承自 <code>Container</code>（容器组件），两个具体的渲染器是 <code>TuiMainScreen</code> 和 <code>TuiAltScreen</code>。组件只需要实现：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="kr">export</span> <span class="kr">interface</span> <span class="nx">Component</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">render</span><span class="p">(</span><span class="nx">width</span>: <span class="kt">number</span><span class="p">)</span><span class="o">:</span> <span class="kt">string</span><span class="p">[];</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">handleInput</span><span class="o">?</span><span class="p">(</span><span class="nx">data</span>: <span class="kt">string</span><span class="p">)</span><span class="o">:</span> <span class="k">void</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">handleMouse</span><span class="o">?</span><span class="p">(</span><span class="nx">event</span>: <span class="kt">TuiMouseEvent</span><span class="p">)</span><span class="o">:</span> <span class="nx">TuiMouseEventResult</span> <span class="o">|</span> <span class="kc">undefined</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">wantsKeyRelease?</span>: <span class="kt">boolean</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">invalidate</span><span class="p">()</span><span class="o">:</span> <span class="k">void</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><ul>
+<li><code>render(width)</code>（按给定宽度返回若干行字符串，可以带颜色序列）：每行的显示宽度不能超过 <code>width</code>。超过时 <code>TuiMainScreen</code> 写一份崩溃日志 <code>pi-tui-crash.log</code> 并抛错，<code>TuiAltScreen</code> 直接按列截断。</li>
+<li><code>handleInput</code>（获得焦点时收到按键数据）、<code>handleMouse</code>（全屏模式的鼠标事件）、<code>wantsKeyRelease</code>（是否要按键松开事件）。</li>
+<li><code>invalidate()</code>（主题变化等情况下丢弃缓存，下次从头渲染）。</li>
+<li>实现 <code>Focusable</code>（<code>focused</code> 属性）的组件可以在输出里放一个 <code>CURSOR_MARKER</code>，渲染器据此摆放真实的终端光标，输入法的候选框就会跟着它。</li>
+</ul>
+<p>组件之间没有&quot;脏区域&quot;的约定。组件改了状态就调用 <code>requestRender()</code>，每一帧都从根容器把整棵树渲染一遍，差分在渲染器里做。</p>
+<h3 id="52-渲染调度">
+<a class="header-anchor" href="#52-%e6%b8%b2%e6%9f%93%e8%b0%83%e5%ba%a6"></a>
+5.2 渲染调度
+</h3><ul>
+<li><code>requestRender()</code> 只置一个标志，在 <code>process.nextTick</code> 里调度；距上一帧不足 16 ms（<code>MIN_RENDER_INTERVAL_MS</code>）就用定时器推迟。一个 tick 里多少次请求都只画一帧。</li>
+<li><code>requestRender(true)</code> 先清掉渲染器记住的上一帧，再在下一个 tick 立即渲染，跳过节流。</li>
+<li><code>renderNow()</code> 同步渲染。</li>
+</ul>
+<h3 id="53-两种差分">
+<a class="header-anchor" href="#53-%e4%b8%a4%e7%a7%8d%e5%b7%ae%e5%88%86"></a>
+5.3 两种差分
+</h3><p>两个渲染器共用&quot;渲染整棵树 → 合成叠加层 → 找出光标标记&quot;这几步，差别在比较和写法：</p>
+<ul>
+<li><strong><code>TuiMainScreen</code></strong>：把新的行和上一帧逐行比较，找出第一行和最后一行变化的位置，只重写这一段。主屏上无法直接寻址已经输出的行，所以用相对移动（<code>CSI n A</code> 上移、<code>CSI n B</code> 下移）回到变化的行，<code>\r CSI 2K</code> 清行后重写。新增了行时，从第一处变化一直写到末尾。</li>
+<li><strong><code>TuiAltScreen</code></strong>：画面固定为终端高度，按行和上一帧比较，只写不同的行，用绝对定位 <code>CSI 行;1H</code> 跳过去。</li>
+<li>两者都把一帧的行更新包在 <code>CSI ?2026h … CSI ?2026l</code>（同步输出）里，支持它的终端会等这一段写完再一起显示，不会闪。光标归位的序列可能跟在后面。</li>
+</ul>
+<p>P4 记录了每一次原始写入。全屏模式下 mock 每流出一段文字：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl"> 658 submit-slow   bytes=130 sync=2026h el2K=1 cupRows=[17,21]  &#34;w0&#34;
+</span></span><span class="line"><span class="cl"> 720 submit-slow   bytes=338 sync=2026h el2K=1 cupRows=[20,21]  &#34;── ⠸ Working ───…&#34;
+</span></span><span class="line"><span class="cl"> 816 submit-slow   bytes=130 sync=2026h el2K=1 cupRows=[17,21]  &#34;w0 w1&#34;
+</span></span><span class="line"><span class="cl"> 960 submit-slow   bytes=130 sync=2026h el2K=1 cupRows=[17,21]  &#34;w0 w1 w2&#34;
+</span></span></code></pre></div><p>每段文字只重写第 17 行（130 字节，跳到第 21 行是为了把光标放回编辑器）；Working 动画大约每 80 ms 换一帧，只重写第 20 行。常规模式下同样的更新是 145 字节，用的是 <code>CSI 3A</code> / <code>CSI 3B</code> 这样的相对移动；但第一段文字让回复多出一行，那一次从第一处变化写到了末尾（约 1 KB）。</p>
+<p>P6 写了一个只用 pi-tui 的小程序：十行文字，每 100 ms 改第 5 行。终端收到的完整输出：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">+  83ms &#34;\e[&gt;7u\e[?u\e[c\e[?25l\e[?2026hrow 0: static…\r\r\nrow 1: static…&#34;   ← 第一帧：整屏输出
+</span></span><span class="line"><span class="cl">+  85ms &#34;\e[&gt;4;2m&#34;                                                          ← 终端不支持 Kitty 键盘协议，改用 modifyOtherKeys
+</span></span><span class="line"><span class="cl">+ 184ms &#34;\e[?2026h\e[5A\r\e[2Krow 4: tick=1\e[0m…\e[?2026l&#34;                  ← 上移 5 行，清行，重写
+</span></span><span class="line"><span class="cl">+ 285ms &#34;\e[?2026h\r\e[2Krow 4: tick=2\e[0m…\e[?2026l&#34;                      ← 光标已在这一行，不用移动
+</span></span><span class="line"><span class="cl">+ 388ms &#34;\e[?2026h\r\e[2Krow 4: tick=3\e[0m…\e[?2026l&#34;
+</span></span></code></pre></div><p>（<code>\e</code> 即 ESC。）</p>
+<h3 id="54-什么时候整屏重画">
+<a class="header-anchor" href="#54-%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e6%95%b4%e5%b1%8f%e9%87%8d%e7%94%bb"></a>
+5.4 什么时候整屏重画
+</h3><p>常规模式在这些情况下放弃差分，写 <code>CSI 2J CSI H CSI 3J</code> 后从头输出全部行：终端宽度变化、高度变化（Termux 除外）、开启 <code>clearOnShrink</code> 且内容变短、第一处变化在已经滚出视口的行上、删掉的行超过一屏。<code>CSI 3J</code> 会连终端的回滚区一起清掉，所以常规模式下改变窗口宽度，之前的输出会被整体重新打印一遍。第一帧不清屏，直接输出。</p>
+<p>全屏模式在第一帧和终端尺寸变化时写 <code>CSI 2J</code>，再写满每一行。</p>
+<p>设置环境变量 <code>PI_TUI_DEBUG_REDRAW=1</code> 后，常规模式每次整屏重画都会把原因追加到日志文件 <code>pi-tui-debug.log</code>。</p>
+<h3 id="55-按键和输入">
+<a class="header-anchor" href="#55-%e6%8c%89%e9%94%ae%e5%92%8c%e8%be%93%e5%85%a5"></a>
+5.5 按键和输入
+</h3><ul>
+<li><code>ProcessTerminal</code>（基于 <code>process.stdin</code> / <code>stdout</code> 的终端实现）启动时发出 <code>CSI &gt;7u</code>（请求 Kitty 键盘协议）、<code>CSI ?u</code>（查询是否支持）和 <code>CSI c</code>（设备属性）。终端回了设备属性却没回 Kitty 查询，就改发 <code>CSI &gt;4;2m</code> 打开 modifyOtherKeys。P6 里 xterm.js 走的就是这条退路。</li>
+<li><code>StdinBuffer</code>（输入缓冲）把被拆开的转义序列重新拼好，单独的 ESC 等 10 ms 才判定为 Escape 键，并处理括号粘贴（<code>CSI ?2004h</code>）。</li>
+<li><code>keys.ts</code> 同时解析旧式序列和 Kitty 协议，<code>matchesKey(data, &quot;ctrl+c&quot;)</code> 这类函数供组件判断按键；Kitty 协议下还能区分按下、重复和松开。</li>
+</ul>
+<h3 id="56-主题和暗色适配">
+<a class="header-anchor" href="#56-%e4%b8%bb%e9%a2%98%e5%92%8c%e6%9a%97%e8%89%b2%e9%80%82%e9%85%8d"></a>
+5.6 主题和暗色适配
+</h3><p>pi-tui 不带主题文件，只提供颜色工具和终端颜色查询：用 OSC 10 / 11 查询前景色和背景色、OSC 4 查询 16 色调色板，用 <code>CSI ?2031h</code> 订阅终端的明暗切换通知。</p>
+<p>主题在 pi-coding-agent 里：<code>dark.json</code>、<code>light.json</code> 两套内置主题，加上 <code>system-theme.ts</code> 根据终端背景色和调色板生成的 system 主题。设置成一对明暗主题或 system 主题时，<code>theme-controller.ts</code> 在终端明暗切换后自动换主题；查询终端颜色时最多等 100 ms。</p>
+<h3 id="57-单独使用">
+<a class="header-anchor" href="#57-%e5%8d%95%e7%8b%ac%e4%bd%bf%e7%94%a8"></a>
+5.7 单独使用
+</h3><p>pi-tui 的 <code>dependencies</code> 只有 <code>get-east-asian-width</code>（计算东亚字符宽度）和 <code>marked</code>（Markdown 解析），不依赖任何 <code>@earendil-works</code> 包。导出的组件有 <code>Box</code>、<code>Editor</code>、<code>HStack</code>、<code>VStack</code>、<code>Image</code>、<code>Input</code>、<code>Loader</code>、<code>Markdown</code>、<code>ScrollView</code>、<code>SelectList</code>、<code>SettingsList</code>、<code>Text</code> 等，渲染器 <code>TuiMainScreen</code>、<code>TuiAltScreen</code> 和终端实现 <code>ProcessTerminal</code> 也都导出。</p>
+<p>P6 只装了 <code>@earendil-works/pi-tui</code>，程序的全部代码：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-javascript" data-lang="javascript"><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">ProcessTerminal</span><span class="p">,</span> <span class="nx">TuiMainScreen</span> <span class="p">}</span> <span class="nx">from</span> <span class="s2">&#34;@earendil-works/pi-tui&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">class</span> <span class="nx">Board</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">constructor</span><span class="p">()</span> <span class="p">{</span> <span class="k">this</span><span class="p">.</span><span class="nx">tick</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">render</span><span class="p">(</span><span class="nx">width</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nb">Array</span><span class="p">.</span><span class="nx">from</span><span class="p">({</span> <span class="nx">length</span><span class="o">:</span> <span class="mi">10</span> <span class="p">},</span> <span class="p">(</span><span class="nx">_</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">=&gt;</span> <span class="p">(</span><span class="nx">i</span> <span class="o">===</span> <span class="mi">4</span> <span class="o">?</span> <span class="sb">`row </span><span class="si">${</span><span class="nx">i</span><span class="si">}</span><span class="sb">: tick=</span><span class="si">${</span><span class="k">this</span><span class="p">.</span><span class="nx">tick</span><span class="si">}</span><span class="sb">`</span> <span class="o">:</span> <span class="sb">`row </span><span class="si">${</span><span class="nx">i</span><span class="si">}</span><span class="sb">: static`</span><span class="p">).</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">width</span><span class="p">));</span> <span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">invalidate</span><span class="p">()</span> <span class="p">{}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">tui</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TuiMainScreen</span><span class="p">(</span><span class="k">new</span> <span class="nx">ProcessTerminal</span><span class="p">());</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">board</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Board</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="nx">tui</span><span class="p">.</span><span class="nx">addChild</span><span class="p">(</span><span class="nx">board</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nx">tui</span><span class="p">.</span><span class="nx">start</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">iv</span> <span class="o">=</span> <span class="nx">setInterval</span><span class="p">(()</span> <span class="p">=&gt;</span> <span class="p">{</span> <span class="nx">board</span><span class="p">.</span><span class="nx">tick</span><span class="o">++</span><span class="p">;</span> <span class="nx">tui</span><span class="p">.</span><span class="nx">requestRender</span><span class="p">();</span> <span class="k">if</span> <span class="p">(</span><span class="nx">board</span><span class="p">.</span><span class="nx">tick</span> <span class="o">===</span> <span class="mi">3</span><span class="p">)</span> <span class="p">{</span> <span class="nx">clearInterval</span><span class="p">(</span><span class="nx">iv</span><span class="p">);</span> <span class="nx">setTimeout</span><span class="p">(()</span> <span class="p">=&gt;</span> <span class="p">{</span> <span class="nx">tui</span><span class="p">.</span><span class="nx">stop</span><span class="p">();</span> <span class="nx">process</span><span class="p">.</span><span class="nx">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span> <span class="p">},</span> <span class="mi">50</span><span class="p">);</span> <span class="p">}</span> <span class="p">},</span> <span class="mi">100</span><span class="p">);</span>
+</span></span></code></pre></div><p><code>packages/tui/README.md</code> 的快速上手示例从 <code>./test/test-themes.ts</code> 导入编辑器主题，这个目录不在发布的包里；照着写时要自己提供一个 <code>EditorTheme</code>。</p>
+<hr>
+<h2 id="6--sdk-与远程">
+<a class="header-anchor" href="#6--sdk-%e4%b8%8e%e8%bf%9c%e7%a8%8b"></a>
+6 · SDK 与远程
+</h2><p><img src="/images/harness/pi/ch10/fig5-sdk-wiring.png" alt="图 5 · SDK 自己驱动 AgentSessionRuntime：模式替你做的接线"></p>
+<h3 id="61-自己驱动时要补的接线">
+<a class="header-anchor" href="#61-%e8%87%aa%e5%b7%b1%e9%a9%b1%e5%8a%a8%e6%97%b6%e8%a6%81%e8%a1%a5%e7%9a%84%e6%8e%a5%e7%ba%bf"></a>
+6.1 自己驱动时要补的接线
+</h3><p><code>createAgentSession()</code> 适合一次性的嵌入；要支持 <code>/new</code>、<code>/resume</code>、<code>/fork</code> 这类替换会话的操作，用 <code>createAgentSessionRuntime(createRuntime, { cwd, agentDir, sessionManager })</code>，和 <code>main()</code> 的做法一样。两者都不会替你绑定扩展。1.5 节的三件事要自己做，P5 逐项验证了漏掉的后果（扩展里有一个调用 <code>ctx.ui.confirm</code> 的工具和一个会抛错的 <code>turn_end</code> 处理函数）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">--- A: no bindExtensions
+</span></span><span class="line"><span class="cl">  tool result: declined
+</span></span><span class="line"><span class="cl">--- B: bindExtensions with a custom uiContext and onError, via setRebindSession
+</span></span><span class="line"><span class="cl">  [ext] session_start reason=startup mode=rpc hasUI=true
+</span></span><span class="line"><span class="cl">  [ui] confirm &#34;Deploy?&#34; -&gt; true
+</span></span><span class="line"><span class="cl">  [onError] turn_end: turn_end handler failed
+</span></span><span class="line"><span class="cl">  [onError] turn_end: turn_end handler failed
+</span></span><span class="line"><span class="cl">  [event] agent_settled
+</span></span><span class="line"><span class="cl">  tool result: deployed
+</span></span><span class="line"><span class="cl">--- C: runtime.newSession() (rebind happens inside)
+</span></span><span class="line"><span class="cl">  [ext] session_start reason=new mode=rpc hasUI=true
+</span></span><span class="line"><span class="cl">--- E: second runtime, no setRebindSession; newSession() then manual bind
+</span></span><span class="line"><span class="cl">  [ext] session_start reason=startup mode=print hasUI=false
+</span></span><span class="line"><span class="cl">  newSession() …
+</span></span><span class="line"><span class="cl">  manual bindExtensions …
+</span></span><span class="line"><span class="cl">  [ext] session_start reason=new mode=print hasUI=false
+</span></span><span class="line"><span class="cl">--- F: setRebindSession AND manual bind after newSession()
+</span></span><span class="line"><span class="cl">  [ext] session_start reason=new mode=print hasUI=false
+</span></span><span class="line"><span class="cl">  [ext] session_start reason=new mode=print hasUI=false
+</span></span></code></pre></div><ul>
+<li><strong>A</strong>：不绑定时扩展收不到 <code>session_start</code>，<code>ctx.ui.confirm</code> 返回 <code>false</code>，<code>turn_end</code> 里的两次抛错没有任何人收到。</li>
+<li><strong>B</strong>：<code>bindExtensions</code> 可以传宿主自己实现的 <code>uiContext</code>。P5 用一个代理对象，<code>confirm</code> 一律回答 <code>true</code>，其余方法都是空函数；<code>mode</code> 传什么，<code>ctx.mode</code> 就是什么。</li>
+<li><strong>C、E、F</strong>：注册了 <code>setRebindSession</code>，<code>runtime.newSession()</code> 会在内部重新绑定；没注册就要在替换之后自己再绑一次（官方示例 <code>examples/sdk/13-session-runtime.ts</code> 用的就是这种写法）；两种都做，扩展会收到两次 <code>session_start</code>，和 RPC 模式现在的情况一样（3.6 节）。</li>
+</ul>
+<h3 id="62-直接复用模式">
+<a class="header-anchor" href="#62-%e7%9b%b4%e6%8e%a5%e5%a4%8d%e7%94%a8%e6%a8%a1%e5%bc%8f"></a>
+6.2 直接复用模式
+</h3><p>不想自己接线时，包的入口直接导出了这几个模式：</p>
+<ul>
+<li><code>runPrintMode(runtime, options)</code>、<code>runRpcMode(runtime)</code>、<code>new InteractiveMode(runtime, options)</code>：把自己建好的运行时交给它们，得到和 <code>pi</code> 命令一样的输出和接线。</li>
+<li><code>main(args, { extensionFactories })</code>：整个 CLI，可以带上自己的扩展工厂，相当于一个加了内置扩展的 <code>pi</code>。</li>
+<li><code>RpcClient</code>：用 <code>node</code> 启动 <code>cliPath</code> 指向的 CLI 脚本并加上 <code>--mode rpc</code>（不传时是相对当前目录的 <code>dist/cli.js</code>，用 npm 安装的 pi 时要指向包里的 CLI 文件），每条命令一个方法，外加 <code>promptAndWait()</code>、<code>waitForIdle()</code>。它没有回答扩展对话框的接口（3.7 节），需要时自己读 stdout（第 7 节）。</li>
+<li>RPC 的类型 <code>RpcCommand</code>、<code>RpcResponse</code>、<code>RpcExtensionUIRequest</code>、<code>RpcExtensionUIResponse</code> 和 JSON 事件的类型 <code>JsonAgentSessionEvent</code> 也都导出。</li>
+</ul>
+<h3 id="63-clientserverprotocol-的边界">
+<a class="header-anchor" href="#63-clientserverprotocol-%e7%9a%84%e8%be%b9%e7%95%8c"></a>
+6.3 client、server、protocol 的边界
+</h3><p>仓库里另有三个包和远程会话有关：<code>@earendil-works/pi-protocol</code>（CBOR 编码的消息信封和分帧）、<code>pi-client</code>（通过这套协议连接远程会话的客户端）、<code>pi-server</code>（自称 &ldquo;experimental server package&rdquo;，把客户端路由到持久会话）。它们和其他包一起以 1.0.2 发布在 npm 上，README 都说明服务于实验性的 Pi 服务协议。</p>
+<p>它们和本章讲的路径没有交集：</p>
+<ul>
+<li>pi-coding-agent 只把这三个包列在 <code>devDependencies</code> 里。用到它们的代码在 <code>src/experimental/</code>、<code>src/cli/experimental/</code> 和 <code>src/client/</code> 下，三处编译出的目录都被 <code>files</code> 排除，不进发布的包。</li>
+<li>发布的 <code>pi</code> 命令不引用它们；实验命令要从 <code>src/experimental/cli.ts</code> 启动，并设置 <code>PI_EXPERIMENTAL=1</code>。</li>
+<li>远程客户端的终端界面复用了交互模式的 <code>createChatViewport</code> 和 <code>CustomEditor</code>。</li>
+</ul>
+<p>持久会话这一侧的实现留给番外 pi-durable。</p>
+<hr>
+<h2 id="7--用法一个最小-rpc-客户端">
+<a class="header-anchor" href="#7--%e7%94%a8%e6%b3%95%e4%b8%80%e4%b8%aa%e6%9c%80%e5%b0%8f-rpc-%e5%ae%a2%e6%88%b7%e7%ab%af"></a>
+7 · 用法：一个最小 RPC 客户端
+</h2><p>下面的客户端用 Node 写，覆盖协议的四件事：发 prompt、流式打印回复、回答一次扩展的 confirm、中途 abort。它只用 Node 自带的模块；从 pi 包里导入的都是类型，运行时不需要这个包，类型检查时需要。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="c1">// Minimal RPC client: prompt, stream the reply, answer an extension confirm, abort mid-stream.
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Run: node rpc-client.ts [extra pi args...]   (Node 22.18+ runs .ts directly)
+</span></span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">spawn</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;node:child_process&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">JsonAgentSessionEvent</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">RpcCommand</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">RpcExtensionUIRequest</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">RpcExtensionUIResponse</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">RpcResponse</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">type</span> <span class="nx">ExtensionError</span> <span class="o">=</span> <span class="p">{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;extension_error&#34;</span><span class="p">;</span> <span class="nx">extensionPath</span>: <span class="kt">string</span><span class="p">;</span> <span class="nx">event</span>: <span class="kt">string</span><span class="p">;</span> <span class="nx">error</span>: <span class="kt">string</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl"><span class="kr">type</span> <span class="nx">Incoming</span> <span class="o">=</span> <span class="nx">RpcResponse</span> <span class="o">|</span> <span class="nx">RpcExtensionUIRequest</span> <span class="o">|</span> <span class="nx">ExtensionError</span> <span class="o">|</span> <span class="nx">JsonAgentSessionEvent</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">type</span> <span class="nx">DistributiveOmit</span><span class="p">&lt;</span><span class="nt">T</span><span class="p">,</span> <span class="na">K</span> <span class="na">extends</span> <span class="na">PropertyKey</span><span class="p">&gt;</span> <span class="o">=</span> <span class="nx">T</span> <span class="kr">extends</span> <span class="kt">unknown</span> <span class="o">?</span> <span class="nx">Omit</span><span class="p">&lt;</span><span class="nt">T</span><span class="p">,</span> <span class="na">K</span><span class="p">&gt;</span> <span class="o">:</span> <span class="kt">never</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">pi</span> <span class="o">=</span> <span class="nx">spawn</span><span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PI_BIN</span> <span class="o">??</span> <span class="s2">&#34;pi&#34;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&#34;--mode&#34;</span><span class="p">,</span> <span class="s2">&#34;rpc&#34;</span><span class="p">,</span> <span class="p">...</span><span class="nx">process</span><span class="p">.</span><span class="nx">argv</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="mi">2</span><span class="p">)],</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">stdio</span><span class="o">:</span> <span class="p">[</span><span class="s2">&#34;pipe&#34;</span><span class="p">,</span> <span class="s2">&#34;pipe&#34;</span><span class="p">,</span> <span class="s2">&#34;inherit&#34;</span><span class="p">],</span> <span class="c1">// stderr carries diagnostics, never protocol records
+</span></span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Framing: split stdout on LF only (not readline: it also splits on U+2028/U+2029).
+</span></span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">listeners</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Set</span><span class="o">&lt;</span><span class="p">(</span><span class="nx">record</span>: <span class="kt">Incoming</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="k">void</span><span class="o">&gt;</span><span class="p">();</span>
+</span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">buffer</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="nx">pi</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">setEncoding</span><span class="p">(</span><span class="s2">&#34;utf8&#34;</span><span class="p">);</span> <span class="c1">// decodes multi-byte characters split across chunks
+</span></span></span><span class="line"><span class="cl"><span class="nx">pi</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;data&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">chunk</span>: <span class="kt">string</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">buffer</span> <span class="o">+=</span> <span class="nx">chunk</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="p">(</span><span class="kd">let</span> <span class="nx">i</span> <span class="o">=</span> <span class="nx">buffer</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&#34;\n&#34;</span><span class="p">);</span> <span class="nx">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">=</span> <span class="nx">buffer</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&#34;\n&#34;</span><span class="p">))</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">line</span> <span class="o">=</span> <span class="nx">buffer</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">i</span><span class="p">).</span><span class="nx">replace</span><span class="p">(</span><span class="sr">/\r$/</span><span class="p">,</span> <span class="s2">&#34;&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">buffer</span> <span class="o">=</span> <span class="nx">buffer</span><span class="p">.</span><span class="nx">slice</span><span class="p">(</span><span class="nx">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="nx">line</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="kr">const</span> <span class="nx">listener</span> <span class="k">of</span> <span class="p">[...</span><span class="nx">listeners</span><span class="p">])</span> <span class="nx">listener</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">line</span><span class="p">)</span> <span class="kr">as</span> <span class="nx">Incoming</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kr">const</span> <span class="nx">write</span> <span class="o">=</span> <span class="p">(</span><span class="nx">record</span>: <span class="kt">RpcCommand</span> <span class="o">|</span> <span class="nx">RpcExtensionUIResponse</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">pi</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="sb">`</span><span class="si">${</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">record</span><span class="p">)</span><span class="si">}</span><span class="err">\</span><span class="sb">n`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">next</span><span class="p">(</span><span class="nx">match</span><span class="o">:</span> <span class="p">(</span><span class="nx">record</span>: <span class="kt">Incoming</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="kr">boolean</span><span class="p">)</span><span class="o">:</span> <span class="nx">Promise</span><span class="p">&lt;</span><span class="nt">Incoming</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="k">new</span> <span class="nx">Promise</span><span class="p">((</span><span class="nx">resolve</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">const</span> <span class="nx">listener</span> <span class="o">=</span> <span class="p">(</span><span class="nx">record</span>: <span class="kt">Incoming</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">match</span><span class="p">(</span><span class="nx">record</span><span class="p">))</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">listeners</span><span class="p">.</span><span class="k">delete</span><span class="p">(</span><span class="nx">listener</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">resolve</span><span class="p">(</span><span class="nx">record</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">		<span class="p">};</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">listeners</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="nx">listener</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">seq</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">async</span> <span class="kd">function</span> <span class="nx">request</span><span class="p">(</span><span class="nx">command</span>: <span class="kt">DistributiveOmit</span><span class="p">&lt;</span><span class="nt">RpcCommand</span><span class="p">,</span> <span class="s2">&#34;id&#34;</span><span class="p">&gt;)</span><span class="o">:</span> <span class="nx">Promise</span><span class="p">&lt;</span><span class="nt">RpcResponse</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">id</span> <span class="o">=</span> <span class="sb">`req-</span><span class="si">${</span><span class="o">++</span><span class="nx">seq</span><span class="si">}</span><span class="sb">`</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">reply</span> <span class="o">=</span> <span class="nx">next</span><span class="p">((</span><span class="nx">r</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">r</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;response&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">r</span><span class="p">.</span><span class="nx">id</span> <span class="o">===</span> <span class="nx">id</span><span class="p">);</span> <span class="c1">// subscribe before writing
+</span></span></span><span class="line"><span class="cl">	<span class="nx">write</span><span class="p">({</span> <span class="p">...</span><span class="nx">command</span><span class="p">,</span> <span class="nx">id</span> <span class="p">}</span> <span class="kr">as</span> <span class="nx">RpcCommand</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">response</span> <span class="o">=</span> <span class="p">(</span><span class="k">await</span> <span class="nx">reply</span><span class="p">)</span> <span class="kr">as</span> <span class="nx">RpcResponse</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">response</span><span class="p">.</span><span class="nx">success</span><span class="p">)</span> <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="sb">`</span><span class="si">${</span><span class="nx">response</span><span class="p">.</span><span class="nx">command</span><span class="si">}</span><span class="sb"> failed: </span><span class="si">${</span><span class="nx">response</span><span class="p">.</span><span class="nx">error</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">response</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Extension UI: answer dialogs; fire-and-forget methods need no reply.
+</span></span></span><span class="line"><span class="cl"><span class="kd">function</span> <span class="nx">onExtensionUi</span><span class="p">(</span><span class="nx">req</span>: <span class="kt">RpcExtensionUIRequest</span><span class="p">)</span><span class="o">:</span> <span class="k">void</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">switch</span> <span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="s2">&#34;confirm&#34;</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`</span><span class="err">\</span><span class="sb">n[confirm] </span><span class="si">${</span><span class="nx">req</span><span class="p">.</span><span class="nx">title</span><span class="si">}</span><span class="sb"> </span><span class="si">${</span><span class="nx">req</span><span class="p">.</span><span class="nx">message</span><span class="si">}</span><span class="sb"> -&gt; yes`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">write</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;extension_ui_response&#34;</span><span class="p">,</span> <span class="nx">id</span>: <span class="kt">req.id</span><span class="p">,</span> <span class="nx">confirmed</span>: <span class="kt">true</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">			<span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="s2">&#34;select&#34;</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="s2">&#34;input&#34;</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="s2">&#34;editor&#34;</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">write</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;extension_ui_response&#34;</span><span class="p">,</span> <span class="nx">id</span>: <span class="kt">req.id</span><span class="p">,</span> <span class="nx">cancelled</span>: <span class="kt">true</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">			<span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">case</span> <span class="s2">&#34;notify&#34;</span><span class="o">:</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`[notify] </span><span class="si">${</span><span class="nx">req</span><span class="p">.</span><span class="nx">message</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">default</span><span class="o">:</span> <span class="c1">// setStatus, setWidget, setTitle, set_editor_text
+</span></span></span><span class="line"><span class="cl">			<span class="k">break</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">let</span> <span class="nx">lastStopReason</span> <span class="o">=</span> <span class="s2">&#34;&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="nx">listeners</span><span class="p">.</span><span class="nx">add</span><span class="p">((</span><span class="nx">record</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">record</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;extension_ui_request&#34;</span><span class="p">)</span> <span class="nx">onExtensionUi</span><span class="p">(</span><span class="nx">record</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">record</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;extension_error&#34;</span><span class="p">)</span> <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="sb">`[extension error] </span><span class="si">${</span><span class="nx">record</span><span class="p">.</span><span class="nx">extensionPath</span><span class="si">}</span><span class="sb">: </span><span class="si">${</span><span class="nx">record</span><span class="p">.</span><span class="nx">error</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">record</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;message_update&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">record</span><span class="p">.</span><span class="nx">assistantMessageEvent</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;text_delta&#34;</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">process</span><span class="p">.</span><span class="nx">stdout</span><span class="p">.</span><span class="nx">write</span><span class="p">(</span><span class="nx">record</span><span class="p">.</span><span class="nx">assistantMessageEvent</span><span class="p">.</span><span class="nx">delta</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="k">else</span> <span class="k">if</span> <span class="p">(</span><span class="nx">record</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;message_end&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">record</span><span class="p">.</span><span class="nx">message</span><span class="p">.</span><span class="nx">role</span> <span class="o">===</span> <span class="s2">&#34;assistant&#34;</span><span class="p">)</span> <span class="nx">lastStopReason</span> <span class="o">=</span> <span class="nx">record</span><span class="p">.</span><span class="nx">message</span><span class="p">.</span><span class="nx">stopReason</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="p">});</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// One prompt; optionally abort after N text deltas.
+</span></span></span><span class="line"><span class="cl"><span class="kr">async</span> <span class="kd">function</span> <span class="nx">run</span><span class="p">(</span><span class="nx">message</span>: <span class="kt">string</span><span class="p">,</span> <span class="nx">abortAfterDeltas?</span>: <span class="kt">number</span><span class="p">)</span><span class="o">:</span> <span class="nx">Promise</span><span class="p">&lt;</span><span class="nt">void</span><span class="p">&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`</span><span class="err">\</span><span class="sb">n&gt; </span><span class="si">${</span><span class="nx">message</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">settled</span> <span class="o">=</span> <span class="nx">next</span><span class="p">((</span><span class="nx">r</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">r</span><span class="p">.</span><span class="kr">type</span> <span class="o">===</span> <span class="s2">&#34;agent_settled&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="kd">let</span> <span class="nx">deltas</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">aborter</span> <span class="o">=</span> <span class="p">(</span><span class="nx">record</span>: <span class="kt">Incoming</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="nx">record</span><span class="p">.</span><span class="kr">type</span> <span class="o">!==</span> <span class="s2">&#34;message_update&#34;</span> <span class="o">||</span> <span class="nx">record</span><span class="p">.</span><span class="nx">assistantMessageEvent</span><span class="p">.</span><span class="kr">type</span> <span class="o">!==</span> <span class="s2">&#34;text_delta&#34;</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="p">(</span><span class="o">++</span><span class="nx">deltas</span> <span class="o">===</span> <span class="nx">abortAfterDeltas</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">listeners</span><span class="p">.</span><span class="k">delete</span><span class="p">(</span><span class="nx">aborter</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&#34;\n[abort]&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="k">void</span> <span class="nx">request</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;abort&#34;</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">};</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">abortAfterDeltas</span> <span class="o">!==</span> <span class="kc">undefined</span><span class="p">)</span> <span class="nx">listeners</span><span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="nx">aborter</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="kr">const</span> <span class="nx">response</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">request</span><span class="p">({</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;prompt&#34;</span><span class="p">,</span> <span class="nx">message</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">response</span><span class="p">.</span><span class="nx">command</span> <span class="o">===</span> <span class="s2">&#34;prompt&#34;</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">success</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">data</span><span class="o">?</span><span class="p">.</span><span class="nx">disposition</span> <span class="o">===</span> <span class="s2">&#34;handled&#34;</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="k">await</span> <span class="nx">settled</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">listeners</span><span class="p">.</span><span class="k">delete</span><span class="p">(</span><span class="nx">aborter</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`</span><span class="err">\</span><span class="sb">n[settled] stopReason=</span><span class="si">${</span><span class="nx">lastStopReason</span><span class="si">}</span><span class="sb">`</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">run</span><span class="p">(</span><span class="s2">&#34;TOOL: deploy the app to prod&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">await</span> <span class="nx">run</span><span class="p">(</span><span class="s2">&#34;SLOW: tell me a long story&#34;</span><span class="p">,</span> <span class="mi">5</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl"><span class="nx">pi</span><span class="p">.</span><span class="nx">stdin</span><span class="p">.</span><span class="nx">end</span><span class="p">();</span> <span class="c1">// orderly shutdown: pi disposes the session and exits
+</span></span></span><span class="line"><span class="cl"><span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;exit&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">code</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="sb">`[pi exited] code=</span><span class="si">${</span><span class="nx">code</span><span class="si">}</span><span class="sb">`</span><span class="p">));</span>
+</span></span></code></pre></div><p>几处写法对应前面的结论：</p>
+<ul>
+<li><strong>只按 LF 切分</strong>，<code>setEncoding(&quot;utf8&quot;)</code> 处理跨块的多字节字符（3.1 节）。</li>
+<li><strong>先订阅再写入</strong>：<code>request()</code> 先挂上等响应的监听函数，<code>run()</code> 在发 prompt 之前就开始等 <code>agent_settled</code>，快速完成的运行不会漏掉事件。</li>
+<li><strong>按 <code>id</code> 配对</strong>：<code>abort</code> 的响应要等到空闲才来，<code>agent_settled</code> 在它前面（3.5 节）。</li>
+<li><strong><code>disposition</code> 为 <code>handled</code> 时不等 <code>agent_settled</code></strong>：这次输入被扩展命令或 <code>input</code> 事件处理掉了，不会有运行（3.3 节）。</li>
+<li>回答 <code>confirm</code> 时用 <code>confirmed</code>，其他对话框一律取消；<code>notify</code> 这类单向消息不回复（3.4 节）。</li>
+</ul>
+<p>用 <code>tsc --strict</code> 检查没有错误。环境：从 npm 装 <code>@earendil-works/pi-coding-agent@1.0.2</code> 和 <code>@types/node</code>，<code>package.json</code> 写 <code>&quot;type&quot;: &quot;module&quot;</code>（文件用了顶层 <code>await</code>），tsconfig 用 <code>module: nodenext</code> 并打开 <code>skipLibCheck</code>（不打开时，pi-ai 自带的 <code>.d.ts</code> 在 nodenext 下有 JSON 导入的报错，和这份代码无关）。服务端用的是 §0 的探针扩展：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-typescript" data-lang="typescript"><span class="line"><span class="cl"><span class="c1">// Probe extension: a `deploy` tool that asks for confirmation through ctx.ui.
+</span></span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="p">{</span> <span class="nx">Type</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-ai&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">import</span> <span class="kr">type</span> <span class="p">{</span> <span class="nx">ExtensionAPI</span> <span class="p">}</span> <span class="kr">from</span> <span class="s2">&#34;@earendil-works/pi-coding-agent&#34;</span><span class="p">;</span>
+</span></span><span class="line"><span class="cl"><span class="kr">export</span> <span class="k">default</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">pi</span>: <span class="kt">ExtensionAPI</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">pi</span><span class="p">.</span><span class="nx">registerTool</span><span class="p">({</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">name</span><span class="o">:</span> <span class="s2">&#34;deploy&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">label</span><span class="o">:</span> <span class="s2">&#34;Deploy&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">description</span><span class="o">:</span> <span class="s2">&#34;Deploy to an environment&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">parameters</span>: <span class="kt">Type.Object</span><span class="p">({</span> <span class="nx">env</span>: <span class="kt">Type.String</span><span class="p">()</span> <span class="p">}),</span>
+</span></span><span class="line"><span class="cl">		<span class="kr">async</span> <span class="nx">execute</span><span class="p">(</span><span class="nx">_id</span><span class="p">,</span> <span class="nx">params</span><span class="p">,</span> <span class="nx">_signal</span><span class="p">,</span> <span class="nx">_onUpdate</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="kr">const</span> <span class="nx">ok</span> <span class="o">=</span> <span class="k">await</span> <span class="nx">ctx</span><span class="p">.</span><span class="nx">ui</span><span class="p">.</span><span class="nx">confirm</span><span class="p">(</span><span class="s2">&#34;Deploy?&#34;</span><span class="p">,</span> <span class="sb">`Deploy to </span><span class="si">${</span><span class="nx">params</span><span class="p">.</span><span class="nx">env</span><span class="si">}</span><span class="sb">?`</span><span class="p">,</span> <span class="p">{</span> <span class="nx">timeout</span>: <span class="kt">30000</span> <span class="p">});</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">ctx</span><span class="p">.</span><span class="nx">ui</span><span class="p">.</span><span class="nx">notify</span><span class="p">(</span><span class="nx">ok</span> <span class="o">?</span> <span class="s2">&#34;deploying&#34;</span> <span class="o">:</span> <span class="s2">&#34;cancelled&#34;</span><span class="p">,</span> <span class="s2">&#34;info&#34;</span><span class="p">);</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span> <span class="p">{</span> <span class="nx">content</span><span class="o">:</span> <span class="p">[{</span> <span class="kr">type</span><span class="o">:</span> <span class="s2">&#34;text&#34;</span><span class="p">,</span> <span class="nx">text</span>: <span class="kt">ok</span> <span class="o">?</span> <span class="sb">`deployed to </span><span class="si">${</span><span class="nx">params</span><span class="p">.</span><span class="nx">env</span><span class="si">}</span><span class="sb">`</span> <span class="o">:</span> <span class="s2">&#34;user declined&#34;</span> <span class="p">}],</span> <span class="nx">details</span><span class="o">:</span> <span class="p">{</span> <span class="nx">ok</span> <span class="p">}</span> <span class="p">};</span>
+</span></span><span class="line"><span class="cl">		<span class="p">},</span>
+</span></span><span class="line"><span class="cl">	<span class="p">});</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// The [ext] lines in sections 2 and 3; silenced with PROBE_LOG=0 in the TUI probe.
+</span></span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PROBE_LOG</span> <span class="o">!==</span> <span class="s2">&#34;0&#34;</span><span class="p">)</span> <span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;session_start&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">e</span><span class="p">,</span> <span class="nx">ctx</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="sb">`[ext] session_start reason=</span><span class="si">${</span><span class="nx">e</span><span class="p">.</span><span class="nx">reason</span><span class="si">}</span><span class="sb"> mode=</span><span class="si">${</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">mode</span><span class="si">}</span><span class="sb"> hasUI=</span><span class="si">${</span><span class="nx">ctx</span><span class="p">.</span><span class="nx">hasUI</span><span class="si">}</span><span class="sb">`</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="p">(</span><span class="nx">process</span><span class="p">.</span><span class="nx">env</span><span class="p">.</span><span class="nx">PROBE_LOG</span> <span class="o">!==</span> <span class="s2">&#34;0&#34;</span><span class="p">)</span> <span class="nx">pi</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&#34;session_shutdown&#34;</span><span class="p">,</span> <span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">error</span><span class="p">(</span><span class="sb">`[ext] session_shutdown reason=</span><span class="si">${</span><span class="nx">e</span><span class="p">.</span><span class="nx">reason</span><span class="si">}</span><span class="sb">`</span><span class="p">));</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>运行 <code>PROBE_LOG=0 node rpc-client.ts --no-session -e ext-deploy.ts</code>，终端输出：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&gt; TOOL: deploy the app to prod
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">[confirm] Deploy? Deploy to prod? -&gt; yes
+</span></span><span class="line"><span class="cl">[notify] deploying
+</span></span><span class="line"><span class="cl">Deployed (tool said ok).
+</span></span><span class="line"><span class="cl">[settled] stopReason=stop
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">&gt; SLOW: tell me a long story
+</span></span><span class="line"><span class="cl">w0 w1 w2 w3 w4 
+</span></span><span class="line"><span class="cl">[abort]
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">[settled] stopReason=aborted
+</span></span><span class="line"><span class="cl">[pi exited] code=0
+</span></span></code></pre></div><p>客户端和 pi 之间真实的 JSONL（用一个透明的包装进程按到达顺序记录两个方向，共 50 行；<code>message</code> 只保留角色、内容和 <code>stopReason</code>，<code>usage</code> 和 system 消息的内容换成 <code>…</code>，UUID 截短）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-text" data-lang="text"><span class="line"><span class="cl">&gt;&gt; {&#34;type&#34;:&#34;prompt&#34;,&#34;message&#34;:&#34;TOOL: deploy the app to prod&#34;,&#34;id&#34;:&#34;req-1&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;id&#34;:&#34;req-1&#34;,&#34;type&#34;:&#34;response&#34;,&#34;command&#34;:&#34;prompt&#34;,&#34;success&#34;:true,&#34;data&#34;:{&#34;disposition&#34;:&#34;started&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_start&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;turn_start&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_start&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;system&#34;,&#34;content&#34;:&#34;…&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;system&#34;,&#34;content&#34;:&#34;…&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_start&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;user&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;TOOL: deploy the app to prod&#34;}]}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;user&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;TOOL: deploy the app to prod&#34;}]}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_start&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;toolCall&#34;,&#34;name&#34;:&#34;deploy&#34;,&#34;arguments&#34;:{}}],&#34;stopReason&#34;:&#34;pending&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;toolcall_start&#34;,&#34;contentIndex&#34;:0,&#34;id&#34;:&#34;toolu_1&#34;,&#34;toolName&#34;:&#34;deploy&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;toolcall_delta&#34;,&#34;contentIndex&#34;:0,&#34;delta&#34;:&#34;{\&#34;env\&#34;:\&#34;prod\&#34;}&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;toolcall_end&#34;,&#34;contentIndex&#34;:0,&#34;toolCall&#34;:{&#34;name&#34;:&#34;deploy&#34;,&#34;arguments&#34;:{&#34;env&#34;:&#34;prod&#34;}}}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;toolCall&#34;,&#34;name&#34;:&#34;deploy&#34;,&#34;arguments&#34;:{&#34;env&#34;:&#34;prod&#34;}}],&#34;stopReason&#34;:&#34;toolUse&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;tool_execution_start&#34;,&#34;toolCallId&#34;:&#34;toolu_1&#34;,&#34;toolName&#34;:&#34;deploy&#34;,&#34;args&#34;:{&#34;env&#34;:&#34;prod&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;extension_ui_request&#34;,&#34;id&#34;:&#34;0e6d77e7…&#34;,&#34;method&#34;:&#34;confirm&#34;,&#34;title&#34;:&#34;Deploy?&#34;,&#34;message&#34;:&#34;Deploy to prod?&#34;,&#34;timeout&#34;:30000}
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;type&#34;:&#34;extension_ui_response&#34;,&#34;id&#34;:&#34;0e6d77e7…&#34;,&#34;confirmed&#34;:true}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;extension_ui_request&#34;,&#34;id&#34;:&#34;2170b073…&#34;,&#34;method&#34;:&#34;notify&#34;,&#34;message&#34;:&#34;deploying&#34;,&#34;notifyType&#34;:&#34;info&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;tool_execution_end&#34;,&#34;toolCallId&#34;:&#34;toolu_1&#34;,&#34;toolName&#34;:&#34;deploy&#34;,&#34;result&#34;:{&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;deployed to prod&#34;}]},&#34;isError&#34;:false}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_start&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;toolResult&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;deployed to prod&#34;}],&#34;toolName&#34;:&#34;deploy&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;toolResult&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;deployed to prod&#34;}],&#34;toolName&#34;:&#34;deploy&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;turn_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;toolCall&#34;,&#34;name&#34;:&#34;deploy&#34;,&#34;arguments&#34;:{&#34;env&#34;:&#34;prod&#34;}}],&#34;stopReason&#34;:&#34;toolUse&#34;},&#34;toolResults&#34;:&#34;[1]&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;turn_start&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_start&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;&#34;}],&#34;stopReason&#34;:&#34;pending&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_start&#34;,&#34;contentIndex&#34;:0}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_delta&#34;,&#34;contentIndex&#34;:0,&#34;delta&#34;:&#34;Deployed&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_delta&#34;,&#34;contentIndex&#34;:0,&#34;delta&#34;:&#34; (tool said ok).&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_end&#34;,&#34;contentIndex&#34;:0,&#34;content&#34;:&#34;Deployed (tool said ok).&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;Deployed (tool said ok).&#34;}],&#34;stopReason&#34;:&#34;stop&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;turn_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;Deployed (tool said ok).&#34;}],&#34;stopReason&#34;:&#34;stop&#34;},&#34;toolResults&#34;:&#34;[0]&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_end&#34;,&#34;messages&#34;:&#34;[5 messages]&#34;,&#34;willRetry&#34;:false}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_settled&#34;}
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;type&#34;:&#34;prompt&#34;,&#34;message&#34;:&#34;SLOW: tell me a long story&#34;,&#34;id&#34;:&#34;req-2&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;id&#34;:&#34;req-2&#34;,&#34;type&#34;:&#34;response&#34;,&#34;command&#34;:&#34;prompt&#34;,&#34;success&#34;:true,&#34;data&#34;:{&#34;disposition&#34;:&#34;started&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_start&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;turn_start&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_start&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;user&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;SLOW: tell me a long story&#34;}]}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;user&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;SLOW: tell me a long story&#34;}]}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_start&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;&#34;}],&#34;stopReason&#34;:&#34;pending&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_start&#34;,&#34;contentIndex&#34;:0}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_delta&#34;,&#34;contentIndex&#34;:0,&#34;delta&#34;:&#34;w0 &#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_delta&#34;,&#34;contentIndex&#34;:0,&#34;delta&#34;:&#34;w1 &#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_delta&#34;,&#34;contentIndex&#34;:0,&#34;delta&#34;:&#34;w2 &#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_delta&#34;,&#34;contentIndex&#34;:0,&#34;delta&#34;:&#34;w3 &#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_update&#34;,&#34;usage&#34;:&#34;…&#34;,&#34;assistantMessageEvent&#34;:{&#34;type&#34;:&#34;text_delta&#34;,&#34;contentIndex&#34;:0,&#34;delta&#34;:&#34;w4 &#34;}}
+</span></span><span class="line"><span class="cl">&gt;&gt; {&#34;type&#34;:&#34;abort&#34;,&#34;id&#34;:&#34;req-3&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;message_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;w0 w1 w2 w3 w4 &#34;}],&#34;stopReason&#34;:&#34;aborted&#34;,&#34;errorMessage&#34;:&#34;This operation was aborted&#34;}}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;turn_end&#34;,&#34;message&#34;:{&#34;role&#34;:&#34;assistant&#34;,&#34;content&#34;:[{&#34;type&#34;:&#34;text&#34;,&#34;text&#34;:&#34;w0 w1 w2 w3 w4 &#34;}],&#34;stopReason&#34;:&#34;aborted&#34;,&#34;errorMessage&#34;:&#34;This operation was aborted&#34;},&#34;toolResults&#34;:&#34;[0]&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_end&#34;,&#34;messages&#34;:&#34;[2 messages]&#34;,&#34;willRetry&#34;:false}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;type&#34;:&#34;agent_settled&#34;}
+</span></span><span class="line"><span class="cl">&lt;&lt; {&#34;id&#34;:&#34;req-3&#34;,&#34;type&#34;:&#34;response&#34;,&#34;command&#34;:&#34;abort&#34;,&#34;success&#34;:true}
+</span></span></code></pre></div><p>这份记录和图 2 的 15 步一一对应。第二次运行没有 system 消息：提示词补丁只在提示词变化时才写（第八章 4 节）。</p>
+<hr>
+<h2 id="8--三个可以带走的方法">
+<a class="header-anchor" href="#8--%e4%b8%89%e4%b8%aa%e5%8f%af%e4%bb%a5%e5%b8%a6%e8%b5%b0%e7%9a%84%e6%96%b9%e6%b3%95"></a>
+8 · 三个可以带走的方法
+</h2><ol>
+<li><strong>把呈现做成会话的订阅者</strong>。四种模式都不碰 <code>AgentSession</code> 的内部，只做&quot;绑定扩展 + 订阅事件 + 调用 <code>prompt</code> / <code>abort</code>&quot;。终端界面、一行一个 JSON、双向协议只是三种订阅者；SDK 用户用同样的三步就能做出第五种呈现。</li>
+<li><strong>协议按&quot;受理&quot;回复，用事件报告&quot;完成&rdquo;</strong>。RPC 的 <code>prompt</code> 在预检通过时就回 <code>started</code> / <code>queued</code> / <code>handled</code>，运行的结果全在事件流里，以 <code>agent_settled</code> 收尾；命令并发处理、靠 <code>id</code> 配对。慢操作不会挡住查询，客户端也不用猜一个响应到底代表什么。</li>
+<li><strong>组件只管输出行，差分交给渲染器</strong>。组件的唯一义务是 <code>render(width): string[]</code>，每帧从根重新渲染；渲染器和上一帧逐行比较，只重写变化的行，再用同步输出包起来。组件写起来简单，终端收到的字节又少。</li>
+</ol>
+<hr>
+<h2 id="9--关键数字">
+<a class="header-anchor" href="#9--%e5%85%b3%e9%94%ae%e6%95%b0%e5%ad%97"></a>
+9 · 关键数字
+</h2><table>
+	<thead>
+			<tr>
+					<th>项</th>
+					<th>数量</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>运行模式</td>
+					<td>4 种（交互、print、JSON、RPC），由 <code>resolveAppMode</code> 选出</td>
+			</tr>
+			<tr>
+					<td>命令行参数</td>
+					<td>40 个（不含 <code>--</code> 和 <code>@文件</code>）</td>
+			</tr>
+			<tr>
+					<td>RPC 命令</td>
+					<td>33 条（类型定义、<code>switch</code> 分支、<code>rpc-commands.md</code> 三处一致）</td>
+			</tr>
+			<tr>
+					<td>会话事件（JSON / RPC 输出）</td>
+					<td>23 种（agent-core 10 种 + AgentSession 13 种）</td>
+			</tr>
+			<tr>
+					<td>RPC 额外的 stdout 记录</td>
+					<td>3 种（<code>response</code>、<code>extension_ui_request</code>、<code>extension_error</code>）</td>
+			</tr>
+			<tr>
+					<td><code>extension_ui_request</code> 的 <code>method</code></td>
+					<td>9 种（4 种对话框 + 5 种单向通知）</td>
+			</tr>
+			<tr>
+					<td>交互模式 <code>switch</code> 里的事件</td>
+					<td>22 种（少 <code>turn_end</code>；<code>bash_execution_update</code> 为空分支）</td>
+			</tr>
+			<tr>
+					<td>内置斜杠命令</td>
+					<td>列表 24 个，<code>if</code> 链另有 3 个</td>
+			</tr>
+			<tr>
+					<td>自动重试</td>
+					<td>3 次，间隔 2 s、4 s、8 s（探针中的默认值）</td>
+			</tr>
+			<tr>
+					<td>退出码</td>
+					<td>0 正常；1 失败（text 模式含 <code>error</code> / <code>aborted</code>）；143 <code>SIGTERM</code>；129 <code>SIGHUP</code></td>
+			</tr>
+			<tr>
+					<td>渲染节流</td>
+					<td>16 ms</td>
+			</tr>
+			<tr>
+					<td>流式文字的一次屏幕更新（P4）</td>
+					<td>全屏 130 字节 / 常规 145 字节，只重写 1 行</td>
+			</tr>
+			<tr>
+					<td>pi-tui 的运行时依赖</td>
+					<td>2 个（<code>get-east-asian-width</code>、<code>marked</code>）</td>
+			</tr>
+			<tr>
+					<td>源码体量</td>
+					<td><code>interactive-mode.ts</code> 7072 行、<code>rpc-mode.ts</code> 819 行、<code>print-mode.ts</code> 169 行、<code>main.ts</code> 998 行；pi-tui 的 <code>src</code> 约 1.9 万行</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="10--术语表">
+<a class="header-anchor" href="#10--%e6%9c%af%e8%af%ad%e8%a1%a8"></a>
+10 · 术语表
+</h2><table>
+	<thead>
+			<tr>
+					<th>术语</th>
+					<th>含义</th>
+					<th>别和它混淆</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><strong>运行模式</strong></td>
+					<td><code>main()</code> 末尾选择的呈现方式：交互、print、JSON、RPC</td>
+					<td><code>ctx.mode</code>：扩展看到的 <code>tui</code> / <code>print</code> / <code>json</code> / <code>rpc</code></td>
+			</tr>
+			<tr>
+					<td><strong>运行时</strong></td>
+					<td><code>AgentSessionRuntime</code>，持有当前会话并负责替换</td>
+					<td>扩展运行器 <code>ExtensionRunner</code>（第九章）</td>
+			</tr>
+			<tr>
+					<td><strong>重新绑定</strong></td>
+					<td>会话被替换后，模式对新会话再做 <code>bindExtensions</code> 和订阅</td>
+					<td><code>/reload</code>：同一个会话换扩展运行器，复用已保存的绑定</td>
+			</tr>
+			<tr>
+					<td><strong>disposition</strong></td>
+					<td>RPC <code>prompt</code> 响应里的受理结果：<code>started</code>、<code>queued</code>、<code>handled</code></td>
+					<td>运行结果：看 <code>message_end</code> 的 <code>stopReason</code> 和 <code>agent_settled</code></td>
+			</tr>
+			<tr>
+					<td><strong>增量事件</strong></td>
+					<td>JSON / RPC 里去掉累积快照的 <code>message_update</code></td>
+					<td>会话内部的 <code>message_update</code>：带着整条消息</td>
+			</tr>
+			<tr>
+					<td><strong>扩展 UI 子协议</strong></td>
+					<td><code>extension_ui_request</code> / <code>extension_ui_response</code> 两种记录</td>
+					<td>命令和响应：带 <code>id</code> 的 <code>type: &quot;response&quot;</code></td>
+			</tr>
+			<tr>
+					<td><strong>差分渲染</strong></td>
+					<td>与上一帧逐行比较，只重写变化的行</td>
+					<td>整屏重画：首帧、尺寸变化等情况下清屏重写</td>
+			</tr>
+			<tr>
+					<td><strong>同步输出</strong></td>
+					<td><code>CSI ?2026h … CSI ?2026l</code> 包起来的一段输出，终端写完再显示</td>
+					<td>备用屏幕 <code>CSI ?1049h</code>：全屏模式切换到的另一块画面</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="11--源码导航">
+<a class="header-anchor" href="#11--%e6%ba%90%e7%a0%81%e5%af%bc%e8%88%aa"></a>
+11 · 源码导航
+</h2><table>
+	<thead>
+			<tr>
+					<th>想搞懂</th>
+					<th>从这里读</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>启动流程、选模式</td>
+					<td><code>packages/coding-agent/src/main.ts</code> → <code>main</code>、<code>resolveAppMode</code>、<code>readPipedStdin</code>、<code>prepareInitialMessage</code>、<code>createSessionManager</code>；<code>src/cli.ts</code>、<code>src/cli/setup.ts</code></td>
+			</tr>
+			<tr>
+					<td>参数和初始消息</td>
+					<td><code>src/cli/args.ts</code> → <code>parseArgs</code>；<code>src/cli/file-processor.ts</code>、<code>src/cli/initial-message.ts</code></td>
+			</tr>
+			<tr>
+					<td>stdout 接管</td>
+					<td><code>src/core/output-guard.ts</code> → <code>takeOverStdout</code>、<code>writeRawStdout</code>、<code>flushRawStdout</code></td>
+			</tr>
+			<tr>
+					<td>print / JSON</td>
+					<td><code>src/modes/print-mode.ts</code> → <code>runPrintMode</code>；<code>src/modes/json-event.ts</code> → <code>toJsonEvent</code></td>
+			</tr>
+			<tr>
+					<td>RPC</td>
+					<td><code>src/modes/rpc/rpc-mode.ts</code> → <code>runRpcMode</code>、<code>createDialogPromise</code>、<code>createExtensionUIContext</code>、<code>handleCommand</code>；<code>rpc-types.ts</code>、<code>jsonl.ts</code>、<code>rpc-client.ts</code></td>
+			</tr>
+			<tr>
+					<td>prompt 的受理</td>
+					<td><code>src/core/agent-session.ts</code> → <code>prompt</code>（<code>preflightResult</code>）、<code>steer</code>、<code>followUp</code>、<code>abort</code>、<code>bindExtensions</code>；<code>AgentSessionEvent</code> 类型</td>
+			</tr>
+			<tr>
+					<td>运行时与替换</td>
+					<td><code>src/core/agent-session-runtime.ts</code> → <code>createAgentSessionRuntime</code>、<code>setRebindSession</code>、<code>setBeforeSessionInvalidate</code>、<code>finishSessionReplacement</code>、<code>dispose</code></td>
+			</tr>
+			<tr>
+					<td>交互模式</td>
+					<td><code>src/modes/interactive/interactive-mode.ts</code> → 构造函数、<code>init</code>、<code>run</code>、<code>setupEditorSubmitHandler</code>、<code>handleFollowUp</code>、<code>subscribeToAgent</code>、<code>handleEvent</code>、<code>rebindCurrentSession</code>、<code>bindCurrentSessionExtensions</code>、<code>resetExtensionUI</code>、<code>createExtensionUIContext</code>；<code>tui-renderer.ts</code>、<code>chat-viewport.ts</code>；<code>src/core/slash-commands.ts</code>、<code>src/core/keybindings.ts</code></td>
+			</tr>
+			<tr>
+					<td>主题</td>
+					<td><code>src/modes/interactive/theme/</code> → <code>theme.ts</code>、<code>theme-controller.ts</code>、<code>system-theme.ts</code>、<code>dark.json</code>、<code>light.json</code></td>
+			</tr>
+			<tr>
+					<td>pi-tui</td>
+					<td><code>packages/tui/src/tui.ts</code> → <code>Component</code>、<code>TuiBase</code>、<code>requestRender</code>；<code>tui-main-screen.ts</code> → <code>doRender</code>；<code>tui-alt-screen.ts</code> → <code>doRender</code>；<code>terminal.ts</code>、<code>stdin-buffer.ts</code>、<code>keys.ts</code>、<code>terminal-colors.ts</code>；<code>packages/tui/README.md</code></td>
+			</tr>
+			<tr>
+					<td>SDK</td>
+					<td><code>src/core/sdk.ts</code> → <code>createAgentSession</code>；<code>examples/sdk/13-session-runtime.ts</code>；<code>src/index.ts</code> 的模式导出</td>
+			</tr>
+			<tr>
+					<td>官方说明</td>
+					<td><code>packages/coding-agent/docs/cli.md</code>、<code>cli-integration.md</code>、<code>json.md</code>、<code>rpc.md</code>、<code>rpc-commands.md</code>、<code>rpc-extension-ui.md</code>、<code>sdk.md</code>、<code>tui.md</code></td>
+			</tr>
+	</tbody>
+</table>
+<p>这一章讲完了 pi 的四种入口。到这里，主干的十章从模型调用、循环、工具、会话、压缩、上下文、扩展一直讲到了最外层的界面。</p></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/pi"
+        rel="tag"
+        >PI</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e6%ba%90%e7%a0%81%e5%88%86%e6%9e%90"
+        rel="tag"
+        >源码分析</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/12.webp"
+              data-sizes="auto"
+              alt="Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程"
+              class="lazyload"
+            /><a
+          href="/harness/pi/09-extensions-events/"
+          aria-label="Prev:Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程"
+          title="Prev:Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Pi 源码分析 09 · 扩展与事件：扩展从加载到派发的全过程</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--从命令行到会话">1 · 从命令行到会话</a>
+      <ul>
+        <li><a href="#11-main-的步骤">1.1 main() 的步骤</a></li>
+        <li><a href="#12-选模式">1.2 选模式</a></li>
+        <li><a href="#13-初始消息管道文件和位置参数">1.3 初始消息：管道、@文件和位置参数</a></li>
+        <li><a href="#14-启动检查和退出码">1.4 启动检查和退出码</a></li>
+        <li><a href="#15-四种模式共同做的三件事">1.5 四种模式共同做的三件事</a></li>
+      </ul>
+    </li>
+    <li><a href="#2--print-与-json-模式">2 · print 与 JSON 模式</a>
+      <ul>
+        <li><a href="#21-一次性运行的流程">2.1 一次性运行的流程</a></li>
+        <li><a href="#22-stdoutstderr-和退出码">2.2 stdout、stderr 和退出码</a></li>
+        <li><a href="#23-json-事件流">2.3 JSON 事件流</a></li>
+        <li><a href="#24-出错重试和中止">2.4 出错、重试和中止</a></li>
+        <li><a href="#25-排队消息和扩展的动作在一次性运行里会怎样">2.5 排队消息和扩展的动作在一次性运行里会怎样</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--rpc-模式">3 · RPC 模式</a>
+      <ul>
+        <li><a href="#31-记录和帧格式">3.1 记录和帧格式</a></li>
+        <li><a href="#32-33-条命令">3.2 33 条命令</a></li>
+        <li><a href="#33-请求与响应">3.3 请求与响应</a></li>
+        <li><a href="#34-扩展-ui-的往返">3.4 扩展 UI 的往返</a></li>
+        <li><a href="#35-运行中的输入和中止">3.5 运行中的输入和中止</a></li>
+        <li><a href="#36-会话替换和退出">3.6 会话替换和退出</a></li>
+        <li><a href="#37-与官方文档对照">3.7 与官方文档对照</a></li>
+      </ul>
+    </li>
+    <li><a href="#4--交互模式">4 · 交互模式</a>
+      <ul>
+        <li><a href="#41-结构一组固定的容器">4.1 结构：一组固定的容器</a></li>
+        <li><a href="#42-输入分派">4.2 输入分派</a></li>
+        <li><a href="#43-斜杠命令">4.3 斜杠命令</a></li>
+        <li><a href="#44-事件怎样变成画面">4.4 事件怎样变成画面</a></li>
+        <li><a href="#45-会话替换和-reload-时界面怎样重建">4.5 会话替换和 /reload 时界面怎样重建</a></li>
+        <li><a href="#46-ctxui-在交互模式里落到哪里">4.6 ctx.ui 在交互模式里落到哪里</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--pi-tui终端界面怎样画出来">5 · pi-tui：终端界面怎样画出来</a>
+      <ul>
+        <li><a href="#51-组件接口">5.1 组件接口</a></li>
+        <li><a href="#52-渲染调度">5.2 渲染调度</a></li>
+        <li><a href="#53-两种差分">5.3 两种差分</a></li>
+        <li><a href="#54-什么时候整屏重画">5.4 什么时候整屏重画</a></li>
+        <li><a href="#55-按键和输入">5.5 按键和输入</a></li>
+        <li><a href="#56-主题和暗色适配">5.6 主题和暗色适配</a></li>
+        <li><a href="#57-单独使用">5.7 单独使用</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--sdk-与远程">6 · SDK 与远程</a>
+      <ul>
+        <li><a href="#61-自己驱动时要补的接线">6.1 自己驱动时要补的接线</a></li>
+        <li><a href="#62-直接复用模式">6.2 直接复用模式</a></li>
+        <li><a href="#63-clientserverprotocol-的边界">6.3 client、server、protocol 的边界</a></li>
+      </ul>
+    </li>
+    <li><a href="#7--用法一个最小-rpc-客户端">7 · 用法：一个最小 RPC 客户端</a></li>
+    <li><a href="#8--三个可以带走的方法">8 · 三个可以带走的方法</a></li>
+    <li><a href="#9--关键数字">9 · 关键数字</a></li>
+    <li><a href="#10--术语表">10 · 术语表</a></li>
+    <li><a href="#11--源码导航">11 · 源码导航</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">44</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Pi 源码分析 10 · 运行模式与界面：四种入口怎样驱动同一个 AgentSession",
+          url: "https:\/\/example.org\/harness\/pi\/10-run-modes-ui\/",
+          description: "接着第九章往下讲：pi 命令怎样解析参数、选出交互、print、JSON、RPC 四种模式之一并建好 AgentSessionRuntime；一次性运行往 stdout 和 stderr 写什么、退出码是多少；RPC 的 33 条命令、事件流和扩展 UI 怎样在 stdin\/stdout 上往返；交互模式的界面结构和输入分派；pi-tui 怎样只重写变化的行；以及用 SDK 自己驱动时要补哪些接线。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

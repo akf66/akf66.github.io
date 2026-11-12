@@ -502,16 +502,8 @@ This article does not have a corresponding language version
 <a class="header-anchor" href="#12-%e5%9b%9b%e7%a7%8d%e5%a4%84%e7%bd%ae"></a>
 1.2 四种处置
 </h3><p><code>validation-guidance.md</code> 规定每个候选项必须得到四种处置之一：<code>reportable</code>、<code>suppressed</code>、<code>not_applicable</code> 或 <code>deferred</code>。</p>
-<pre class="mermaid">
-  flowchart TD
-    C["候选项"] --> Q1{"主张适用于<br/>这个目标吗？"}
-    Q1 -->|"否：组件不存在、<br/>版本不受影响"| NA["not_applicable"]
-    Q1 -->|是| Q2{"有源码证据<br/>推翻这个确切主张吗？"}
-    Q2 -->|是| SUP["suppressed<br/>记录反证"]
-    Q2 -->|否| Q3{"source → control → sink<br/>→ impact 每一环都有证据？"}
-    Q3 -->|是| REP["reportable<br/>记录证据和置信度"]
-    Q3 -->|"缺一个关键事实"| DEF["deferred<br/>写出会改变结论的最小事实"]
-</pre><p>最容易出错的是 <code>suppressed</code> 和 <code>deferred</code> 的分界。规则原文：</p>
+<p><img src="/images/harness/codex/ch04/fig1-disposition.png" alt="图 1 · 四种处置：抑制要有反证，缺证据只能推迟"></p>
+<p>最容易出错的是 <code>suppressed</code> 和 <code>deferred</code> 的分界。规则原文：</p>
 <blockquote>
 <p>只有在有证据推翻该确切主张时才进行抑制。缺少调用方、部署或来源出处方面的证据，可能需要有针对性的后续跟进或标为 <code>deferred</code>；仅仅是证据缺失并不能证明安全。（<code>validation-guidance.md</code>）</p>
 </blockquote>
@@ -520,7 +512,7 @@ This article does not have a corresponding language version
 <p>Reject only with source-backed counterevidence, preserve valid baseline findings, record material unresolved proof gaps.</p>
 </blockquote>
 <p>（只有在有源码反证时才拒绝，保留有效的基线发现项，记录重要的未解决证明缺口。）</p>
-<p>&ldquo;没找到调用方&quot;是证明缺口，&ldquo;找到了，且每个调用方都先做了校验&quot;才是反证。</p>
+<p>&ldquo;没找到调用方&quot;是证明缺口，&ldquo;找到了，且每个调用方都先做了校验&quot;才是反证，图 1 下方用同一个主张对比了这两种情况。</p>
 <h3 id="13-在控制的使用点检查控制">
 <a class="header-anchor" href="#13-%e5%9c%a8%e6%8e%a7%e5%88%b6%e7%9a%84%e4%bd%bf%e7%94%a8%e7%82%b9%e6%a3%80%e6%9f%a5%e6%8e%a7%e5%88%b6"></a>
 1.3 在控制的使用点检查控制
@@ -809,7 +801,9 @@ This article does not have a corresponding language version
 <h3 id="41-五个等级">
 <a class="header-anchor" href="#41-%e4%ba%94%e4%b8%aa%e7%ad%89%e7%ba%a7"></a>
 4.1 五个等级
-</h3><table>
+</h3><p><img src="/images/harness/codex/ch04/fig2-severity-ladder.png" alt="图 2 · 默认严重性标准：按起始访问、跨越边界后的新能力和证据定级"></p>
+<p>图 2 是精简后的概览，下表是标准里每一级的完整条件：</p>
+<table>
 	<thead>
 			<tr>
 					<th>等级</th>
@@ -1016,37 +1010,8 @@ This article does not have a corresponding language version
 <li>攻击者还能从&quot;有标题 / 无标题 / 失败&quot;的差别推断内网哪些地址和端口有服务。</li>
 </ul>
 <p>这个限制对定级影响很大。以常被拿来举例的云实例元数据为例：凭据接口返回的是纯文本或 JSON，没有 <code>&lt;title&gt;</code>，通过这个功能本身读不到凭据。所以不能直接写&quot;可窃取云凭据，Critical&rdquo;。</p>
-<table>
-	<thead>
-			<tr>
-					<th>情形</th>
-					<th>需要确立的事实</th>
-					<th>影响</th>
-					<th>严重性</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>仅凭已确立的事实</td>
-					<td>如上</td>
-					<td>读取内网页面标题、探测内网服务，属于运维信息；同时能以服务端身份向内网发出任意 GET</td>
-					<td>至少 Medium。不能定 Low：内网 GET 能造成什么后果还未知，这是不确定性，不是已验证的限制</td>
-			</tr>
-			<tr>
-					<td>内网有无认证、GET 即可改变状态的管理接口</td>
-					<td>部署文件或内部服务的源码显示这样的接口存在，且从 notes-api 所在网络可达</td>
-					<td>以服务端身份操作生产服务，符合 High 的 &ldquo;control of production workloads&rdquo;</td>
-					<td>High</td>
-			</tr>
-			<tr>
-					<td>能读到完整响应，且元数据服务接受无令牌请求</td>
-					<td>(1) 存在另一个能回显响应体的通道；(2) 元数据服务接受不带令牌的 GET（例如 AWS 的 IMDSv1；IMDSv2 要求先发带特殊头的 PUT，只能控制 URL 的 SSRF 做不到）；(3) 容器到元数据服务网络可达；(4) 实例角色的权限范围</td>
-					<td>拿到可复用凭据；如果角色能访问全部租户的附件桶，就是对受保护数据的重要访问</td>
-					<td>四项都确立时可评 Critical</td>
-			</tr>
-	</tbody>
-</table>
-<p>这张表体现了几条规则：降级（&ldquo;只回传标题&rdquo;）基于已验证的限制，是正当的；&ldquo;内网 GET 能做什么&quot;没有查清，不能当作&quot;做不了什么&rdquo;，所以不能压到 Low；更高的影响需要的部署前提要逐条写明，不能默认&quot;肯定是 IMDSv1&rdquo;。</p>
+<p><img src="/images/harness/codex/ch04/fig3-c3-grading.png" alt="图 3 · C3 的定级跟着已确立的事实走：现在是 Medium，升级要先查清对应的部署事实"></p>
+<p>图 3 体现了几条规则：降级（&ldquo;只回传标题&rdquo;）基于已验证的限制，是正当的；&ldquo;内网 GET 能做什么&quot;没有查清，不能当作&quot;做不了什么&rdquo;，所以不能压到 Low；更高的影响需要的部署前提要逐条写明，不能默认&quot;肯定是 IMDSv1&rdquo;。</p>
 <p>结论（仅凭已确立的事实）<strong>Medium / P2</strong>，并在不确定性里写明：&ldquo;会把它升到 High 的最小事实：notes-api 所在网络里是否有无认证、可被 GET 触发的状态变更接口。&ldquo;如果团队能拿到部署信息，这一条应该优先去查，而不是先修完了事。</p>
 <hr>
 <h2 id="6--三个反例">
@@ -1276,7 +1241,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/27.webp"
+              data-src="/random/14.webp"
               data-sizes="auto"
               alt="Codex Security 03 · 找漏洞：从入口追到汇点"
               class="lazyload"
@@ -1288,7 +1253,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Codex Security 03 · 找漏洞：从入口追到汇点</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/1.webp"
+              data-src="/random/6.webp"
               data-sizes="auto"
               alt="Codex Security 05 · 把漏洞修对，并证明修对了"
               class="lazyload"
@@ -1514,95 +1479,6 @@ This article does not have a corresponding language version
           description: "发现阶段交出来的只是候选项。本章讲 Codex Security 怎样判断一个候选项是不是真漏洞：validation 给出四种处置，attack-path-analysis 追出攻击路径并按严重性标准定级，triage-finding 用同一套方法分诊别的扫描器和外部报告。最后用 notes-api 的两个候选项完整走一遍，再给三个被忽略、被推迟、被抑制的反例。",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
-      </script><script
-    src="https://npm.webcache.cn/mermaid@11.12.0/dist/mermaid.min.js"
-    data-pjaxintegrity="sha384-o&#43;g/BxPwhi0C3RK7oQBxQuNimeafQ3GE/ST4iT2BxVI4Wzt60SH4pq9iXVYujjaS" crossorigin="anonymous"></script><script
-    src="https://npm.webcache.cn/dompurify@3.2.6/dist/purify.min.js"
-    data-pjaxintegrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla&#43;3" crossorigin="anonymous"></script><script data-pjax>
-        if (window.mermaid) {
-          
-          const elementCode = '.mermaid'
-          const processElements = (callback) => {
-            const els = _$$(elementCode);
-            if (!els.length) return Promise.resolve();
-            
-            return new Promise((resolve, reject) => {
-              try {
-                els.forEach(callback);
-                resolve();
-              } catch (error) {
-                reject(error);
-              }
-            });
-          };
-          const saveOriginalData = () => processElements(el => {
-            if (!el.getAttribute('data-original-code')) {
-              el.setAttribute('data-original-code', el.innerHTML);
-            }
-          });
-
-          const resetProcessed = () => processElements(el => {
-            const originalCode = el.getAttribute('data-original-code');
-            if (originalCode) {
-              el.removeAttribute('data-processed');
-              el.innerHTML = DOMPurify.sanitize(originalCode);
-            }
-          });
-          const loadMermaid = async (theme) => {
-            window.mermaid.initialize({theme, startOnLoad: false})
-            await window.mermaid.run({querySelector: elementCode, suppressErrors: true})
-            if (window.svgPanZoom) {
-              window.__panZoomList?.forEach(panZoom => {try {panZoom.destroy()} catch {}});
-              window.__panZoomList = [];
-              _$$('.mermaid > svg').forEach(el => {
-                const bbox = el.getBBox();
-                el.setAttribute('height', Math.max(bbox.height, 80));
-                window.__panZoomList.push(window.svgPanZoom(el, {
-                  zoomEnabled: true,
-                  controlIconsEnabled: true,
-                  fit: true,
-                  center: true
-                }));
-              });
-              if (window.__resizeMermaidSvg) {
-                window.removeEventListener('resize', window.__resizeMermaidSvg);
-              }
-              window.__resizeMermaidSvg = () => {
-                try {
-                  window.__panZoomList.forEach(panZoom => {
-                    panZoom.resize();
-                    panZoom.fit();
-                    panZoom.center();
-                  });
-                } catch {
-                  window.removeEventListener('resize', window.__resizeMermaidSvg);
-                  window.__panZoomList = [];
-                }
-              }
-              window.addEventListener('resize', window.__resizeMermaidSvg);
-            }
-          }
-          const initMermaid = async (theme) => {
-            try {
-              await saveOriginalData();
-              await resetProcessed();
-              await loadMermaid(theme);
-            } catch (error) {
-              console.error(error);
-            }
-          };
-          
-          document.body.addEventListener('dark-theme-set', () => initMermaid('dark'));
-          document.body.addEventListener('light-theme-set', () => initMermaid('default'));
-
-          const mode = localStorage.getItem('dark_mode');
-          if (mode === 'auto') {
-            const osMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            initMermaid(osMode ? 'dark' : 'default');
-          } else {
-            initMermaid(mode === 'true' ? 'dark' : 'default');
-          }
-        }
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
           if (_$$(`${gallery} ${children}`).length > 0) {
             new PhotoSwipeLightbox({

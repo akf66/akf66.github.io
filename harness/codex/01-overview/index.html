@@ -530,20 +530,8 @@ This article does not have a corresponding language version
 </h2><h3 id="21-主线">
 <a class="header-anchor" href="#21-%e4%b8%bb%e7%ba%bf"></a>
 2.1 主线
-</h3><pre class="mermaid">
-  flowchart LR
-    P["define-security-policy<br/>SECURITY.md"] --> T["threat-model<br/>威胁模型"]
-    T --> D["finding-discovery<br/>发现候选项"]
-    D --> V["validation<br/>验证"]
-    V --> A["attack-path-analysis<br/>攻击路径与定级"]
-    A --> R["报告<br/>findings + report.md"]
-    R --> F["fix-finding<br/>修复"]
-    F --> VF["verify-fix<br/>复核修复"]
-    F --> PR["assess-patch-risk<br/>补丁风险"]
-    R --> H["propose-security-hardening<br/>结构性加固"]
-    R --> W["vulnerability-writeup<br/>漏洞报告"]
-    R --> TR["track-findings<br/>建工单"]
-</pre><p>用户通常不会一个个手动调用这些阶段技能，而是从三个扫描入口之一开始：</p>
+</h3><p><img src="/images/harness/codex/ch01/fig1-pipeline.png" alt="图 1 · 20 个技能怎样串成一条流水线"></p>
+<p>用户通常不会一个个手动调用这些阶段技能，而是从三个扫描入口之一开始：</p>
 <table>
 	<thead>
 			<tr>
@@ -681,13 +669,9 @@ This article does not have a corresponding language version
 <li>proof gaps: missing facts that prevent a stronger conclusion</li>
 </ul>
 </blockquote>
-<p>翻译过来：<strong>来源</strong>（攻击者能控制什么）、<strong>控制</strong>（哪个检查本该挡住它）、<strong>汇点</strong>（危害在哪发生）、<strong>可达路径</strong>（三者之间的代码路径和前提条件）、<strong>边界</strong>（为什么这条路径跨越了信任边界）、<strong>反证</strong>、<strong>证明缺口</strong>。</p>
-<pre class="mermaid">
-  flowchart LR
-    S["source<br/>攻击者可控的输入"] --> C["control<br/>鉴权 / 校验 / 转义"]
-    C -->|"缺失、可绕过、<br/>检查了错的值"| K["sink<br/>SQL / 文件 / 网络 / 返回数据"]
-    K --> I["impact<br/>跨越了哪条边界"]
-</pre><p>同一份文档紧接着说：</p>
+<p>翻译过来：<strong>来源</strong>（攻击者能控制什么）、<strong>控制</strong>（哪个检查本该挡住它）、<strong>汇点</strong>（危害在哪发生）、<strong>可达路径</strong>（三者之间的代码路径和前提条件）、<strong>边界</strong>（为什么这条路径跨越了信任边界）、<strong>反证</strong>、<strong>证明缺口</strong>。图 2 用第三章的 C1 把七项填了一遍。</p>
+<p><img src="/images/harness/codex/ch01/fig2-evidence-chain.png" alt="图 2 · 发现项是一条完整的证据链"></p>
+<p>同一份文档紧接着说：</p>
 <blockquote>
 <p>Do not treat dependency presence, string matches, or a partial call chain as a complete assessment.</p>
 </blockquote>
@@ -710,6 +694,7 @@ This article does not have a corresponding language version
 </li>
 </ul>
 <p>中间状态有专门的名字：验证阶段叫 <code>deferred</code>，分诊叫 <code>needs_review</code>，修复叫 <code>blocked</code>，复核修复叫 <code>inconclusive</code>。它们的共同要求是<strong>指出会改变结论的最小事实</strong>。<code>triage-finding</code> 原文：&ldquo;指出会改变判定的最小事实。&rdquo;</p>
+<p><img src="/images/harness/codex/ch01/fig3-proof-gaps.png" alt="图 3 · 每个技能都留了一个中间状态"></p>
 <p><strong>对开发者</strong>：&ldquo;我没看出问题&quot;和&quot;我确认没问题&quot;是两句话。审查意见里把&quot;没覆盖到的&quot;写出来，比给一个笼统的 LGTM 有用得多。</p>
 <h3 id="33-仓库内容是数据不是指令">
 <a class="header-anchor" href="#33-%e4%bb%93%e5%ba%93%e5%86%85%e5%ae%b9%e6%98%af%e6%95%b0%e6%8d%ae%e4%b8%8d%e6%98%af%e6%8c%87%e4%bb%a4"></a>
@@ -863,7 +848,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap right"><img
-              data-src="/random/2.webp"
+              data-src="/random/27.webp"
               data-sizes="auto"
               alt="Codex Security 02 · 先定义要防什么：SECURITY.md 与威胁建模"
               class="lazyload"
@@ -1054,95 +1039,6 @@ This article does not have a corresponding language version
           description: "Codex Security 是 OpenAI 给 Codex 做的安全审查插件，核心是 20 个技能文档。它们写给 Agent 执行，但内容其实是一套完整的安全审查方法：先定义要防什么，再从入口追到汇点找漏洞，然后验证、定级、修复、复核。本章介绍这 20 个技能怎样串成一条流水线，以及贯穿其中的八条原则，后面六章按阶段逐个拆解。",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
-      </script><script
-    src="https://npm.webcache.cn/mermaid@11.12.0/dist/mermaid.min.js"
-    data-pjaxintegrity="sha384-o&#43;g/BxPwhi0C3RK7oQBxQuNimeafQ3GE/ST4iT2BxVI4Wzt60SH4pq9iXVYujjaS" crossorigin="anonymous"></script><script
-    src="https://npm.webcache.cn/dompurify@3.2.6/dist/purify.min.js"
-    data-pjaxintegrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla&#43;3" crossorigin="anonymous"></script><script data-pjax>
-        if (window.mermaid) {
-          
-          const elementCode = '.mermaid'
-          const processElements = (callback) => {
-            const els = _$$(elementCode);
-            if (!els.length) return Promise.resolve();
-            
-            return new Promise((resolve, reject) => {
-              try {
-                els.forEach(callback);
-                resolve();
-              } catch (error) {
-                reject(error);
-              }
-            });
-          };
-          const saveOriginalData = () => processElements(el => {
-            if (!el.getAttribute('data-original-code')) {
-              el.setAttribute('data-original-code', el.innerHTML);
-            }
-          });
-
-          const resetProcessed = () => processElements(el => {
-            const originalCode = el.getAttribute('data-original-code');
-            if (originalCode) {
-              el.removeAttribute('data-processed');
-              el.innerHTML = DOMPurify.sanitize(originalCode);
-            }
-          });
-          const loadMermaid = async (theme) => {
-            window.mermaid.initialize({theme, startOnLoad: false})
-            await window.mermaid.run({querySelector: elementCode, suppressErrors: true})
-            if (window.svgPanZoom) {
-              window.__panZoomList?.forEach(panZoom => {try {panZoom.destroy()} catch {}});
-              window.__panZoomList = [];
-              _$$('.mermaid > svg').forEach(el => {
-                const bbox = el.getBBox();
-                el.setAttribute('height', Math.max(bbox.height, 80));
-                window.__panZoomList.push(window.svgPanZoom(el, {
-                  zoomEnabled: true,
-                  controlIconsEnabled: true,
-                  fit: true,
-                  center: true
-                }));
-              });
-              if (window.__resizeMermaidSvg) {
-                window.removeEventListener('resize', window.__resizeMermaidSvg);
-              }
-              window.__resizeMermaidSvg = () => {
-                try {
-                  window.__panZoomList.forEach(panZoom => {
-                    panZoom.resize();
-                    panZoom.fit();
-                    panZoom.center();
-                  });
-                } catch {
-                  window.removeEventListener('resize', window.__resizeMermaidSvg);
-                  window.__panZoomList = [];
-                }
-              }
-              window.addEventListener('resize', window.__resizeMermaidSvg);
-            }
-          }
-          const initMermaid = async (theme) => {
-            try {
-              await saveOriginalData();
-              await resetProcessed();
-              await loadMermaid(theme);
-            } catch (error) {
-              console.error(error);
-            }
-          };
-          
-          document.body.addEventListener('dark-theme-set', () => initMermaid('dark'));
-          document.body.addEventListener('light-theme-set', () => initMermaid('default'));
-
-          const mode = localStorage.getItem('dark_mode');
-          if (mode === 'auto') {
-            const osMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            initMermaid(osMode ? 'dark' : 'default');
-          } else {
-            initMermaid(mode === 'true' ? 'dark' : 'default');
-          }
-        }
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
           if (_$$(`${gallery} ${children}`).length > 0) {
             new PhotoSwipeLightbox({

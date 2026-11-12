@@ -645,17 +645,8 @@ This article does not have a corresponding language version
 <h3 id="23-写入时串行核对不重复创建">
 <a class="header-anchor" href="#23-%e5%86%99%e5%85%a5%e6%97%b6%e4%b8%b2%e8%a1%8c%e6%a0%b8%e5%af%b9%e4%b8%8d%e9%87%8d%e5%a4%8d%e5%88%9b%e5%bb%ba"></a>
 2.3 写入时：串行、核对、不重复创建
-</h3><pre class="mermaid">
-  flowchart TD
-    A["重新校验来源与目标<br/>刷新查重结果"] --> B["写入（create / update）"]
-    B -->|"成功响应"| C["立即记录回执<br/>finding id、issue id"]
-    B -->|"失败或超时<br/>（可能已成功）"| D["按确切读取或绑定信息<br/>搜索核对"]
-    D -->|"确认未创建"| A
-    D -->|"仍不确定"| S["停止整批"]
-    C -->|"本地记录失败"| S
-    C --> E["回读核对字段"]
-    E --> F["处理下一条"]
-</pre><p>几条规则对应图里的分支：</p>
+</h3><p><img src="/images/harness/codex/ch07/fig1-tracking-writes.png" alt="图 1 · 写入工单：结果不确定时先核对，查不清就停"></p>
+<p>几条规则对应图 1 里的分支：</p>
 <ul>
 <li>&ldquo;按批准的顺序串行处理发现项。&ldquo;&ldquo;在变更失败或结果不确定、或存在未解决的重复项时，停止整个批次。&rdquo;</li>
 <li>&ldquo;如果变更失败或超时且可能已经成功，在任何重试之前，通过确切读取或绑定信息搜索进行核对。&rdquo;</li>
@@ -744,7 +735,8 @@ This article does not have a corresponding language version
 <li>如果你拿到的是别人给的检出目录或带 <code>.git</code> 的压缩包，<code>.git/config</code> 和 <code>.git/hooks/</code> 也是对方控制的：钩子是可执行脚本，配置里可以定义任意 filter 命令。普通 <code>git clone</code> 不会复制对方的钩子和配置，但&quot;直接在给定的检出上操作&quot;的工具没有这层保护。</li>
 <li>当前目录里的 <code>json.py</code>、IDE 启动配置、项目里的 <code>.env</code>，都可能在你运行解释器或 shell 时被加载。</li>
 </ul>
-<p>Codex Security 的技能把这些风险当作默认前提来处理。下面按类别整理，每类给一个 Go 的对应写法。</p>
+<p>Codex Security 的技能把这些风险当作默认前提来处理。图 2 把散落在各技能里的规则按&quot;仓库能控制什么、影响工具的哪个环节、怎么防&quot;排在一起，下面逐类展开，每类给一个 Go 的对应写法。</p>
+<p><img src="/images/harness/codex/ch07/fig2-untrusted-repo.png" alt="图 2 · 不可信仓库能影响工具的九个地方，以及各自的防御"></p>
 <h3 id="42-从检出目录之外选可执行文件">
 <a class="header-anchor" href="#42-%e4%bb%8e%e6%a3%80%e5%87%ba%e7%9b%ae%e5%bd%95%e4%b9%8b%e5%a4%96%e9%80%89%e5%8f%af%e6%89%a7%e8%a1%8c%e6%96%87%e4%bb%b6"></a>
 4.2 从检出目录之外选可执行文件
@@ -841,6 +833,8 @@ This article does not have a corresponding language version
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
 </span></span></span></code></pre></div><p>配套测试在临时目录里造一个带恶意 filter 和 <code>pre-commit</code> 钩子的仓库，用 <code>Run</code> 执行 <code>add</code> 和 <code>commit</code>，断言标记文件不存在。为了确认这个测试有意义，我另外跑了一次&quot;不加保护&quot;的版本，标记文件确实被创建了。</p>
 <p>注意 <code>cmd.Env</code> 是从零构造的切片，而不是 <code>append(os.Environ(), ...)</code>。后者会把调用者环境里的 <code>GIT_DIR</code>、<code>GIT_CONFIG_PARAMETERS</code>、<code>LD_PRELOAD</code> 一起带进子进程。</p>
+<p>把 4.2 节的可执行文件选择、本节的环境和参数、4.8 节的结果检查合起来，一次 git 调用的完整隔离见图 3。</p>
+<p><img src="/images/harness/codex/ch07/fig3-git-isolation.png" alt="图 3 · 在不可信仓库上调用 git 的四层隔离"></p>
 <h3 id="44-写入边界和符号链接">
 <a class="header-anchor" href="#44-%e5%86%99%e5%85%a5%e8%be%b9%e7%95%8c%e5%92%8c%e7%ac%a6%e5%8f%b7%e9%93%be%e6%8e%a5"></a>
 4.4 写入边界和符号链接
@@ -1173,7 +1167,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/13.webp"
+              data-src="/random/6.webp"
               data-sizes="auto"
               alt="Codex Security 06 · 补丁风险、依赖告警与结构性加固"
               class="lazyload"
@@ -1389,95 +1383,6 @@ This article does not have a corresponding language version
           description: "流水线的最后一段：怎样把漏洞写成别人能核查的报告，怎样把发现项安全地建成工单，怎样在安装前审查一个第三方 Agent 技能。本章还把散落在各技能里的一类规则集中起来讲：一个要在不可信仓库上运行的安全工具，怎样防止自己被仓库里的钩子、filter、环境变量和重定向反过来利用。最后回顾全系列。",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
-      </script><script
-    src="https://npm.webcache.cn/mermaid@11.12.0/dist/mermaid.min.js"
-    data-pjaxintegrity="sha384-o&#43;g/BxPwhi0C3RK7oQBxQuNimeafQ3GE/ST4iT2BxVI4Wzt60SH4pq9iXVYujjaS" crossorigin="anonymous"></script><script
-    src="https://npm.webcache.cn/dompurify@3.2.6/dist/purify.min.js"
-    data-pjaxintegrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla&#43;3" crossorigin="anonymous"></script><script data-pjax>
-        if (window.mermaid) {
-          
-          const elementCode = '.mermaid'
-          const processElements = (callback) => {
-            const els = _$$(elementCode);
-            if (!els.length) return Promise.resolve();
-            
-            return new Promise((resolve, reject) => {
-              try {
-                els.forEach(callback);
-                resolve();
-              } catch (error) {
-                reject(error);
-              }
-            });
-          };
-          const saveOriginalData = () => processElements(el => {
-            if (!el.getAttribute('data-original-code')) {
-              el.setAttribute('data-original-code', el.innerHTML);
-            }
-          });
-
-          const resetProcessed = () => processElements(el => {
-            const originalCode = el.getAttribute('data-original-code');
-            if (originalCode) {
-              el.removeAttribute('data-processed');
-              el.innerHTML = DOMPurify.sanitize(originalCode);
-            }
-          });
-          const loadMermaid = async (theme) => {
-            window.mermaid.initialize({theme, startOnLoad: false})
-            await window.mermaid.run({querySelector: elementCode, suppressErrors: true})
-            if (window.svgPanZoom) {
-              window.__panZoomList?.forEach(panZoom => {try {panZoom.destroy()} catch {}});
-              window.__panZoomList = [];
-              _$$('.mermaid > svg').forEach(el => {
-                const bbox = el.getBBox();
-                el.setAttribute('height', Math.max(bbox.height, 80));
-                window.__panZoomList.push(window.svgPanZoom(el, {
-                  zoomEnabled: true,
-                  controlIconsEnabled: true,
-                  fit: true,
-                  center: true
-                }));
-              });
-              if (window.__resizeMermaidSvg) {
-                window.removeEventListener('resize', window.__resizeMermaidSvg);
-              }
-              window.__resizeMermaidSvg = () => {
-                try {
-                  window.__panZoomList.forEach(panZoom => {
-                    panZoom.resize();
-                    panZoom.fit();
-                    panZoom.center();
-                  });
-                } catch {
-                  window.removeEventListener('resize', window.__resizeMermaidSvg);
-                  window.__panZoomList = [];
-                }
-              }
-              window.addEventListener('resize', window.__resizeMermaidSvg);
-            }
-          }
-          const initMermaid = async (theme) => {
-            try {
-              await saveOriginalData();
-              await resetProcessed();
-              await loadMermaid(theme);
-            } catch (error) {
-              console.error(error);
-            }
-          };
-          
-          document.body.addEventListener('dark-theme-set', () => initMermaid('dark'));
-          document.body.addEventListener('light-theme-set', () => initMermaid('default'));
-
-          const mode = localStorage.getItem('dark_mode');
-          if (mode === 'auto') {
-            const osMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            initMermaid(osMode ? 'dark' : 'default');
-          } else {
-            initMermaid(mode === 'true' ? 'dark' : 'default');
-          }
-        }
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
           if (_$$(`${gallery} ${children}`).length > 0) {
             new PhotoSwipeLightbox({

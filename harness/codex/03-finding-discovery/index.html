@@ -210,7 +210,7 @@ This article does not have a corresponding language version
         <li><a href="#42-c2-检查的值--使用的值">4.2 C2 检查的值 ≠ 使用的值</a></li>
         <li><a href="#43-c3-检查的目标--实际连接的目标">4.3 C3 检查的目标 ≠ 实际连接的目标</a></li>
         <li><a href="#44-c4-副作用先于检查">4.4 C4 副作用先于检查</a></li>
-        <li><a href="#45-一张对照表">4.5 一张对照表</a></li>
+        <li><a href="#45-四个候选项放在一起看">4.5 四个候选项放在一起看</a></li>
       </ul>
     </li>
     <li><a href="#5--发现阶段的证据标准">5 · 发现阶段的证据标准</a>
@@ -510,18 +510,9 @@ This article does not have a corresponding language version
 </h2><h3 id="21-八个步骤">
 <a class="header-anchor" href="#21-%e5%85%ab%e4%b8%aa%e6%ad%a5%e9%aa%a4"></a>
 2.1 八个步骤
-</h3><p><code>core-scan.md</code> 的 Core Workflow 有八步，画出来是这样：</p>
-<pre class="mermaid">
-  flowchart TD
-    S1["1 确定目标、范围<br/>继承的 SECURITY.md、用户上下文、威胁模型"] --> S2["2 启动独立基线审计员<br/>fork_turns: none，不给父级假设"]
-    S1 --> S3["3 读 threat-model.md<br/>梳理架构和安全边界"]
-    S3 --> S4["4 把问题分组成调查包<br/>按攻击者、资产、入口、预期控制、敏感操作"]
-    S4 --> S5["5 专项调查员并行调查<br/>读 focused-investigator.md"]
-    S2 --> S6["6 候选项先存检查点<br/>包括被拒的和反证"]
-    S5 --> S6
-    S6 --> S7["7 逐个验证不同的候选项"]
-    S7 --> S8["8 汇总 scope / threatModel / findings / reviewState"]
-</pre><p>第 2 步对基线审计员的要求很严格：</p>
+</h3><p><code>core-scan.md</code> 的 Core Workflow 有八步，见图 1。</p>
+<p><img src="/images/harness/codex/ch03/fig1-core-scan.png" alt="图 1 · 标准扫描的八步：独立基线和威胁模型驱动的调查并行，在检查点汇合"></p>
+<p>第 2 步对基线审计员的要求很严格：</p>
 <blockquote>
 <p>start an independent baseline audit with <code>fork_turns: &quot;none&quot;</code>. &hellip; Keep parent hypotheses and other findings out of the assignment.</p>
 </blockquote>
@@ -696,30 +687,8 @@ This article does not have a corresponding language version
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// sink：打开的是 full，不是 raw</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">http</span><span class="p">.</span><span class="nf">ServeFile</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">,</span><span class="w"> </span><span class="nx">full</span><span class="p">)</span><span class="w">
 </span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
-</span></span></span></code></pre></div><p>把检查的值和使用的值并排写出来：</p>
-<table>
-	<thead>
-			<tr>
-					<th>步骤</th>
-					<th>值（租户 <code>t1</code> 的用户请求 <code>?path=t1/%252e%252e/t2/contract.pdf</code>）</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td><code>Query().Get</code> 之后的 <code>raw</code>（守卫检查的值）</td>
-					<td><code>t1/%2e%2e/t2/contract.pdf</code>：前缀是 <code>t1/</code>，不含 <code>..</code>，通过</td>
-			</tr>
-			<tr>
-					<td><code>PathUnescape</code> 之后的 <code>name</code></td>
-					<td><code>t1/../t2/contract.pdf</code></td>
-			</tr>
-			<tr>
-					<td><code>Join</code> 之后的 <code>full</code>（汇点使用的值）</td>
-					<td><code>/srv/attachments/t2/contract.pdf</code>：租户 <code>t2</code> 的文件</td>
-			</tr>
-	</tbody>
-</table>
-<p>守卫看的是 <code>raw</code>，<code>ServeFile</code> 打开的是 <code>full</code>，中间隔着一次解码和一次路径规整。我把这个例子写成了测试，确认第一行的值能通过检查、最后一行落在另一个租户的目录下。</p>
+</span></span></span></code></pre></div><p>图 2 把检查的值和使用的值按顺序排了出来。守卫看的是 <code>raw</code>，<code>ServeFile</code> 打开的是 <code>full</code>，中间隔着一次解码和一次路径规整。这些值都来自我写的测试：第一步的值能通过检查，最后一步落在另一个租户的目录下。</p>
+<p><img src="/images/harness/codex/ch03/fig2-c2-values.png" alt="图 2 · C2：守卫检查的是 raw，ServeFile 打开的是两步之后的 full"></p>
 <p>这里还有一个容易被当成反证的东西：<code>http.ServeFile</code> 的文档说它会拒绝 <code>r.URL.Path</code> 含 <code>..</code> 的请求。但它检查的是<strong>请求路径</strong>（这里是 <code>/attachments</code>），不是传给它的 <code>name</code> 参数。一个真实存在的控制，检查的却是另一个值，不能算反证。这正是 <code>finding-discovery</code> 证据标准里说的&quot;被应用到了错误的值或边界上&rdquo;。</p>
 <h3 id="43-c3-检查的目标--实际连接的目标">
 <a class="header-anchor" href="#43-c3-%e6%a3%80%e6%9f%a5%e7%9a%84%e7%9b%ae%e6%a0%87--%e5%ae%9e%e9%99%85%e8%bf%9e%e6%8e%a5%e7%9a%84%e7%9b%ae%e6%a0%87"></a>
@@ -826,45 +795,10 @@ This article does not have a corresponding language version
 <li>失败时的 <code>os.Remove</code> 是事后补救。删除失败、进程在中间崩溃、并发请求同时写入，都会留下文件。</li>
 </ul>
 <p>修法是把顺序倒过来：先查归属，再用 <code>http.MaxBytesReader</code> 限制大小、按 <code>Content-Length</code> 或上限预扣配额，最后才写盘。</p>
-<h3 id="45-一张对照表">
-<a class="header-anchor" href="#45-%e4%b8%80%e5%bc%a0%e5%af%b9%e7%85%a7%e8%a1%a8"></a>
-4.5 一张对照表
-</h3><table>
-	<thead>
-			<tr>
-					<th>技巧</th>
-					<th>示例</th>
-					<th>守卫检查的</th>
-					<th>汇点实际使用的</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>查兄弟操作</td>
-					<td>C1</td>
-					<td><code>GetNote</code> 里的租户和归属</td>
-					<td><code>DeleteNote</code> 里只有 id</td>
-			</tr>
-			<tr>
-					<td>比对检查值和使用值，追踪解码</td>
-					<td>C2</td>
-					<td>解码一次后的 <code>raw</code></td>
-					<td>解码两次、规整后的 <code>full</code></td>
-			</tr>
-			<tr>
-					<td>追踪重定向和目标选择</td>
-					<td>C3</td>
-					<td>第一次解析出的 IP</td>
-					<td>拨号时重新解析的 IP、重定向后的地址</td>
-			</tr>
-			<tr>
-					<td>检查在第一个副作用之前</td>
-					<td>C4</td>
-					<td>写盘之后的配额和归属</td>
-					<td>写盘时没有任何限制</td>
-			</tr>
-	</tbody>
-</table>
+<h3 id="45-四个候选项放在一起看">
+<a class="header-anchor" href="#45-%e5%9b%9b%e4%b8%aa%e5%80%99%e9%80%89%e9%a1%b9%e6%94%be%e5%9c%a8%e4%b8%80%e8%b5%b7%e7%9c%8b"></a>
+4.5 四个候选项放在一起看
+</h3><p><img src="/images/harness/codex/ch03/fig3-checked-vs-used.png" alt="图 3 · 四个候选项的共同点：守卫检查的，不是汇点实际使用的"></p>
 <hr>
 <h2 id="5--发现阶段的证据标准">
 <a class="header-anchor" href="#5--%e5%8f%91%e7%8e%b0%e9%98%b6%e6%ae%b5%e7%9a%84%e8%af%81%e6%8d%ae%e6%a0%87%e5%87%86"></a>
@@ -1039,34 +973,8 @@ This article does not have a corresponding language version
 </span></span></span><span class="line"><span class="cl"><span class="gi">+	}
 </span></span></span><span class="line"><span class="cl"><span class="gi">+	return strings.HasSuffix(u.Host, &#34;notes.example.com&#34;)
 </span></span></span><span class="line"><span class="cl"> }
-</span></span></code></pre></div><p>只看 diff 本身，能看出 <code>HasSuffix</code> 会接受 <code>evilnotes.example.com</code>（我把这个也写进了测试）。但 diff 审查的要求是继续追：这个函数被谁调用？在 notes-api 里搜一下，调用方有三个：</p>
-<table>
-	<thead>
-			<tr>
-					<th>调用方</th>
-					<th>用途</th>
-					<th>改动后的影响</th>
-			</tr>
-	</thead>
-	<tbody>
-			<tr>
-					<td>登录后的 <code>?next=</code> 跳转</td>
-					<td>把浏览器送到 <code>next</code> 指定的页面</td>
-					<td>开放重定向，可用于钓鱼</td>
-			</tr>
-			<tr>
-					<td>登出后的跳转</td>
-					<td>同上</td>
-					<td>同上</td>
-			</tr>
-			<tr>
-					<td>OAuth 回调</td>
-					<td>决定把带授权码的回调发到哪个地址</td>
-					<td>授权码被发到攻击者注册的 <code>evilnotes.example.com</code>，可能导致账户被接管</td>
-			</tr>
-	</tbody>
-</table>
-<p>同一个改动，在前两个调用方是中低危的开放重定向，在第三个调用方可能是账户接管。只看 diff、不看调用方，会严重低估它。</p>
+</span></span></code></pre></div><p>只看 diff 本身，能看出 <code>HasSuffix</code> 会接受 <code>evilnotes.example.com</code>（我把这个也写进了测试）。但 diff 审查的要求是继续追：这个函数被谁调用？在 notes-api 里搜一下，调用方有三个。同一个改动，在前两个调用方是中低危的开放重定向，在 OAuth 回调里可能是账户接管，见图 4。</p>
+<p><img src="/images/harness/codex/ch03/fig4-diff-callers.png" alt="图 4 · 改一个共享控制，要按调用方逐个评估：同一行改动在 OAuth 回调里可能是账户接管"></p>
 <p><strong>例子二：删掉了一个中间件文件。</strong> PR 的描述是&quot;清理不用的代码&rdquo;，删除了 <code>internal/http/middleware/tenant_scope.go</code>，同时在 <code>routes.go</code> 里去掉了一行 <code>r.Use(middleware.TenantScope)</code>。</p>
 <p>diff 里只有删除，没有新增的逻辑，很容易一扫而过。按规则要去基线版本看被删的文件原来做什么：</p>
 <div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例：被删除的中间件（基线版本里的内容）</span><span class="w">
@@ -1159,7 +1067,7 @@ This article does not have a corresponding language version
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/28.webp"
+              data-src="/random/14.webp"
               data-sizes="auto"
               alt="Codex Security 02 · 先定义要防什么：SECURITY.md 与威胁建模"
               class="lazyload"
@@ -1171,7 +1079,7 @@ This article does not have a corresponding language version
         <div class="article-nav-caption">Prev</div>
         <h3 class="article-nav-title">Codex Security 02 · 先定义要防什么：SECURITY.md 与威胁建模</h3>
       </div><div class="article-nav-link-wrap right"><img
-              data-src="/random/24.webp"
+              data-src="/random/3.webp"
               data-sizes="auto"
               alt="Codex Security 04 · 真漏洞还是误报：验证、攻击路径与定级"
               class="lazyload"
@@ -1249,7 +1157,7 @@ This article does not have a corresponding language version
         <li><a href="#42-c2-检查的值--使用的值">4.2 C2 检查的值 ≠ 使用的值</a></li>
         <li><a href="#43-c3-检查的目标--实际连接的目标">4.3 C3 检查的目标 ≠ 实际连接的目标</a></li>
         <li><a href="#44-c4-副作用先于检查">4.4 C4 副作用先于检查</a></li>
-        <li><a href="#45-一张对照表">4.5 一张对照表</a></li>
+        <li><a href="#45-四个候选项放在一起看">4.5 四个候选项放在一起看</a></li>
       </ul>
     </li>
     <li><a href="#5--发现阶段的证据标准">5 · 发现阶段的证据标准</a>
@@ -1374,95 +1282,6 @@ This article does not have a corresponding language version
           description: "Codex Security 怎样在源码里找漏洞：标准扫描同时跑一个不带任何假设的独立基线审计和一组按威胁模型分组的专项调查，候选项要写清 source、control、sink 和反证才能交给验证。本章逐条讲基线审计的检查清单、专项调查员的追踪技巧、发现阶段的证据标准和源码密钥的判断方法，用 notes-api 里的五个候选漏洞做示例，最后讲怎样把 diff 扫描的规则用到日常 Code Review。",
           cover: "https:\/\/example.org\/images\/banner2.png",
         };
-      </script><script
-    src="https://npm.webcache.cn/mermaid@11.12.0/dist/mermaid.min.js"
-    data-pjaxintegrity="sha384-o&#43;g/BxPwhi0C3RK7oQBxQuNimeafQ3GE/ST4iT2BxVI4Wzt60SH4pq9iXVYujjaS" crossorigin="anonymous"></script><script
-    src="https://npm.webcache.cn/dompurify@3.2.6/dist/purify.min.js"
-    data-pjaxintegrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla&#43;3" crossorigin="anonymous"></script><script data-pjax>
-        if (window.mermaid) {
-          
-          const elementCode = '.mermaid'
-          const processElements = (callback) => {
-            const els = _$$(elementCode);
-            if (!els.length) return Promise.resolve();
-            
-            return new Promise((resolve, reject) => {
-              try {
-                els.forEach(callback);
-                resolve();
-              } catch (error) {
-                reject(error);
-              }
-            });
-          };
-          const saveOriginalData = () => processElements(el => {
-            if (!el.getAttribute('data-original-code')) {
-              el.setAttribute('data-original-code', el.innerHTML);
-            }
-          });
-
-          const resetProcessed = () => processElements(el => {
-            const originalCode = el.getAttribute('data-original-code');
-            if (originalCode) {
-              el.removeAttribute('data-processed');
-              el.innerHTML = DOMPurify.sanitize(originalCode);
-            }
-          });
-          const loadMermaid = async (theme) => {
-            window.mermaid.initialize({theme, startOnLoad: false})
-            await window.mermaid.run({querySelector: elementCode, suppressErrors: true})
-            if (window.svgPanZoom) {
-              window.__panZoomList?.forEach(panZoom => {try {panZoom.destroy()} catch {}});
-              window.__panZoomList = [];
-              _$$('.mermaid > svg').forEach(el => {
-                const bbox = el.getBBox();
-                el.setAttribute('height', Math.max(bbox.height, 80));
-                window.__panZoomList.push(window.svgPanZoom(el, {
-                  zoomEnabled: true,
-                  controlIconsEnabled: true,
-                  fit: true,
-                  center: true
-                }));
-              });
-              if (window.__resizeMermaidSvg) {
-                window.removeEventListener('resize', window.__resizeMermaidSvg);
-              }
-              window.__resizeMermaidSvg = () => {
-                try {
-                  window.__panZoomList.forEach(panZoom => {
-                    panZoom.resize();
-                    panZoom.fit();
-                    panZoom.center();
-                  });
-                } catch {
-                  window.removeEventListener('resize', window.__resizeMermaidSvg);
-                  window.__panZoomList = [];
-                }
-              }
-              window.addEventListener('resize', window.__resizeMermaidSvg);
-            }
-          }
-          const initMermaid = async (theme) => {
-            try {
-              await saveOriginalData();
-              await resetProcessed();
-              await loadMermaid(theme);
-            } catch (error) {
-              console.error(error);
-            }
-          };
-          
-          document.body.addEventListener('dark-theme-set', () => initMermaid('dark'));
-          document.body.addEventListener('light-theme-set', () => initMermaid('default'));
-
-          const mode = localStorage.getItem('dark_mode');
-          if (mode === 'auto') {
-            const osMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
-            initMermaid(osMode ? 'dark' : 'default');
-          } else {
-            initMermaid(mode === 'true' ? 'dark' : 'default');
-          }
-        }
       </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
           if (_$$(`${gallery} ${children}`).length > 0) {
             new PhotoSwipeLightbox({

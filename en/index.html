@@ -3,8 +3,7 @@
   lang="en" 
   data-theme-mode="auto"
   >
-  <head>
-	<meta name="generator" content="Hugo 0.167.0"><meta charset="utf-8" />
+  <head><meta charset="utf-8" />
 <meta
   name="viewport"
   content="width=device-width, initial-scale=1, shrink-to-fit=no"
@@ -69,7 +68,8 @@
     integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
     rel="stylesheet"
     href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
-    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script>	<meta name="generator" content="Hugo 0.169.0">
+</head>
   <body><div id='loader'>
     <div class="loading-left-bg loading-bg"></div>
     <div class="loading-right-bg loading-bg"></div>
@@ -151,7 +151,7 @@ This article does not have a corresponding language version
 
         selectOptions.forEach((item) => {
           item.addEventListener("click", () => {
-            const langMap = {};langMap['zh-cn'] = '\/';langMap['ja'] = '\/ja\/';langMap['zh-tw'] = '\/zh-tw\/';selectedLang.textContent = item.textContent;
+            const langMap = {};langMap['zh-cn'] = '\/';langMap['zh-tw'] = '\/zh-tw\/';langMap['ja'] = '\/ja\/';selectedLang.textContent = item.textContent;
             selectItems.classList.remove("show");
             selectOptions.forEach((option) => {
               option.classList.remove("selected");

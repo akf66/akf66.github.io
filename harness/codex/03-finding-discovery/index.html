@@ -1,0 +1,1511 @@
+<!doctype html>
+<html
+  lang="en" 
+  data-theme-mode="auto"
+  >
+  <head><meta charset="utf-8" />
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, shrink-to-fit=no"
+/><title>
+  Codex Security 03 · 找漏洞：从入口追到汇点 | AKF
+</title>
+<meta name="description" content="Codex Security 怎样在源码里找漏洞：标准扫描同时跑一个不带任何假设的独立基线审计和一组按威胁模型分组的专项调查，候选项要写清 source、control、sink 和反证才能交给验证。本章逐条讲基线审计的检查清单、专项调查员的追踪技巧、发现阶段的证据标准和源码密钥的判断方法，用 notes-api 里的五个候选漏洞做示例，最后讲怎样把 diff 扫描的规则用到日常 Code Review。"/><script>
+  window.siteConfig = JSON.parse("{\"anchor_icon\":null,\"base\":\"https://example.org/\",\"clipboard\":{\"copyright\":{\"count\":50,\"enable\":false,\"license_type\":\"by-nc-sa\"},\"fail\":{\"en\":\"Copy failed (ﾟ⊿ﾟ)ﾂ\",\"ja\":\"コピー失敗 (ﾟ⊿ﾟ)ﾂ\",\"pt-br\":\"Falha ao copiar (ﾟ⊿ﾟ)ﾂ\",\"zh-cn\":\"复制失败 (ﾟ⊿ﾟ)ﾂ\",\"zh-tw\":\"複製失敗 (ﾟ⊿ﾟ)ﾂ\"},\"success\":{\"en\":\"Copy successfully (*^▽^*)\",\"ja\":\"コピー成功 (*^▽^*)\",\"pt-br\":\"Copiado com sucesso (*^▽^*)\",\"zh-cn\":\"复制成功 (*^▽^*)\",\"zh-tw\":\"複製成功 (*^▽^*)\"}},\"code_block\":{\"expand\":true},\"i18n_languages\":[{\"Lang\":\"en\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"English\",\"Locale\":\"\"},{\"Lang\":\"ja\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"日本語\",\"Locale\":\"\"},{\"Lang\":\"zh-cn\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"简体中文\",\"Locale\":\"en\"},{\"Lang\":\"zh-tw\",\"Title\":\"\",\"Weight\":1,\"Disabled\":false,\"Direction\":\"\",\"Label\":\"繁體中文\",\"Locale\":\"\"}],\"icon_font\":\"4552607_4k4bc36ef96\",\"outdate\":{\"daysago\":180,\"enable\":false,\"message\":{\"en\":\"This article was last updated on {time}. Please note that the content may no longer be applicable.\",\"ja\":\"この記事は最終更新日：{time}。記載内容が現在有効でない可能性がありますのでご注意ください。\",\"pt-br\":\"Este artigo foi atualizado pela última vez em {time}. Observe que o conteúdo pode não ser mais aplicável.\",\"zh-cn\":\"本文最后更新于 {time}，请注意文中内容可能已不适用。\",\"zh-tw\":\"本文最後更新於 {time}，請注意文中內容可能已不適用。\"}}}");
+  
+</script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="preload"
+  as="style"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+/>
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css?family=Mulish:400,400italic,700,700italic%7cNoto%20Serif%20SC:400,400italic,700,700italic%7c&amp;display=swap"
+  media="print"
+  onload="this.media='all'"
+/>
+<link
+    rel="preload"
+    href="//at.alicdn.com/t/c/font_4552607_4k4bc36ef96.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin="anonymous"
+  /><link rel="stylesheet" href="/css/loader.min.ac746e154f756f8220326eeb52a719f142ab038be5a8ddf30ea5ef15ef2356ea.css" />
+<meta property="og:type" content="website" />
+  <meta property="og:title" content="Codex Security 03 · 找漏洞：从入口追到汇点 | AKF" />
+  <meta
+    property="og:description"
+    content="Codex Security 怎样在源码里找漏洞：标准扫描同时跑一个不带任何假设的独立基线审计和一组按威胁模型分组的专项调查，候选项要写清 source、control、sink 和反证才能交给验证。本章逐条讲基线审计的检查清单、专项调查员的追踪技巧、发现阶段的证据标准和源码密钥的判断方法，用 notes-api 里的五个候选漏洞做示例，最后讲怎样把 diff 扫描的规则用到日常 Code Review。"
+  />
+  <meta property="og:url" content="https://example.org/harness/codex/03-finding-discovery/" />
+  <meta
+    property="og:site_name"
+    content="鼠鼠的自我救赎"
+  />
+  <meta
+    property="og:image"
+    content="/"
+  />
+  <meta property="article:author" content="AKF" />
+  <meta property="article:published_time" content="2026-11-12T09:20:00&#43;08:00" />
+  <meta property="article:modified_time" content="2026-11-12T09:20:00&#43;08:00" /><meta property="article:tag" content="HarnessCodex安全开发代码审计" /><meta name="twitter:card" content="summary" />
+  <meta name="twitter:image" content="/" />
+<link rel="shortcut icon" href="/favicon.ico"><link rel="stylesheet" href="/css/main.min.adb76f78de9ca4f4f6057089786f239170b9c6b15eca471f9900887fc9a0077b.css" />
+<link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/photoswipe@5.4.4/dist/photoswipe.css"
+    integrity="sha384-IfxC36XL/toUyJ939C73PcgMuRzAZuIzZxE38drsmO5p6jD7ei&#43;Zx/1oA/0l8ysE" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><link
+    rel="preload"
+    as="style"
+    href="https://npm.webcache.cn/katex@0.16.24/dist/katex.min.css"
+    integrity="sha384-tTgKLjMYmJr94v8qu2PE5MUGSMbyN2xiH266JUB3gpm8vnnJywd1dWSOEfrFz&#43;YI" crossorigin="anonymous"onload="this.onload=null;this.rel='stylesheet'"
+  /><script
+    src="https://npm.webcache.cn/pace-js@1.2.4/pace.min.js"
+    integrity="sha384-k6YtvFUEIuEFBdrLKJ3YAUbBki333tj1CSUisai5Cswsg9wcLNaPzsTHDswp4Az8" crossorigin="anonymous"></script><link
+    rel="stylesheet"
+    href="https://npm.webcache.cn/@reimujs/aos@0.1.2/dist/aos.css"
+    integrity="sha384-GMRP93c6Hkz9JVKGAuRR3nTS7M07RwPgTFenXiosjq2VbVgvdDNcz1g6Mkj8AONa" crossorigin="anonymous"/><script>try{if(localStorage.getItem("immersive-reading")==="1")document.documentElement.classList.add("immersive")}catch(e){}</script></head>
+  <body><div id='loader'>
+    <div class="loading-left-bg loading-bg"></div>
+    <div class="loading-right-bg loading-bg"></div>
+    <div class="spinner-box">
+      <div class="loading-taichi rotate"><svg width="150" height="150" viewBox="0 0 1024 1024" class="icon" version="1.1" xmlns="https://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+            <path d="M303.5 432A80 80 0 0 1 291.5 592A80 80 0 0 1 303.5 432z" fill="var(--red-1, #ff5252)" />
+            <path d="M512 65A447 447 0 0 1 512 959L512 929A417 417 0 0 0 512 95A417 417 0 0 0 512 929L512 959A447 447 0 0 1 512 65z 
+          M512 95A417 417 0 0 1 929 512A208.5 208.5 0 0 1 720.5 720.5L720.5 592A80 80 0 0 0 720.5 432A80 80 0 0 0 720.5 592L720.5 720.5A208.5 208.5 0 0 1 512 512A208.5 208.5 0 0 0 303.5 303.5A208.5 208.5 0 0 0 95 512A417 417 0 0 1 512 95z" fill="var(--red-1, #ff5252)" />
+          </svg></div><div class="loading-word">Loading...</div>
+    </div>
+  </div>
+  </div>
+  <script>
+    var time = null;
+    var loaderEl = document.getElementById('loader');
+    var startLoading = () => {
+      time = Date.now();
+      loaderEl.classList.remove("loading");
+    }
+    var hideLoader = () => {
+      document.body.style.overflow = 'auto';
+      loader.classList.add('loading');
+    };
+
+    var endLoading = () => {
+      if (!time) {
+        hideLoader();
+      } else {
+        if (Date.now() - time > 500) {
+          time = null;
+          hideLoader();
+        } else {
+          setTimeout(endLoading, 500 - (Date.now() - time));
+          time = null;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', endLoading);
+    loaderEl.addEventListener('click', endLoading);
+  </script><div id="copy-tooltip"></div>
+<div id="lang-tooltip">
+This article does not have a corresponding language version
+</div>
+<div id="heatmap-tooltip"></div><div id="container">
+      <div id="wrap"><div id="header-nav">
+  <nav id="main-nav" aria-label="Primary navigation"><a class="main-nav-link-wrap" href="/">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Home</span>
+      </a><a class="main-nav-link-wrap" href="/archives">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Archives</span>
+      </a><a class="main-nav-link-wrap" href="/harness">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">Harness</span>
+      </a><a class="main-nav-link-wrap" href="/about">
+        <div class='main-nav-icon icon rotate'>&#xe62b;</div>
+        <span class="main-nav-link">About</span>
+      </a><a id="main-nav-toggle" class="nav-icon" aria-label="Toggle navigation" role="button"></a>
+  </nav>
+  <nav id="sub-nav" aria-label="Secondary navigation"></nav><nav id="i18n-nav" aria-label="Language selection">
+      <div class="custom-dropdown">
+        <div class="select-selected" id="select-selected" role="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Language menu">
+          <span id="nav-language-btn" class="nav-icon" style="padding: 0 20px 0 0"></span>
+          <span id="selected-lang">简体中文</span>
+        </div>
+        <ul class="select-items" id="select-items" role="listbox" aria-label="Languages"><li data-value="en" role="option" arial-selected="false" >English</li><li data-value="ja" role="option" arial-selected="false" >日本語</li><li data-value="zh-cn" role="option" class="selected" arial-selected="true" >简体中文</li><li data-value="zh-tw" role="option" arial-selected="false" >繁體中文</li></ul>
+      </div>
+      <script>
+        var selectSelected = document.getElementById("select-selected");
+        var selectedLang = document.getElementById("selected-lang");
+        var selectItems = document.getElementById("select-items");
+        var selectOptions = selectItems.querySelectorAll("li");
+
+        selectSelected.addEventListener("click", () => {
+          selectItems.classList.toggle("show");
+          var expanded = selectSelected.getAttribute("aria-expanded") === "true";
+          selectSelected.setAttribute("aria-expanded", (!expanded).toString());
+        });
+
+        selectOptions.forEach((item) => {
+          item.addEventListener("click", () => {
+            const langMap = {};selectedLang.textContent = item.textContent;
+            selectItems.classList.remove("show");
+            selectOptions.forEach((option) => {
+              option.classList.remove("selected");
+            });
+            item.classList.add("selected");
+            if (item.dataset.value === 'zh-cn') {
+              return;
+            }
+            if (!langMap[item.dataset.value]) {
+              _$("#lang-tooltip").style.opacity = "1";
+              setTimeout(() => {
+                _$("#lang-tooltip").style.opacity = "0";
+              }, 1000);
+              return;
+            }
+            window.location = langMap[item.dataset.value];
+          });
+        });
+
+        document.addEventListener("click", (event) => {
+          if (!event.target.closest(".custom-dropdown")) {
+            selectItems.classList.remove("show");
+            selectSelected.setAttribute("aria-expanded", "false");
+          }
+        });
+      </script>
+    </nav></div>
+<header id="header" aria-label="Site header"><picture></picture><img  fetchpriority="high" src="/images/banner2.png" alt="Codex Security 03 · 找漏洞：从入口追到汇点"><div id="header-outer">
+    <div id="header-title"><span id="logo">
+            <h1 data-aos="slide-up">Codex Security 03 · 找漏洞：从入口追到汇点</h1>
+          </span><h2 id="subtitle-wrap" data-aos="slide-down"></h2></div>
+  </div>
+</header><div id="content"
+          aria-label="Page content"
+          
+          class="sidebar-right"  ><aside id="sidebar" aria-label="Sidebar"><div class="sidebar-wrapper-container sticky"><div class="sidebar-wrapper">
+    <div
+      class="sidebar-wrap"
+      data-aos="fade-up"
+    ><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--出发点不可信输入和行使权限的代码">1 · 出发点：不可信输入和行使权限的代码</a></li>
+    <li><a href="#2--标准扫描怎样组织独立基线--专项调查">2 · 标准扫描怎样组织：独立基线 + 专项调查</a>
+      <ul>
+        <li><a href="#21-八个步骤">2.1 八个步骤</a></li>
+        <li><a href="#22-为什么两条路都要走">2.2 为什么两条路都要走</a></li>
+        <li><a href="#23-合并的规则">2.3 合并的规则</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--基线审计员的检查清单">3 · 基线审计员的检查清单</a></li>
+    <li><a href="#4--专项调查员的追踪技巧">4 · 专项调查员的追踪技巧</a>
+      <ul>
+        <li><a href="#41-c1-兄弟操作同一个资源不同的检查">4.1 C1 兄弟操作：同一个资源，不同的检查</a></li>
+        <li><a href="#42-c2-检查的值--使用的值">4.2 C2 检查的值 ≠ 使用的值</a></li>
+        <li><a href="#43-c3-检查的目标--实际连接的目标">4.3 C3 检查的目标 ≠ 实际连接的目标</a></li>
+        <li><a href="#44-c4-副作用先于检查">4.4 C4 副作用先于检查</a></li>
+        <li><a href="#45-一张对照表">4.5 一张对照表</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--发现阶段的证据标准">5 · 发现阶段的证据标准</a>
+      <ul>
+        <li><a href="#51-候选项要记录什么">5.1 候选项要记录什么</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--源码里的密钥">6 · 源码里的密钥</a></li>
+    <li><a href="#7--把-diff-扫描用到日常-code-review">7 · 把 diff 扫描用到日常 Code Review</a>
+      <ul>
+        <li><a href="#71-范围哪些文件要看">7.1 范围：哪些文件要看</a></li>
+        <li><a href="#72-深度追到哪里为止">7.2 深度：追到哪里为止</a></li>
+        <li><a href="#73-不能把没看完说成没问题">7.3 不能把没看完说成没问题</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--deep-security-scan什么时候需要多轮">8 · deep-security-scan：什么时候需要多轮</a></li>
+    <li><a href="#自查清单pr-安全审查">自查清单：PR 安全审查</a></li>
+    <li><a href="#练习">练习</a></li>
+  </ul>
+</nav>
+</div></div>
+          <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">47</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div><div class="sidebar-btn-wrapper" style="position:static">
+            <div class="sidebar-toc-btn current"></div>
+            <div class="sidebar-common-btn"></div>
+          </div></div>
+  </div><div class="sidebar-widget"></div></div></aside>
+<section id="main" aria-label="Main content"><link rel="stylesheet" href="/css/harness.min.b05e08ae4ad369facc40054b6c3585ec82021a651f5361cbe764a4de328eb83e.css" />
+    <article class="article harness-intro" data-aos="fade-up">
+      <div class="article-inner">
+        <div class="article-entry"><p class="harness-breadcrumb"><a href="/harness/">Harness 设计</a> /
+    <a href="/harness/codex/">Codex</a> /
+    Codex Security 03 · 找漏洞：从入口追到汇点</p>
+</div>
+      </div>
+    </article><link rel="stylesheet" href="/css/immersive.min.2db92d937938ad74c3f0da9f094e4878ceeb590da6c1a4e7129c8e526ba57363.css" /><h1 class="immersive-title">Codex Security 03 · 找漏洞：从入口追到汇点</h1><button type="button" class="immersive-entry" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><button type="button" class="immersive-nav" data-immersive-toggle title="进入沉浸阅读">
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <span>沉浸阅读</span>
+</button><div class="immersive-side-row">
+  <button type="button" class="immersive-side" data-immersive-toggle>
+    <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    </svg>
+    <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    </svg>
+    <span class="immersive-side-text-on">沉浸阅读</span>
+    <span class="immersive-side-text-off">退出沉浸</span>
+  </button>
+  <button type="button" class="immersive-side-top" title="回到顶部" aria-label="回到顶部">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+</div><button
+  type="button"
+  class="immersive-toggle"
+  data-immersive-toggle
+  data-label-on="进入沉浸阅读"
+  data-label-off="退出沉浸阅读"
+  title="进入沉浸阅读"
+  aria-label="进入沉浸阅读"
+  aria-pressed="false"
+>
+  <svg class="immersive-icon-enter" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+  </svg>
+  <svg class="immersive-icon-exit" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+  </svg>
+  <span class="immersive-toggle-text-on">沉浸阅读</span>
+  <span class="immersive-toggle-text">退出沉浸阅读</span>
+  <kbd class="immersive-toggle-kbd">Esc</kbd>
+</button>
+<script>
+  (() => {
+    const KEY = "immersive-reading";
+    const root = document.documentElement;
+    const btn = document.querySelector(".immersive-toggle");
+    const entry = document.querySelector(".immersive-entry");
+
+    const apply = (on) => {
+      root.classList.toggle("immersive", on);
+      const label = on ? btn.dataset.labelOff : btn.dataset.labelOn;
+      btn.title = label;
+      btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", String(on));
+      const sideBtn = document.querySelector(".immersive-side");
+      if (sideBtn) sideBtn.title = label;
+      try {
+        localStorage.setItem(KEY, on ? "1" : "0");
+      } catch (e) {}
+    };
+
+    const nav = document.querySelector(".immersive-nav");
+    const side = document.querySelector(".immersive-side-row");
+
+    const title = document.querySelector(".immersive-title");
+
+    const placeEntry = () => {
+      const inner = document.querySelector("article.h-entry .article-inner");
+      if (inner) inner.prepend(title);
+      const date = document.querySelector(".article-meta .article-date");
+      if (date) date.appendChild(entry);
+      const subNav = document.getElementById("sub-nav");
+      if (subNav) subNav.prepend(nav);
+      const sidebar = document.querySelector("#sidebar .sidebar-wrapper-container");
+      if (sidebar) {
+        sidebar.appendChild(side);
+        root.classList.add("immersive-has-side");
+      }
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", placeEntry);
+    } else {
+      placeEntry();
+    }
+
+    apply(root.classList.contains("immersive"));
+    document.querySelectorAll("[data-immersive-toggle]").forEach((el) =>
+      el.addEventListener("click", () => {
+        apply(!root.classList.contains("immersive"));
+        window.scrollTo({ top: 0 });
+      })
+    );
+    side.querySelector(".immersive-side-top").addEventListener("click", () =>
+      window.scrollTo({ top: 0, behavior: "smooth" })
+    );
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && root.classList.contains("immersive")) apply(false);
+    });
+  })();
+</script>
+<article
+  class="h-entry article"
+  itemscope
+  itemtype="https://schema.org/BlogPosting"
+>
+  <div
+    class="article-inner"
+    data-aos="fade-up"
+  >
+    <div class="article-meta"><div class="article-date">
+  <span
+    class="article-date-link icon-calendar"
+    data-aos="zoom-in"
+  >
+    <time datetime="2026-11-12 09:20:00 &#43;0800 &#43;0800" itemprop="datePublished"
+      >2026-11-12</time
+    >
+    <time style="display: none;" id="post-update-time"
+      >2026-11-12</time
+    >
+  </span></div>
+<div class="article-category"></div>
+</div><div class="hr-line"></div><div class="e-content article-entry" itemprop="articleBody"><blockquote>
+<p><strong>版本基线</strong>：同<a href="../01-overview/">第一章</a>：<code>openai/codex-security</code> main <code>2911786</code>（2026-11-12）。</p>
+</blockquote>
+<p><a href="../02-policy-threat-model/">上一章</a>为 notes-api 写好了 <code>SECURITY.md</code> 和威胁模型，列出了六个威胁场景。这一章拿着这些场景进入代码：从接受不可信输入的入口出发，或者从敏感操作倒推回去，找出控制缺失、可被绕过、或者检查了错误对象的地方。</p>
+<p>本章要点：</p>
+<ul>
+<li><strong>两条路同时走</strong>：标准扫描先启动一个独立基线审计员，它不拿父级的任何假设，自己从入口追到敏感操作；同时父级按威胁模型把问题分组成&quot;调查包&quot;，交给专项调查员深挖。前者防止被威胁模型带偏，后者保证重要边界被认真查过。</li>
+<li><strong>按代码位置决定查什么</strong>：对象读取和状态变更处查鉴权、归属、租户隔离和兄弟操作之间的差异；查询构造器、渲染器、解释器处查注入；文件和网络边界查穿越、上传、重定向、SSRF。</li>
+<li><strong>核心技巧是比对&quot;检查的值&quot;和&quot;使用的值&quot;</strong>：找出敏感操作实际使用的对象、值或目标，和守卫检查的东西逐一比较；追踪中间的解码、重定向、对象选择和状态转换；确认检查发生在第一个敏感副作用之前。</li>
+<li><strong>候选项要带证据和反证</strong>：来源、最接近的控制、汇点、影响、反证、仍需验证的内容。危险 API、崩溃、缺失的检查本身只是线索。证据不全的合理候选项交给验证阶段，不编造证据，也不因为没有复现就丢掉。</li>
+<li><strong>源码里的密钥是一条单独的泄露路径</strong>：攻击者是能读源码的人，不需要代码被执行。按格式和用法判断用途，测试文件名不是反证，发现的凭据绝不试用。</li>
+<li><strong>diff 审查的边界</strong>：每个变更文件都审，包括被删除的文件；共享控制改了要查所有调用方；但不要扩展成整仓库审计。</li>
+</ul>
+<hr>
+<h2 id="0--阅读说明">
+<a class="header-anchor" href="#0--%e9%98%85%e8%af%bb%e8%af%b4%e6%98%8e"></a>
+0 · 阅读说明
+</h2><ul>
+<li>涉及的技能：<code>security-scan</code>（标准扫描入口）、<code>finding-discovery</code>（发现阶段）、<code>security-diff-scan</code>、<code>deep-security-scan</code>。涉及的共享文档：<code>core-scan.md</code>、<code>baseline-auditor.md</code>、<code>focused-investigator.md</code>。</li>
+<li>本章的 Go 代码都是 notes-api 的示例，故意写成有漏洞的版本，代码里用注释标出 source、control、sink。修复放在<a href="../05-fix-verify/">第五章</a>，这里只指出问题。</li>
+<li>示例里的 <code>Principal</code> 是鉴权中间件从令牌里解析出的调用者身份，<code>principalFrom(r)</code> 从请求上下文取出它。路由用 Go 1.22 起支持的 <code>r.PathValue</code>。</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例：notes-api 里几个示例共用的类型</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">Note</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ID</span><span class="w">       </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&#34;id&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">TenantID</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&#34;tenant_id&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">OwnerID</span><span class="w">  </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&#34;owner_id&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Title</span><span class="w">    </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&#34;title&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">Body</span><span class="w">     </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&#34;body&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// Principal 是鉴权中间件从令牌里解析出的调用者身份。</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">Principal</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">TenantID</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">UserID</span><span class="w">   </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">NoteStore</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nf">Get</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">Note</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">id</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">QuotaService</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nf">Charge</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">tenantID</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">bytes</span><span class="w"> </span><span class="kt">int64</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">type</span><span class="w"> </span><span class="nx">Server</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">store</span><span class="w">          </span><span class="nx">NoteStore</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">quota</span><span class="w">          </span><span class="nx">QuotaService</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">attachmentsDir</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">httpClient</span><span class="w">     </span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Client</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><hr>
+<h2 id="1--出发点不可信输入和行使权限的代码">
+<a class="header-anchor" href="#1--%e5%87%ba%e5%8f%91%e7%82%b9%e4%b8%8d%e5%8f%af%e4%bf%a1%e8%be%93%e5%85%a5%e5%92%8c%e8%a1%8c%e4%bd%bf%e6%9d%83%e9%99%90%e7%9a%84%e4%bb%a3%e7%a0%81"></a>
+1 · 出发点：不可信输入和行使权限的代码
+</h2><p><code>security-scan</code> 的第一段规定了从哪里开始：</p>
+<blockquote>
+<p>查找攻击者真正能够利用的漏洞（vulnerability）。从接受不可信输入或行使权限（authority）的代码入手。沿着它追踪到其所控制的操作。检查真实的强制执行点（enforcement point）、它的调用方，以及能够证明可疑攻击被阻止的最有力证据。对于暴露的凭据（credential），相关路径是谁能读取它以及它授予了何种访问权限。</p>
+</blockquote>
+<p>几个关键词：</p>
+<ul>
+<li><strong>&ldquo;攻击者真正能够利用的&rdquo;</strong>：目标不是列出所有不规范的写法，而是能被利用的漏洞。</li>
+<li><strong>&ldquo;接受不可信输入或行使权限的代码&rdquo;</strong>：两类起点。HTTP handler、消息消费者、文件解析器是前者；删除、转账、发邮件、调用云 API 是后者。</li>
+<li><strong>&ldquo;能够证明可疑攻击被阻止的最有力证据&rdquo;</strong>：审查者要主动去找反证，而不是只收集支持漏洞的证据。</li>
+<li><strong>凭据是个例外</strong>：它的&quot;路径&quot;不是数据流，而是&quot;谁能读到它、读到之后能干什么&quot;。第 6 节单独讲。</li>
+</ul>
+<p><code>core-scan.md</code> 的开头说法类似，多了一句方法上的提示：</p>
+<blockquote>
+<p>Start at an exposed entry point or a sensitive operation, trace who controls the data, and check whether the expected control holds. Use the actual code to decide which leads to pursue.</p>
+</blockquote>
+<p>（从暴露的入口或敏感操作开始，追踪谁控制着数据，检查预期的控制是否成立。根据实际代码决定追哪条线索。）</p>
+<hr>
+<h2 id="2--标准扫描怎样组织独立基线--专项调查">
+<a class="header-anchor" href="#2--%e6%a0%87%e5%87%86%e6%89%ab%e6%8f%8f%e6%80%8e%e6%a0%b7%e7%bb%84%e7%bb%87%e7%8b%ac%e7%ab%8b%e5%9f%ba%e7%ba%bf--%e4%b8%93%e9%a1%b9%e8%b0%83%e6%9f%a5"></a>
+2 · 标准扫描怎样组织：独立基线 + 专项调查
+</h2><h3 id="21-八个步骤">
+<a class="header-anchor" href="#21-%e5%85%ab%e4%b8%aa%e6%ad%a5%e9%aa%a4"></a>
+2.1 八个步骤
+</h3><p><code>core-scan.md</code> 的 Core Workflow 有八步，画出来是这样：</p>
+<pre class="mermaid">
+  flowchart TD
+    S1["1 确定目标、范围<br/>继承的 SECURITY.md、用户上下文、威胁模型"] --> S2["2 启动独立基线审计员<br/>fork_turns: none，不给父级假设"]
+    S1 --> S3["3 读 threat-model.md<br/>梳理架构和安全边界"]
+    S3 --> S4["4 把问题分组成调查包<br/>按攻击者、资产、入口、预期控制、敏感操作"]
+    S4 --> S5["5 专项调查员并行调查<br/>读 focused-investigator.md"]
+    S2 --> S6["6 候选项先存检查点<br/>包括被拒的和反证"]
+    S5 --> S6
+    S6 --> S7["7 逐个验证不同的候选项"]
+    S7 --> S8["8 汇总 scope / threatModel / findings / reviewState"]
+</pre><p>第 2 步对基线审计员的要求很严格：</p>
+<blockquote>
+<p>start an independent baseline audit with <code>fork_turns: &quot;none&quot;</code>. &hellip; Keep parent hypotheses and other findings out of the assignment.</p>
+</blockquote>
+<p>（用 <code>fork_turns: &quot;none&quot;</code> 启动独立基线审计。……不要把父级的假设和其他发现项放进任务里。）</p>
+<p>给它的只有：目标、范围和文件清单、用户上下文、威胁模型、继承的策略、严重性标准、离线搜索命令。父级已经怀疑哪里有问题，它不知道。没有条件委派时，父级自己按基线说明做一遍，并&quot;record that the audit lacked an independent reviewer&quot;（记录这次审计缺少独立审查者）。</p>
+<p>第 4 步的调查包是按&quot;谁攻击、保护什么、从哪进、本该被什么挡住、最终做了什么&quot;来组织的，&ldquo;Keep distinct boundaries and mechanisms visible&rdquo;——不同的边界和机制不要混在一起。</p>
+<p>第 6 步要求候选项在合并或验证<strong>之前</strong>先保存下来，被拒绝的候选项也要保留&quot;the candidate identity, original evidence, and source-backed counterevidence&quot;（候选项标识、原始证据和有源码支撑的反证）。这样以后有人问&quot;这里你们查过没有&quot;，能拿出记录。</p>
+<h3 id="22-为什么两条路都要走">
+<a class="header-anchor" href="#22-%e4%b8%ba%e4%bb%80%e4%b9%88%e4%b8%a4%e6%9d%a1%e8%b7%af%e9%83%bd%e8%a6%81%e8%b5%b0"></a>
+2.2 为什么两条路都要走
+</h3><table>
+	<thead>
+			<tr>
+					<th></th>
+					<th>独立基线审计</th>
+					<th>威胁模型驱动的专项调查</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>出发点</td>
+					<td>代码本身：入口、边界、敏感操作</td>
+					<td>威胁模型列出的场景</td>
+			</tr>
+			<tr>
+					<td>优势</td>
+					<td>不受预设影响，能发现建模时没想到的攻击面</td>
+					<td>对重要边界查得深，能追到兄弟操作和具体实现</td>
+			</tr>
+			<tr>
+					<td>弱点</td>
+					<td>广而浅，可能在重要边界上停得太早</td>
+					<td>被模型框住，模型漏了的地方就不会去看</td>
+			</tr>
+	</tbody>
+</table>
+<p>两者的结果在第 6 步汇合。如果基线审计员报了一个威胁模型里没有的问题，往往说明模型漏掉了一条边界。</p>
+<h3 id="23-合并的规则">
+<a class="header-anchor" href="#23-%e5%90%88%e5%b9%b6%e7%9a%84%e8%a7%84%e5%88%99"></a>
+2.3 合并的规则
+</h3><p>多个审查者可能报了同一个问题，也可能报了看起来相似、其实不同的问题。<code>core-scan.md</code> 规定：</p>
+<blockquote>
+<p>Group observations only when they share the broken control and effective remediation, preserving affected routes, operations, and locations; a shared CWE alone is not a reason to merge.</p>
+</blockquote>
+<p>（只有共享同一个失效控制、同一个有效修复方式的观察才合并，并保留受影响的路由、操作和位置；仅仅 CWE 相同不是合并的理由。）</p>
+<p>notes-api 里 C1（<code>DeleteNote</code> 没查归属）和一个假想的&quot;<code>UpdateNote</code> 没查归属&quot;，如果两者都是因为各自的 handler 漏写了同一段检查，修法是在存储层统一加租户条件，可以合并成一个发现项、列两个位置；如果 <code>UpdateNote</code> 是因为调用了另一个绕过存储层的批量更新函数，修法不同，就要分开。</p>
+<hr>
+<h2 id="3--基线审计员的检查清单">
+<a class="header-anchor" href="#3--%e5%9f%ba%e7%ba%bf%e5%ae%a1%e8%ae%a1%e5%91%98%e7%9a%84%e6%a3%80%e6%9f%a5%e6%b8%85%e5%8d%95"></a>
+3 · 基线审计员的检查清单
+</h2><p><code>baseline-auditor.md</code> 按代码位置列出了要查的漏洞类别：</p>
+<table>
+	<thead>
+			<tr>
+					<th>代码位置</th>
+					<th>要查的问题</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>对象读取和状态变更</td>
+					<td>身份认证、归属、租户隔离，以及<strong>兄弟操作之间的授权差异</strong></td>
+			</tr>
+			<tr>
+					<td>查询构造器、渲染器、解释器</td>
+					<td>SQL / NoSQL 注入、XSS、模板注入、命令注入、不安全的反序列化</td>
+			</tr>
+			<tr>
+					<td>文件和网络边界</td>
+					<td>路径穿越、不安全的上传、开放重定向、SSRF、敏感数据暴露</td>
+			</tr>
+			<tr>
+					<td>XML 解析器</td>
+					<td>外部实体解析（XXE）</td>
+			</tr>
+			<tr>
+					<td>HTTP 中间层</td>
+					<td>请求走私</td>
+			</tr>
+			<tr>
+					<td>对象合并</td>
+					<td>原型污染</td>
+			</tr>
+			<tr>
+					<td>攻击者控制的大小或生命周期</td>
+					<td>资源耗尽、内存安全错误</td>
+			</tr>
+	</tbody>
+</table>
+<p>紧接着一句：</p>
+<blockquote>
+<p>Use these examples as starting points. Establish the reachable path, effective control, and consequence for each finding.</p>
+</blockquote>
+<p>（把这些例子当作起点。对每个发现项确立可达路径、有效的控制和后果。）</p>
+<p>清单的价值在于&quot;看到什么代码就想到查什么&quot;，但它不是穷举。另外，基线审计员必须显式检查嵌入的凭据和私钥，范围包括配置、文档、测试、示例和不活跃的代码。</p>
+<hr>
+<h2 id="4--专项调查员的追踪技巧">
+<a class="header-anchor" href="#4--%e4%b8%93%e9%a1%b9%e8%b0%83%e6%9f%a5%e5%91%98%e7%9a%84%e8%bf%bd%e8%b8%aa%e6%8a%80%e5%b7%a7"></a>
+4 · 专项调查员的追踪技巧
+</h2><p><code>focused-investigator.md</code> 只有一段核心方法，但几乎每句话都是一个技巧：</p>
+<blockquote>
+<p>Trace forward from attacker-controlled input or backward from a sensitive operation. Identify the exact object, value, or destination the operation uses and, for an interpreter, the grammar it applies. Compare that with what the guard checked. Follow decoding, redirects, object selection, or state transitions when they can change the result, and verify the check occurs before the first sensitive effect.</p>
+</blockquote>
+<p>（从攻击者可控的输入正向追踪，或从敏感操作反向追踪。找出操作实际使用的对象、值或目标，如果是解释器，还要找出它应用的语法。拿它和守卫检查的东西比较。当解码、重定向、对象选择或状态转换可能改变结果时，追踪它们，并确认检查发生在第一个敏感副作用之前。）</p>
+<p>前面还有两句关于调查范围的：</p>
+<blockquote>
+<p>Check sibling operations and concrete implementations that share the suspected control, including differences in authorization or state transitions. Preserve independently vulnerable paths and continue beyond the first issue when assigned questions remain.</p>
+</blockquote>
+<p>（检查共享可疑控制的兄弟操作和具体实现，包括授权或状态转换上的差异。保留各自独立存在漏洞的路径，分配的问题还没查完时，找到第一个问题后继续。）</p>
+<p>以及：如果原假设被排除了，但路径上的证据指向另一个失效的控制，就顺着追下去，&ldquo;Record the disposition of the original question separately from any new finding&rdquo;（原问题的结论和新发现分开记录）。</p>
+<p>下面用 notes-api 的四个候选项，逐个对应这些技巧。</p>
+<h3 id="41-c1-兄弟操作同一个资源不同的检查">
+<a class="header-anchor" href="#41-c1-%e5%85%84%e5%bc%9f%e6%93%8d%e4%bd%9c%e5%90%8c%e4%b8%80%e4%b8%aa%e8%b5%84%e6%ba%90%e4%b8%8d%e5%90%8c%e7%9a%84%e6%a3%80%e6%9f%a5"></a>
+4.1 C1 兄弟操作：同一个资源，不同的检查
+</h3><p>对应技巧：&ldquo;Check sibling operations &hellip; including differences in authorization&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例：C1 —— GET 查了归属，DELETE 没查</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// GET /notes/{id}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Server</span><span class="p">)</span><span class="w"> </span><span class="nf">GetNote</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">principalFrom</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">n</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Get</span><span class="p">(</span><span class="nx">r</span><span class="p">.</span><span class="nf">Context</span><span class="p">(),</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nf">PathValue</span><span class="p">(</span><span class="s">&#34;id&#34;</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">NotFound</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 控制：租户 + 归属，两项都查</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">n</span><span class="p">.</span><span class="nx">TenantID</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">TenantID</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">n</span><span class="p">.</span><span class="nx">OwnerID</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">UserID</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">NotFound</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">json</span><span class="p">.</span><span class="nf">NewEncoder</span><span class="p">(</span><span class="nx">w</span><span class="p">).</span><span class="nf">Encode</span><span class="p">(</span><span class="nx">n</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// DELETE /notes/{id}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Server</span><span class="p">)</span><span class="w"> </span><span class="nf">DeleteNote</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// source：路径里的 id，任何登录用户都能填</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// control：无。GetNote 里的租户/归属检查在这里不存在</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// sink：store.Delete 按 id 删除，不带租户条件</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Delete</span><span class="p">(</span><span class="nx">r</span><span class="p">.</span><span class="nf">Context</span><span class="p">(),</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nf">PathValue</span><span class="p">(</span><span class="s">&#34;id&#34;</span><span class="p">));</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;delete failed&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusInternalServerError</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">w</span><span class="p">.</span><span class="nf">WriteHeader</span><span class="p">(</span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusNoContent</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>只审 <code>GetNote</code> 的人会得出&quot;笔记接口做了租户隔离&quot;的结论。把同一资源的所有操作（读、改、删、导出、分享、挂附件）列成一张表，逐个看它们的检查，差异一眼就出来。</p>
+<p>审查时还要沿 <code>store.Delete</code> 往下看一层：如果 SQL 是 <code>DELETE FROM notes WHERE id = $1 AND tenant_id = $2</code>，那 handler 层虽然没检查，存储层兜住了租户隔离，剩下的问题只是&quot;同租户内能删别人的笔记&quot;，严重性不同。这就是&quot;检查真实的强制执行点&quot;的意思：控制不一定在你以为的那一层。</p>
+<h3 id="42-c2-检查的值--使用的值">
+<a class="header-anchor" href="#42-c2-%e6%a3%80%e6%9f%a5%e7%9a%84%e5%80%bc--%e4%bd%bf%e7%94%a8%e7%9a%84%e5%80%bc"></a>
+4.2 C2 检查的值 ≠ 使用的值
+</h3><p>对应技巧：&ldquo;Identify the exact object, value, or destination the operation uses &hellip; Compare that with what the guard checked. Follow decoding &hellip;&quot;。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例：C2 —— 校验原始参数，使用解码并拼接后的路径</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// GET /attachments?path=&lt;tenantID&gt;/&lt;file&gt;</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Server</span><span class="p">)</span><span class="w"> </span><span class="nf">DownloadAttachment</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">principalFrom</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">raw</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">URL</span><span class="p">.</span><span class="nf">Query</span><span class="p">().</span><span class="nf">Get</span><span class="p">(</span><span class="s">&#34;path&#34;</span><span class="p">)</span><span class="w"> </span><span class="c1">// Query() 已经解码过一次</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// control：检查的是 raw</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">strings</span><span class="p">.</span><span class="nf">HasPrefix</span><span class="p">(</span><span class="nx">raw</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">TenantID</span><span class="o">+</span><span class="s">&#34;/&#34;</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">strings</span><span class="p">.</span><span class="nf">Contains</span><span class="p">(</span><span class="nx">raw</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;..&#34;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;forbidden&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusForbidden</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 使用前又解码了一次，再交给 Join（Join 内部会 Clean）</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">name</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">url</span><span class="p">.</span><span class="nf">PathUnescape</span><span class="p">(</span><span class="nx">raw</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;bad path&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusBadRequest</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">full</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">attachmentsDir</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// sink：打开的是 full，不是 raw</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">http</span><span class="p">.</span><span class="nf">ServeFile</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">,</span><span class="w"> </span><span class="nx">full</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>把检查的值和使用的值并排写出来：</p>
+<table>
+	<thead>
+			<tr>
+					<th>步骤</th>
+					<th>值（租户 <code>t1</code> 的用户请求 <code>?path=t1/%252e%252e/t2/contract.pdf</code>）</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td><code>Query().Get</code> 之后的 <code>raw</code>（守卫检查的值）</td>
+					<td><code>t1/%2e%2e/t2/contract.pdf</code>：前缀是 <code>t1/</code>，不含 <code>..</code>，通过</td>
+			</tr>
+			<tr>
+					<td><code>PathUnescape</code> 之后的 <code>name</code></td>
+					<td><code>t1/../t2/contract.pdf</code></td>
+			</tr>
+			<tr>
+					<td><code>Join</code> 之后的 <code>full</code>（汇点使用的值）</td>
+					<td><code>/srv/attachments/t2/contract.pdf</code>：租户 <code>t2</code> 的文件</td>
+			</tr>
+	</tbody>
+</table>
+<p>守卫看的是 <code>raw</code>，<code>ServeFile</code> 打开的是 <code>full</code>，中间隔着一次解码和一次路径规整。我把这个例子写成了测试，确认第一行的值能通过检查、最后一行落在另一个租户的目录下。</p>
+<p>这里还有一个容易被当成反证的东西：<code>http.ServeFile</code> 的文档说它会拒绝 <code>r.URL.Path</code> 含 <code>..</code> 的请求。但它检查的是<strong>请求路径</strong>（这里是 <code>/attachments</code>），不是传给它的 <code>name</code> 参数。一个真实存在的控制，检查的却是另一个值，不能算反证。这正是 <code>finding-discovery</code> 证据标准里说的&quot;被应用到了错误的值或边界上&rdquo;。</p>
+<h3 id="43-c3-检查的目标--实际连接的目标">
+<a class="header-anchor" href="#43-c3-%e6%a3%80%e6%9f%a5%e7%9a%84%e7%9b%ae%e6%a0%87--%e5%ae%9e%e9%99%85%e8%bf%9e%e6%8e%a5%e7%9a%84%e7%9b%ae%e6%a0%87"></a>
+4.3 C3 检查的目标 ≠ 实际连接的目标
+</h3><p>对应技巧：&ldquo;Identify the exact &hellip; destination the operation uses &hellip; Follow &hellip; redirects&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例：C3 —— 只检查了第一次解析的地址</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">checkPublicHost</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">ips</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">net</span><span class="p">.</span><span class="nx">DefaultResolver</span><span class="p">.</span><span class="nf">LookupIPAddr</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">host</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="nx">err</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">ip</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">ips</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">ip</span><span class="p">.</span><span class="nx">IP</span><span class="p">.</span><span class="nf">IsLoopback</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">ip</span><span class="p">.</span><span class="nx">IP</span><span class="p">.</span><span class="nf">IsPrivate</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="nx">ip</span><span class="p">.</span><span class="nx">IP</span><span class="p">.</span><span class="nf">IsLinkLocalUnicast</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">ip</span><span class="p">.</span><span class="nx">IP</span><span class="p">.</span><span class="nf">IsUnspecified</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="k">return</span><span class="w"> </span><span class="nx">errBlockedHost</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// POST /previews  {&#34;url&#34;: &#34;...&#34;}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Server</span><span class="p">)</span><span class="w"> </span><span class="nf">PreviewURL</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="kd">var</span><span class="w"> </span><span class="nx">req</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">URL</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="s">`json:&#34;url&#34;`</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">json</span><span class="p">.</span><span class="nf">NewDecoder</span><span class="p">(</span><span class="nx">io</span><span class="p">.</span><span class="nf">LimitReader</span><span class="p">(</span><span class="nx">r</span><span class="p">.</span><span class="nx">Body</span><span class="p">,</span><span class="w"> </span><span class="mi">4096</span><span class="p">)).</span><span class="nf">Decode</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">req</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;bad request&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusBadRequest</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">u</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">url</span><span class="p">.</span><span class="nf">Parse</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">URL</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nx">Scheme</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&#34;http&#34;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">u</span><span class="p">.</span><span class="nx">Scheme</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&#34;https&#34;</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;bad url&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusBadRequest</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// control：在发请求之前解析一次主机名，检查解析结果</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">checkPublicHost</span><span class="p">(</span><span class="nx">r</span><span class="p">.</span><span class="nf">Context</span><span class="p">(),</span><span class="w"> </span><span class="nx">u</span><span class="p">.</span><span class="nf">Hostname</span><span class="p">());</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;forbidden&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusForbidden</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// sink：Client 拨号时会重新解析 DNS；遇到 3xx 会自动跟随（默认最多 10 次），</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 跳转后的地址完全没有经过 checkPublicHost</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">resp</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">httpClient</span><span class="p">.</span><span class="nf">Get</span><span class="p">(</span><span class="nx">u</span><span class="p">.</span><span class="nf">String</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;fetch failed&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusBadGateway</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">defer</span><span class="w"> </span><span class="nx">resp</span><span class="p">.</span><span class="nx">Body</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">body</span><span class="p">,</span><span class="w"> </span><span class="nx">_</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nf">ReadAll</span><span class="p">(</span><span class="nx">io</span><span class="p">.</span><span class="nf">LimitReader</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">Body</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="o">&lt;&lt;</span><span class="mi">20</span><span class="p">))</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">json</span><span class="p">.</span><span class="nf">NewEncoder</span><span class="p">(</span><span class="nx">w</span><span class="p">).</span><span class="nf">Encode</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="kt">string</span><span class="p">{</span><span class="s">&#34;title&#34;</span><span class="p">:</span><span class="w"> </span><span class="nf">extractTitle</span><span class="p">(</span><span class="nx">body</span><span class="p">)})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p><code>checkPublicHost</code> 本身写得不差，覆盖了回环、私有网段、链路本地（<code>169.254.0.0/16</code>，云元数据服务就在这里）。问题在于它检查的不是最终连接的地址：</p>
+<ol>
+<li><strong>重定向</strong>：攻击者提交 <code>https://attacker.example/a</code>，它解析到公网地址，通过检查；这个页面返回 <code>302 Location: http://169.254.169.254/latest/meta-data/</code>。<code>http.Client</code> 在 <code>CheckRedirect</code> 为空时默认跟随最多 10 次重定向，第二跳的地址从没被检查过。</li>
+<li><strong>再次解析</strong>：<code>checkPublicHost</code> 调了一次 <code>LookupIPAddr</code>，<code>httpClient.Get</code> 拨号时又解析一次。攻击者控制的域名可以第一次返回公网地址、第二次返回内网地址（DNS rebinding）。检查和使用之间隔着一次独立的解析。</li>
+</ol>
+<p>攻击者能不能拿到响应内容，取决于 <code>extractTitle</code> 返回什么：这里会把 <code>&lt;title&gt;</code> 的内容回显给调用者，元数据服务的响应没有 <code>&lt;title&gt;</code>，所以拿不到正文。但按 notes-api 的 <code>SECURITY.md</code>，&ldquo;从服务端发起到内网或元数据服务的请求可报告，即使拿不到响应内容&rdquo;。</p>
+<p>第五章的修法会把检查放到实际拨号的地方（<code>net.Dialer.Control</code> 检查真正要连接的 IP），并对每一跳重定向重新检查。</p>
+<h3 id="44-c4-副作用先于检查">
+<a class="header-anchor" href="#44-c4-%e5%89%af%e4%bd%9c%e7%94%a8%e5%85%88%e4%ba%8e%e6%a3%80%e6%9f%a5"></a>
+4.4 C4 副作用先于检查
+</h3><p>对应技巧：&ldquo;verify the check occurs before the first sensitive effect&rdquo;。</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例：C4 —— 先写盘，再查配额，再查归属</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="c1">// POST /notes/{id}/attachments</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="p">(</span><span class="nx">s</span><span class="w"> </span><span class="o">*</span><span class="nx">Server</span><span class="p">)</span><span class="w"> </span><span class="nf">UploadAttachment</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">principalFrom</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">noteID</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nf">PathValue</span><span class="p">(</span><span class="s">&#34;id&#34;</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">dst</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">filepath</span><span class="p">.</span><span class="nf">Join</span><span class="p">(</span><span class="nx">s</span><span class="p">.</span><span class="nx">attachmentsDir</span><span class="p">,</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">TenantID</span><span class="p">,</span><span class="w"> </span><span class="nf">randomName</span><span class="p">())</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">f</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nf">Create</span><span class="p">(</span><span class="nx">dst</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;storage error&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusInternalServerError</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 第一个敏感副作用：把请求体整个写进磁盘，没有大小上限</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">n</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nf">Copy</span><span class="p">(</span><span class="nx">f</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">Body</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">f</span><span class="p">.</span><span class="nf">Close</span><span class="p">()</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">os</span><span class="p">.</span><span class="nf">Remove</span><span class="p">(</span><span class="nx">dst</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;upload failed&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusBadRequest</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 写完之后才检查配额</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">quota</span><span class="p">.</span><span class="nf">Charge</span><span class="p">(</span><span class="nx">r</span><span class="p">.</span><span class="nf">Context</span><span class="p">(),</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">TenantID</span><span class="p">,</span><span class="w"> </span><span class="nx">n</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">os</span><span class="p">.</span><span class="nf">Remove</span><span class="p">(</span><span class="nx">dst</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;quota exceeded&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusRequestEntityTooLarge</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="c1">// 再之后才检查这条笔记是不是调用者的</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">note</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">s</span><span class="p">.</span><span class="nx">store</span><span class="p">.</span><span class="nf">Get</span><span class="p">(</span><span class="nx">r</span><span class="p">.</span><span class="nf">Context</span><span class="p">(),</span><span class="w"> </span><span class="nx">noteID</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">note</span><span class="p">.</span><span class="nx">TenantID</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">TenantID</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">note</span><span class="p">.</span><span class="nx">OwnerID</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">UserID</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">os</span><span class="p">.</span><span class="nf">Remove</span><span class="p">(</span><span class="nx">dst</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">http</span><span class="p">.</span><span class="nf">NotFound</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">w</span><span class="p">.</span><span class="nf">WriteHeader</span><span class="p">(</span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusCreated</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>三个检查都在，顺序错了。审查时把 handler 里的语句分成两类：有副作用的（写盘、写库、发消息、扣费）和检查。只要有一个副作用出现在某个检查之前，就要问：检查失败时，这个副作用能不能完全撤销？</p>
+<p>这里的回答是不能：</p>
+<ul>
+<li><code>io.Copy</code> 没有上限，一个请求可以写满磁盘，配额检查要等写完才执行。这影响所有租户（<code>SECURITY.md</code> 的&quot;有界解析&quot;不变式）。</li>
+<li>失败时的 <code>os.Remove</code> 是事后补救。删除失败、进程在中间崩溃、并发请求同时写入，都会留下文件。</li>
+</ul>
+<p>修法是把顺序倒过来：先查归属，再用 <code>http.MaxBytesReader</code> 限制大小、按 <code>Content-Length</code> 或上限预扣配额，最后才写盘。</p>
+<h3 id="45-一张对照表">
+<a class="header-anchor" href="#45-%e4%b8%80%e5%bc%a0%e5%af%b9%e7%85%a7%e8%a1%a8"></a>
+4.5 一张对照表
+</h3><table>
+	<thead>
+			<tr>
+					<th>技巧</th>
+					<th>示例</th>
+					<th>守卫检查的</th>
+					<th>汇点实际使用的</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>查兄弟操作</td>
+					<td>C1</td>
+					<td><code>GetNote</code> 里的租户和归属</td>
+					<td><code>DeleteNote</code> 里只有 id</td>
+			</tr>
+			<tr>
+					<td>比对检查值和使用值，追踪解码</td>
+					<td>C2</td>
+					<td>解码一次后的 <code>raw</code></td>
+					<td>解码两次、规整后的 <code>full</code></td>
+			</tr>
+			<tr>
+					<td>追踪重定向和目标选择</td>
+					<td>C3</td>
+					<td>第一次解析出的 IP</td>
+					<td>拨号时重新解析的 IP、重定向后的地址</td>
+			</tr>
+			<tr>
+					<td>检查在第一个副作用之前</td>
+					<td>C4</td>
+					<td>写盘之后的配额和归属</td>
+					<td>写盘时没有任何限制</td>
+			</tr>
+	</tbody>
+</table>
+<hr>
+<h2 id="5--发现阶段的证据标准">
+<a class="header-anchor" href="#5--%e5%8f%91%e7%8e%b0%e9%98%b6%e6%ae%b5%e7%9a%84%e8%af%81%e6%8d%ae%e6%a0%87%e5%87%86"></a>
+5 · 发现阶段的证据标准
+</h2><p><code>finding-discovery</code> 的&quot;证据标准&quot;一节有六条，每条都在回答&quot;一个候选项至少要有什么&quot;。</p>
+<p><strong>第一条：从输入经过控制追到汇点和影响，并说明控制为什么不起作用。</strong></p>
+<blockquote>
+<p>将攻击者可控的输入或特权操作，经由最接近的相关控制，追踪到汇点（sink）和安全影响。解释为什么该控制缺失、可被绕过，或被应用到了错误的值或边界上。</p>
+</blockquote>
+<p>控制失效有三种形式：缺失（C1）、可被绕过（C3 的重定向）、检查了错的值或边界（C2）。</p>
+<p><strong>第二条：查运行时可达性和部署假设，记录反证。</strong></p>
+<blockquote>
+<p>检查运行时可达性和部署假设。将有效的防护和隔离措施记录为反证（counterevidence）；某个同级实现是安全的，并不能证明候选路径是安全的。</p>
+</blockquote>
+<p>C1 的反证候选是存储层的 SQL 有没有租户条件；C3 的反证候选是部署环境有没有出站防火墙。查到了就记下来，查不到就作为验证阶段要确立的事项。</p>
+<p><strong>第三条：保留理解主张需要的每个位置。</strong></p>
+<blockquote>
+<p>保留根控制位置，以及理解该主张所需的入口点、包装层、具体实现和汇点。当主张涵盖多个实现时，检查这些实现，而不是断言它们全部受影响。</p>
+</blockquote>
+<p><strong>第四条：独立的实例分开，重复的观察合并。</strong></p>
+<blockquote>
+<p>保持各自可独立到达的漏洞实例可单独定位。对于同一来源/控制/汇点/影响的重复观察结果进行合并，而不是拆分出仅表面不同的变体；合并时保留所有受影响位置和原始候选项 ID。</p>
+</blockquote>
+<p><strong>第五条：用户给的线索要追到底。</strong></p>
+<blockquote>
+<p>将用户或告知中明确给出的线索（seed）追踪到其确切的来源和控制。记录支持、否定或使该线索仍未解决的证据；同一类别中的邻近问题并不能关闭该线索。</p>
+</blockquote>
+<p>有人报告&quot;附件下载可能有路径穿越&quot;，你在上传接口找到了一个路径问题，这不能关闭关于下载接口的线索。</p>
+<p><strong>第六条：线索不是发现项，但也别丢掉。</strong></p>
+<blockquote>
+<p>区分具体的安全影响与可维护性或健壮性问题。崩溃、危险 API、可选功能或缺失的检查本身只是线索，而不是发现项（finding）。将带有明确证明缺口的合理候选项交给验证阶段，而不是编造证据，或因缺少可运行的复现而丢弃它们。</p>
+</blockquote>
+<p>最后一句是发现阶段和验证阶段的分工：发现阶段只负责&quot;技术上合理&quot;，证据不全没关系，写清楚缺什么，交给验证阶段去补。</p>
+<h3 id="51-候选项要记录什么">
+<a class="header-anchor" href="#51-%e5%80%99%e9%80%89%e9%a1%b9%e8%a6%81%e8%ae%b0%e5%bd%95%e4%bb%80%e4%b9%88"></a>
+5.1 候选项要记录什么
+</h3><p><code>finding-discovery</code> 规定每个候选项保留：</p>
+<ul>
+<li>稳定的候选项 ID 和标题。</li>
+<li>受影响的文件和行，需要时标注 <code>entrypoint/wrapper</code>、<code>root_control</code>、<code>sink</code>、<code>concrete_implementation</code>。</li>
+<li>攻击者可控的来源、最接近的控制、汇点或失效的控制、可能的影响，以及串起它们的源码证据。</li>
+<li>反证、部署前提条件、未解决的问题，以及验证阶段需要确立的内容。</li>
+<li>已知的 CWE ID，否则留空列表。</li>
+</ul>
+<p>用 C1 写一份候选项记录（示例，行号是示意）：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-yaml" data-lang="yaml"><span class="line"><span class="cl"><span class="nt">candidate_id</span><span class="p">:</span><span class="w"> </span><span class="l">notes-delete-idor</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="l">DeleteNote 缺少租户与归属检查，可删除其他租户的笔记</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">cwe</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="l">CWE-639]</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">locations</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l">internal/http/routes.go:41     </span><span class="w"> </span><span class="c"># DELETE /notes/{id} → DeleteNote</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">root_control</span><span class="p">:</span><span class="w"> </span><span class="l">internal/http/notes.go:58-66 </span><span class="w"> </span><span class="c"># DeleteNote，没有任何归属检查</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">sink</span><span class="p">:</span><span class="w"> </span><span class="l">internal/store/notes.go:112          </span><span class="w"> </span><span class="c"># Delete：DELETE FROM notes WHERE id = $1</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span><span class="nt">sibling_reference</span><span class="p">:</span><span class="w"> </span><span class="l">internal/http/notes.go:30-36 </span><span class="w"> </span><span class="c"># GetNote 的检查，作为对照</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l">路径参数 id，任意已登录用户可控</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">control</span><span class="p">:</span><span class="w"> </span><span class="l">无（GetNote 有 TenantID/OwnerID 比对，DeleteNote 没有）</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">sink</span><span class="p">:</span><span class="w"> </span><span class="l">store.Delete 按 id 删除，SQL 不含 tenant_id 条件</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">impact</span><span class="p">:</span><span class="w"> </span><span class="l">任意注册用户可删除其他租户的笔记（违反 SECURITY.md 不变式 1）</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">counterevidence</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">笔记 id 为 UUIDv4，无法枚举；但 id 会出现在分享链接和导出文件里</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">proof_gaps</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">未确认 store.Delete 之外是否还有软删除或审计恢复机制</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">未确认网关层是否对 DELETE 方法另有限制</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="nt">validation_needs</span><span class="p">:</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">确认攻击者获取他人笔记 id 的现实途径</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">  </span>- <span class="l">确认删除是否可恢复（影响严重性）</span><span class="w">
+</span></span></span></code></pre></div><p>注意&quot;id 不可枚举&quot;被记成了反证，同时写明它为什么不能推翻主张。第四章会讲验证阶段怎样处理这条反证。</p>
+<hr>
+<h2 id="6--源码里的密钥">
+<a class="header-anchor" href="#6--%e6%ba%90%e7%a0%81%e9%87%8c%e7%9a%84%e5%af%86%e9%92%a5"></a>
+6 · 源码里的密钥
+</h2><p><code>core-scan.md</code> 专门有一节&quot;Secrets Exposed In Source&quot;：</p>
+<blockquote>
+<p>Review embedded credentials and private keys in code, configuration, documentation, tests, examples, and inactive code. A source reader obtaining a credential with authority beyond reading the source is a disclosure path; the containing code need not execute or accept attacker input.</p>
+</blockquote>
+<p>（审查嵌入在代码、配置、文档、测试、示例和不活跃代码里的凭据和私钥。能读源码的人拿到一个权限超出&quot;读源码&quot;的凭据，就是一条泄露路径；包含它的代码不需要被执行，也不需要接受攻击者输入。）</p>
+<p>这里攻击者的起始能力是&quot;能读源码&quot;（对应第二章的场景 S5），新能力是凭据授予的权限。所以测试代码、注释掉的代码、文档里的凭据都在范围内。</p>
+<p>怎样判断一串字符是不是真凭据：</p>
+<blockquote>
+<p>Establish purpose from format and usage. Distinguish credential material from public keys, certificates, identifiers, secret-store references, and demonstrable dummy values. An opaque string is not sufficient evidence, and a test filename is not sufficient counterevidence.</p>
+</blockquote>
+<p>（根据格式和用法确定用途。把凭据和公钥、证书、标识符、密钥存储引用、可证明的占位值区分开。一串看不懂的字符串不足以作为证据，测试文件名也不足以作为反证。）</p>
+<p>以及绝对不能做的事：</p>
+<blockquote>
+<p>Never use discovered credentials or contact services to validate them.</p>
+</blockquote>
+<p>（绝不使用发现的凭据，也不联系服务去验证它们。）</p>
+<p>用 C5 演示这套判断。notes-api 的 <code>internal/storage/testdata/</code> 里有一个夹具：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例：C5 —— internal/storage/testdata 里的凭据</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">var</span><span class="w"> </span><span class="nx">docExampleCreds</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">AccessKeyID</span><span class="p">,</span><span class="w"> </span><span class="nx">SecretAccessKey</span><span class="w"> </span><span class="kt">string</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">AccessKeyID</span><span class="p">:</span><span class="w">     </span><span class="s">&#34;AKIAIOSFODNN7EXAMPLE&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="nx">SecretAccessKey</span><span class="p">:</span><span class="w"> </span><span class="s">&#34;wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY&#34;</span><span class="p">,</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>这两个值是 AWS 官方文档里的示例占位符，以 <code>EXAMPLE</code> 结尾，属于&quot;demonstrable dummy values&quot;，不是发现项。</p>
+<p>换一个情况：同一个目录下的 <code>s3_integration_test.go</code> 里，<code>AccessKeyID</code> 是一串 <code>AKIA</code> 开头、20 个字符、没有 <code>EXAMPLE</code> 字样的值，配套的 <code>Bucket</code> 字段是 <code>notes-api-prod-attachments</code>，测试在设置了 <code>INTEGRATION=1</code> 时会真的连到这个桶。判断过程：</p>
+<table>
+	<thead>
+			<tr>
+					<th>问题</th>
+					<th>证据</th>
+					<th>结论</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>格式像什么</td>
+					<td><code>AKIA</code> 前缀 + 20 字符，配一个 40 字符的密钥</td>
+					<td>长期访问密钥的格式</td>
+			</tr>
+			<tr>
+					<td>怎么被使用</td>
+					<td>传给 S3 客户端，连接名字带 <code>prod</code> 的桶</td>
+					<td>用途是访问生产附件存储</td>
+			</tr>
+			<tr>
+					<td>是不是占位值</td>
+					<td>不是文档示例值，没有 <code>EXAMPLE</code>、<code>dummy</code> 之类的标记</td>
+					<td>不能证明是占位值</td>
+			</tr>
+			<tr>
+					<td>在测试文件里算不算反证</td>
+					<td>&ldquo;a test filename is not sufficient counterevidence&rdquo;</td>
+					<td>不算</td>
+			</tr>
+			<tr>
+					<td>现在还有效吗</td>
+					<td>不知道，也不去试</td>
+					<td>作为证明缺口，影响置信度，不影响&quot;已暴露&quot;这个事实</td>
+			</tr>
+	</tbody>
+</table>
+<p><code>core-scan.md</code> 对最后一行的态度很明确：&ldquo;Unknown validity or rotation limits confidence and impact claims.&quot;（有效性或轮换情况未知，会限制置信度和影响的主张。）<code>baseline-auditor.md</code> 的说法是 &ldquo;Unknown live validity limits confidence, not the evidence of exposure.&quot;（不知道是否仍有效，限制的是置信度，不是暴露的证据。）</p>
+<p>处理方式：报告位置、凭据类型、相关上下文和不确定性，然后走轮换流程。不要为了确认严重性去调一次 <code>ListBuckets</code>。</p>
+<hr>
+<h2 id="7--把-diff-扫描用到日常-code-review">
+<a class="header-anchor" href="#7--%e6%8a%8a-diff-%e6%89%ab%e6%8f%8f%e7%94%a8%e5%88%b0%e6%97%a5%e5%b8%b8-code-review"></a>
+7 · 把 diff 扫描用到日常 Code Review
+</h2><p><code>security-diff-scan</code> 针对的是 PR、提交、分支差异和本地改动，这正是大多数开发者每天做的事。它的开头两句话就定下了范围：</p>
+<blockquote>
+<p>审查每一个已变更的文本文件，包括已删除的文件。沿着已变更的行为追踪到支持代码中，但不要扩展成与之无关的整仓库审计。</p>
+</blockquote>
+<h3 id="71-范围哪些文件要看">
+<a class="header-anchor" href="#71-%e8%8c%83%e5%9b%b4%e5%93%aa%e4%ba%9b%e6%96%87%e4%bb%b6%e8%a6%81%e7%9c%8b"></a>
+7.1 范围：哪些文件要看
+</h3><blockquote>
+<p>清单（inventory）包含所有已变更的文本文件，与文件名、扩展名或目录无关。已跟踪的变更即使被忽略也仍在范围内；本地补丁还包括未被忽略的未跟踪文件。在基线修订版本中检查已删除的文件。根据行为和可达性评估安全相关性，包括构建、部署和 CI 中的使用。</p>
+</blockquote>
+<p>拆成可以直接照做的规则：</p>
+<ul>
+<li><strong>不按文件名挑</strong>。<code>.yaml</code>、<code>.sh</code>、<code>Dockerfile</code>、<code>.github/workflows/*.yml</code> 都要看。CI 配置的变更可能把密钥暴露给 fork 来的 PR，Dockerfile 的变更可能让容器以 root 运行。</li>
+<li><strong>被删除的文件要看它原来的内容</strong>。删掉一个文件可能就是删掉了一个控制。</li>
+<li><strong>被 <code>.gitignore</code> 忽略但已跟踪的文件</strong>，改了也要看。</li>
+</ul>
+<h3 id="72-深度追到哪里为止">
+<a class="header-anchor" href="#72-%e6%b7%b1%e5%ba%a6%e8%bf%bd%e5%88%b0%e5%93%aa%e9%87%8c%e4%b8%ba%e6%ad%a2"></a>
+7.2 深度：追到哪里为止
+</h3><p><code>finding-discovery</code> 对 diff 的要求：</p>
+<blockquote>
+<p>对于 diff，检查实际变更的行为，包括基线修订版本中已删除的文件。沿着支持代码追踪到足以理解受影响边界的程度；当已变更的共享控制影响到同级调用方时，扩展到这些调用方。不要扩大成与之无关的整仓库审计。</p>
+</blockquote>
+<p>规则是：<strong>改了什么行为，就追到这个行为的边界为止</strong>。如果改的是一个被多处调用的共享控制，边界就包括所有调用方。</p>
+<p><strong>例子一：改了共享的跳转校验。</strong> PR 的描述是&quot;支持登录后跳转到子域名&rdquo;：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-diff" data-lang="diff"><span class="line"><span class="cl"> func isAllowedRedirect(target string) bool {
+</span></span><span class="line"><span class="cl"> 	u, err := url.Parse(target)
+</span></span><span class="line"><span class="cl"> 	if err != nil {
+</span></span><span class="line"><span class="cl"> 		return false
+</span></span><span class="line"><span class="cl"> 	}
+</span></span><span class="line"><span class="cl"><span class="gd">-	return u.Host == &#34;&#34; &amp;&amp; strings.HasPrefix(u.Path, &#34;/&#34;) &amp;&amp; !strings.HasPrefix(u.Path, &#34;//&#34;)
+</span></span></span><span class="line"><span class="cl"><span class="gi">+	if u.Host == &#34;&#34; {
+</span></span></span><span class="line"><span class="cl"><span class="gi">+		return strings.HasPrefix(u.Path, &#34;/&#34;) &amp;&amp; !strings.HasPrefix(u.Path, &#34;//&#34;)
+</span></span></span><span class="line"><span class="cl"><span class="gi">+	}
+</span></span></span><span class="line"><span class="cl"><span class="gi">+	return strings.HasSuffix(u.Host, &#34;notes.example.com&#34;)
+</span></span></span><span class="line"><span class="cl"> }
+</span></span></code></pre></div><p>只看 diff 本身，能看出 <code>HasSuffix</code> 会接受 <code>evilnotes.example.com</code>（我把这个也写进了测试）。但 diff 审查的要求是继续追：这个函数被谁调用？在 notes-api 里搜一下，调用方有三个：</p>
+<table>
+	<thead>
+			<tr>
+					<th>调用方</th>
+					<th>用途</th>
+					<th>改动后的影响</th>
+			</tr>
+	</thead>
+	<tbody>
+			<tr>
+					<td>登录后的 <code>?next=</code> 跳转</td>
+					<td>把浏览器送到 <code>next</code> 指定的页面</td>
+					<td>开放重定向，可用于钓鱼</td>
+			</tr>
+			<tr>
+					<td>登出后的跳转</td>
+					<td>同上</td>
+					<td>同上</td>
+			</tr>
+			<tr>
+					<td>OAuth 回调</td>
+					<td>决定把带授权码的回调发到哪个地址</td>
+					<td>授权码被发到攻击者注册的 <code>evilnotes.example.com</code>，可能导致账户被接管</td>
+			</tr>
+	</tbody>
+</table>
+<p>同一个改动，在前两个调用方是中低危的开放重定向，在第三个调用方可能是账户接管。只看 diff、不看调用方，会严重低估它。</p>
+<p><strong>例子二：删掉了一个中间件文件。</strong> PR 的描述是&quot;清理不用的代码&rdquo;，删除了 <code>internal/http/middleware/tenant_scope.go</code>，同时在 <code>routes.go</code> 里去掉了一行 <code>r.Use(middleware.TenantScope)</code>。</p>
+<p>diff 里只有删除，没有新增的逻辑，很容易一扫而过。按规则要去基线版本看被删的文件原来做什么：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="cl"><span class="c1">// 示例：被删除的中间件（基线版本里的内容）</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="kd">func</span><span class="w"> </span><span class="nf">TenantScope</span><span class="p">(</span><span class="nx">next</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">Handler</span><span class="p">)</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">Handler</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nf">HandlerFunc</span><span class="p">(</span><span class="kd">func</span><span class="p">(</span><span class="nx">w</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">ResponseWriter</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="w"> </span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">p</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nf">principalFrom</span><span class="p">(</span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="k">if</span><span class="w"> </span><span class="nx">h</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">r</span><span class="p">.</span><span class="nx">Header</span><span class="p">.</span><span class="nf">Get</span><span class="p">(</span><span class="s">&#34;X-Tenant-ID&#34;</span><span class="p">);</span><span class="w"> </span><span class="nx">h</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s">&#34;&#34;</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nx">h</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="nx">p</span><span class="p">.</span><span class="nx">TenantID</span><span class="w"> </span><span class="p">{</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="nx">http</span><span class="p">.</span><span class="nf">Error</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="s">&#34;tenant mismatch&#34;</span><span class="p">,</span><span class="w"> </span><span class="nx">http</span><span class="p">.</span><span class="nx">StatusForbidden</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">			</span><span class="k">return</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="p">}</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">		</span><span class="nx">next</span><span class="p">.</span><span class="nf">ServeHTTP</span><span class="p">(</span><span class="nx">w</span><span class="p">,</span><span class="w"> </span><span class="nx">r</span><span class="p">)</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="w">	</span><span class="p">})</span><span class="w">
+</span></span></span><span class="line"><span class="cl"><span class="p">}</span><span class="w">
+</span></span></span></code></pre></div><p>它拒绝 <code>X-Tenant-ID</code> 头和令牌里的租户不一致的请求。接下来的问题是：现在还有没有 handler 读 <code>X-Tenant-ID</code>？如果某个旧接口仍然用这个头来选租户，删掉中间件就打开了跨租户访问。如果没有任何代码再读这个头，这个删除就是安全的清理，审查记录里写&quot;已检查，<code>X-Tenant-ID</code> 已无消费者&quot;。</p>
+<h3 id="73-不能把没看完说成没问题">
+<a class="header-anchor" href="#73-%e4%b8%8d%e8%83%bd%e6%8a%8a%e6%b2%a1%e7%9c%8b%e5%ae%8c%e8%af%b4%e6%88%90%e6%b2%a1%e9%97%ae%e9%a2%98"></a>
+7.3 不能把没看完说成没问题
+</h3><p><code>security-diff-scan</code> 最后一句：</p>
+<blockquote>
+<p>每个变更文件和候选项都必须被说明为已审查、已解决或明确未完成；不要把不完整的审查说成&quot;没有发现项&quot;。</p>
+</blockquote>
+<p>一个 80 个文件的 PR，你认真看了其中 20 个，审查意见里就写清楚看了哪 20 个，而不是一个 LGTM。</p>
+<hr>
+<h2 id="8--deep-security-scan什么时候需要多轮">
+<a class="header-anchor" href="#8--deep-security-scan%e4%bb%80%e4%b9%88%e6%97%b6%e5%80%99%e9%9c%80%e8%a6%81%e5%a4%9a%e8%bd%ae"></a>
+8 · deep-security-scan：什么时候需要多轮
+</h2><p><code>deep-security-scan</code> 不是一种新的审查方法，而是把标准扫描跑多次：</p>
+<blockquote>
+<p>宿主运行多次 Standard 审计并合并其发现项（finding）。同一扫描中的 worker 可以交换调查线索，并互相核实对方的证据。后续轮次会收到已经报告过的标题和位置。当连续多次审计都没有新增内容，或达到配置的扫描次数或时间上限时，宿主停止。</p>
+</blockquote>
+<p>两个设计值得注意：后续轮次知道已经报告了什么，所以会往别处找；停止条件是&quot;连续几轮没有新东西&quot;，而不是&quot;跑完固定次数&quot;。</p>
+<p>它的代价也写得很直白：启动前如果发现另一个深度扫描在跑，要向用户说明额外的 CPU、内存和 token 消耗，默认推荐的选项是取消。结束时，&ldquo;要区分&rsquo;已完成审计但发现项为零&rsquo;与&rsquo;在任何审计完成之前已达到截止时间&rsquo;&quot;。</p>
+<p>对人工审查的启发：重要的代码（鉴权、支付、多租户隔离）值得让不同的人各审一遍，第二个人拿到的是&quot;已经发现了什么&rdquo;，而不是&quot;第一个人怎么想的&quot;；当连续两三个人都没有新发现时再停。</p>
+<hr>
+<h2 id="自查清单pr-安全审查">
+<a class="header-anchor" href="#%e8%87%aa%e6%9f%a5%e6%b8%85%e5%8d%95pr-%e5%ae%89%e5%85%a8%e5%ae%a1%e6%9f%a5"></a>
+自查清单：PR 安全审查
+</h2><ul>
+<li><input disabled="" type="checkbox"> 列出了 PR 里所有变更的文件，包括删除的文件、配置、CI、Dockerfile，没有按文件名跳过</li>
+<li><input disabled="" type="checkbox"> 对删除的文件，看了它在基线版本里的内容和它原来承担的控制</li>
+<li><input disabled="" type="checkbox"> 对每个新增或修改的入口，找到了不可信输入从哪进、经过哪些检查、最终到哪个敏感操作</li>
+<li><input disabled="" type="checkbox"> 对每个改动的共享函数（校验、鉴权、路径拼接、URL 处理），列出了所有调用方并逐个评估</li>
+<li><input disabled="" type="checkbox"> 对同一资源的兄弟操作（读、改、删、导出、分享），比较过它们的授权检查是否一致</li>
+<li><input disabled="" type="checkbox"> 对每个检查，确认它检查的值就是后面实际使用的值，中间没有解码、规整、重定向、重新解析</li>
+<li><input disabled="" type="checkbox"> 确认所有检查都在第一个副作用（写库、写盘、发请求、扣费）之前</li>
+<li><input disabled="" type="checkbox"> 检查了新增的字面量里有没有凭据，判断依据是格式和用法，不是文件名</li>
+<li><input disabled="" type="checkbox"> 对每个疑点写下了来源、控制、汇点、反证和还缺什么证据</li>
+<li><input disabled="" type="checkbox"> 审查意见里写明了看了哪些、没看哪些</li>
+</ul>
+<h2 id="练习">
+<a class="header-anchor" href="#%e7%bb%83%e4%b9%a0"></a>
+练习
+</h2><ol>
+<li>在你的项目里挑一个资源（比如订单、文档、项目），把它的所有操作列成表，每行写出这个操作做了哪些授权检查、检查在哪一层。看看有没有像 C1 那样的差异。</li>
+<li>找一个接受路径、URL 或文件名参数的接口，把参数从进入 handler 到被使用的每一步变换写下来（解码、拼接、规整、重定向），确认守卫检查的是最后那一步的值。</li>
+<li>找一个最近合并的、改动了共享工具函数的 PR，补做一次调用方分析：这个函数有几个调用方？改动对每个调用方意味着什么？</li>
+</ol></div>
+    <footer class="article-footer"><ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/harness"
+        rel="tag"
+        >HARNESS</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/codex"
+        rel="tag"
+        >CODEX</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e5%ae%89%e5%85%a8%e5%bc%80%e5%8f%91"
+        rel="tag"
+        >安全开发</a
+      >
+    </li><li class="article-tag-list-item" data-aos="zoom-in">
+      <a
+        class="article-tag-list-link"
+        href="/tags/%e4%bb%a3%e7%a0%81%e5%ae%a1%e8%ae%a1"
+        rel="tag"
+        >代码审计</a
+      >
+    </li></ul>
+</footer>
+  </div><nav
+    id="article-nav"
+    aria-label="Article navigation"
+    data-aos="fade-up"
+  ><div class="article-nav-link-wrap left"><img
+              data-src="/random/28.webp"
+              data-sizes="auto"
+              alt="Codex Security 02 · 先定义要防什么：SECURITY.md 与威胁建模"
+              class="lazyload"
+            /><a
+          href="/harness/codex/02-policy-threat-model/"
+          aria-label="Prev:Codex Security 02 · 先定义要防什么：SECURITY.md 与威胁建模"
+          title="Prev:Codex Security 02 · 先定义要防什么：SECURITY.md 与威胁建模"
+        ></a>
+        <div class="article-nav-caption">Prev</div>
+        <h3 class="article-nav-title">Codex Security 02 · 先定义要防什么：SECURITY.md 与威胁建模</h3>
+      </div><div class="article-nav-link-wrap right"><img
+              data-src="/random/24.webp"
+              data-sizes="auto"
+              alt="Codex Security 04 · 真漏洞还是误报：验证、攻击路径与定级"
+              class="lazyload"
+            /><a
+          href="/harness/codex/04-validation-severity/"
+          aria-label="Next:Codex Security 04 · 真漏洞还是误报：验证、攻击路径与定级"
+          title="Next:Codex Security 04 · 真漏洞还是误报：验证、攻击路径与定级"
+        ></a>
+        <div class="article-nav-caption">Next</div>
+        <h3 class="article-nav-title">Codex Security 04 · 真漏洞还是误报：验证、攻击路径与定级</h3>
+      </div></nav></article></section>
+        </div><footer id="footer" aria-label="Site footer">
+  <div style="width: 100%; overflow: hidden">
+    <div class="footer-line"></div>
+  </div>
+  <div id="footer-info"><div>
+      <span class="icon-copyright"></span>2020-2026<span class="footer-info-sep rotate"></span>
+      AKF
+    </div><div>
+        Powered by&nbsp;<a
+          href="https://gohugo.io/"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Hugo</a
+        >&nbsp; Theme.<a
+          href="https://github.com/D-Sketon/hugo-theme-reimu"
+          target="_blank"
+          rel="noopener nofollow noreferrer"
+          >Reimu</a
+        >
+      </div><div>
+        <span class="icon-brush"
+          >&nbsp;19.9k</span
+        >
+        &nbsp;|&nbsp;
+        <span class="icon-coffee">&nbsp;00:54</span>
+      </div><div>
+        <span class="icon-eye"></span>
+        <span id="busuanzi_container_site_pv"
+          >Number of visits&nbsp;<span
+            id="busuanzi_value_site_pv"
+          ></span
+        ></span>
+        &nbsp;|&nbsp;
+        <span class="icon-user"></span>
+        <span id="busuanzi_container_site_uv"
+          >Number of visitors&nbsp;<span
+            id="busuanzi_value_site_uv"
+          ></span
+        ></span>
+      </div></div>
+</footer>
+<div class="sidebar-top">
+            <div class="sidebar-top-taichi rotate"></div>
+            <div class="arrow-up"></div>
+          </div><div id="mask" class="hide"></div>
+      </div><nav id="mobile-nav" aria-label="Mobile navigation">
+  <div class="sidebar-wrap"><div class="sidebar-toc-sidebar"><h3 class="toc-title">Contents</h3>
+<div class="sidebar-toc-wrapper toc-div-class">
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#0--阅读说明">0 · 阅读说明</a></li>
+    <li><a href="#1--出发点不可信输入和行使权限的代码">1 · 出发点：不可信输入和行使权限的代码</a></li>
+    <li><a href="#2--标准扫描怎样组织独立基线--专项调查">2 · 标准扫描怎样组织：独立基线 + 专项调查</a>
+      <ul>
+        <li><a href="#21-八个步骤">2.1 八个步骤</a></li>
+        <li><a href="#22-为什么两条路都要走">2.2 为什么两条路都要走</a></li>
+        <li><a href="#23-合并的规则">2.3 合并的规则</a></li>
+      </ul>
+    </li>
+    <li><a href="#3--基线审计员的检查清单">3 · 基线审计员的检查清单</a></li>
+    <li><a href="#4--专项调查员的追踪技巧">4 · 专项调查员的追踪技巧</a>
+      <ul>
+        <li><a href="#41-c1-兄弟操作同一个资源不同的检查">4.1 C1 兄弟操作：同一个资源，不同的检查</a></li>
+        <li><a href="#42-c2-检查的值--使用的值">4.2 C2 检查的值 ≠ 使用的值</a></li>
+        <li><a href="#43-c3-检查的目标--实际连接的目标">4.3 C3 检查的目标 ≠ 实际连接的目标</a></li>
+        <li><a href="#44-c4-副作用先于检查">4.4 C4 副作用先于检查</a></li>
+        <li><a href="#45-一张对照表">4.5 一张对照表</a></li>
+      </ul>
+    </li>
+    <li><a href="#5--发现阶段的证据标准">5 · 发现阶段的证据标准</a>
+      <ul>
+        <li><a href="#51-候选项要记录什么">5.1 候选项要记录什么</a></li>
+      </ul>
+    </li>
+    <li><a href="#6--源码里的密钥">6 · 源码里的密钥</a></li>
+    <li><a href="#7--把-diff-扫描用到日常-code-review">7 · 把 diff 扫描用到日常 Code Review</a>
+      <ul>
+        <li><a href="#71-范围哪些文件要看">7.1 范围：哪些文件要看</a></li>
+        <li><a href="#72-深度追到哪里为止">7.2 深度：追到哪里为止</a></li>
+        <li><a href="#73-不能把没看完说成没问题">7.3 不能把没看完说成没问题</a></li>
+      </ul>
+    </li>
+    <li><a href="#8--deep-security-scan什么时候需要多轮">8 · deep-security-scan：什么时候需要多轮</a></li>
+    <li><a href="#自查清单pr-安全审查">自查清单：PR 安全审查</a></li>
+    <li><a href="#练习">练习</a></li>
+  </ul>
+</nav>
+</div></div>
+        <div class="sidebar-common-sidebar hidden"><div class="sidebar-author">
+  <img
+    data-src="/avatar/niuma.png"
+    data-sizes="auto"
+    alt="AKF"
+    class="lazyload"
+  />
+  <div class="sidebar-author-name">AKF</div>
+  <div class="sidebar-description">...——。——...</div>
+</div>
+<div class="sidebar-state">
+  <div class="sidebar-state-article">
+    <div>Posts</div><div class="sidebar-state-number">26</div>
+  </div>
+  <a class="sidebar-state-category" href="/categories/" aria-label="sidebar-state-category-link">
+    <div>Categories</div>
+    <div class="sidebar-state-number">
+      7
+    </div>
+  </a>
+  <a class="sidebar-state-tag" href="/tags/" aria-label="sidebar-state-tag-link">
+    <div>Tags</div>
+    <div class="sidebar-state-number">47</div>
+  </a>
+</div>
+<div class="sidebar-social"></div>
+<div class="sidebar-menu"><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/"
+        aria-label="Home"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Home</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/archives"
+        aria-label="Archives"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Archives</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/harness"
+        aria-label="Harness"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">Harness</div>
+    </div><div class="sidebar-menu-link-wrap">
+      <a
+        class="sidebar-menu-link-dummy"
+        href="/about"
+        aria-label="About"
+      ></a>
+      <div class='sidebar-menu-icon icon rotate'>&#xe62b;</div>
+      <div class="sidebar-menu-link">About</div>
+    </div></div>
+</div></div><div class="sidebar-btn-wrapper">
+        <div class="sidebar-toc-btn current"></div>
+        <div class="sidebar-common-btn"></div>
+      </div></nav>
+</div><script
+    src="https://npm.webcache.cn/lazysizes@5.3.2/lazysizes.min.js"
+    integrity="sha384-3gT/vsepWkfz/ff7PpWNUeMzeWoH3cDhm/A8jM7ouoAK0/fP/9bcHHR5kHq2nf&#43;e" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/clipboard@2.0.11/dist/clipboard.min.js"
+    integrity="sha384-J08i8An/QeARD9ExYpvphB8BsyOj3Gh2TSh1aLINKO3L0cMSH2dN3E22zFoXEi0Q" crossorigin="anonymous"></script><script src="/js/main.js" integrity="" crossorigin="anonymous" ></script><script src="/js/aos.js" integrity="" crossorigin="anonymous" ></script><script>
+    var aosInit = () => {
+      AOS.init({
+        duration: 1000,
+        easing: "ease",
+        once: true,
+        offset: 50,
+      });
+    };
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", aosInit);
+    } else {
+      aosInit();
+    }
+  </script><script src="/js/pjax_main.js" integrity="" crossorigin="anonymous" data-pjax></script><script
+    src="https://npm.webcache.cn/mouse-firework@0.1.1/dist/index.umd.js"
+    integrity="sha384-8LyaidD9GPxQQgLJO/WRw/O2h3BoNq/ApI/ecpvM6RsrCz2qP2ppBXUKihP4V/2d" crossorigin="anonymous"></script><script>
+  if (! false  || !window.matchMedia('(max-width: 768px)').matches) {
+    if (window.firework) {
+      const options = JSON.parse("{\"excludeelements\":[\"a\",\"button\"],\"particles\":[{\"colors\":[\"var(--red-1)\",\"var(--red-2)\",\"var(--red-3)\",\"var(--red-4)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"emit\"],\"number\":20,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.3,0.5],\"radius\":[16,32]}},{\"colors\":[\"var(--red-0)\"],\"duration\":[1200,1800],\"easing\":\"easeOutExpo\",\"move\":[\"diffuse\"],\"number\":1,\"shape\":\"circle\",\"shapeOptions\":{\"alpha\":[0.2,0.5],\"lineWidth\":6,\"radius\":20}}]}");
+      options.excludeElements = options.excludeelements;
+      delete options.excludeelements;
+      window.firework(options);
+    }
+  }
+</script>
+
+<div id="lazy-script">
+  <div><script data-pjax>
+        window.REIMU_POST = {
+          author: "AKF",
+          title: "Codex Security 03 · 找漏洞：从入口追到汇点",
+          url: "https:\/\/example.org\/harness\/codex\/03-finding-discovery\/",
+          description: "Codex Security 怎样在源码里找漏洞：标准扫描同时跑一个不带任何假设的独立基线审计和一组按威胁模型分组的专项调查，候选项要写清 source、control、sink 和反证才能交给验证。本章逐条讲基线审计的检查清单、专项调查员的追踪技巧、发现阶段的证据标准和源码密钥的判断方法，用 notes-api 里的五个候选漏洞做示例，最后讲怎样把 diff 扫描的规则用到日常 Code Review。",
+          cover: "https:\/\/example.org\/images\/banner2.png",
+        };
+      </script><script
+    src="https://npm.webcache.cn/mermaid@11.12.0/dist/mermaid.min.js"
+    data-pjaxintegrity="sha384-o&#43;g/BxPwhi0C3RK7oQBxQuNimeafQ3GE/ST4iT2BxVI4Wzt60SH4pq9iXVYujjaS" crossorigin="anonymous"></script><script
+    src="https://npm.webcache.cn/dompurify@3.2.6/dist/purify.min.js"
+    data-pjaxintegrity="sha384-JEyTNhjM6R1ElGoJns4U2Ln4ofPcqzSsynQkmEc/KGy6336qAZl70tDLufbkla&#43;3" crossorigin="anonymous"></script><script data-pjax>
+        if (window.mermaid) {
+          
+          const elementCode = '.mermaid'
+          const processElements = (callback) => {
+            const els = _$$(elementCode);
+            if (!els.length) return Promise.resolve();
+            
+            return new Promise((resolve, reject) => {
+              try {
+                els.forEach(callback);
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            });
+          };
+          const saveOriginalData = () => processElements(el => {
+            if (!el.getAttribute('data-original-code')) {
+              el.setAttribute('data-original-code', el.innerHTML);
+            }
+          });
+
+          const resetProcessed = () => processElements(el => {
+            const originalCode = el.getAttribute('data-original-code');
+            if (originalCode) {
+              el.removeAttribute('data-processed');
+              el.innerHTML = DOMPurify.sanitize(originalCode);
+            }
+          });
+          const loadMermaid = async (theme) => {
+            window.mermaid.initialize({theme, startOnLoad: false})
+            await window.mermaid.run({querySelector: elementCode, suppressErrors: true})
+            if (window.svgPanZoom) {
+              window.__panZoomList?.forEach(panZoom => {try {panZoom.destroy()} catch {}});
+              window.__panZoomList = [];
+              _$$('.mermaid > svg').forEach(el => {
+                const bbox = el.getBBox();
+                el.setAttribute('height', Math.max(bbox.height, 80));
+                window.__panZoomList.push(window.svgPanZoom(el, {
+                  zoomEnabled: true,
+                  controlIconsEnabled: true,
+                  fit: true,
+                  center: true
+                }));
+              });
+              if (window.__resizeMermaidSvg) {
+                window.removeEventListener('resize', window.__resizeMermaidSvg);
+              }
+              window.__resizeMermaidSvg = () => {
+                try {
+                  window.__panZoomList.forEach(panZoom => {
+                    panZoom.resize();
+                    panZoom.fit();
+                    panZoom.center();
+                  });
+                } catch {
+                  window.removeEventListener('resize', window.__resizeMermaidSvg);
+                  window.__panZoomList = [];
+                }
+              }
+              window.addEventListener('resize', window.__resizeMermaidSvg);
+            }
+          }
+          const initMermaid = async (theme) => {
+            try {
+              await saveOriginalData();
+              await resetProcessed();
+              await loadMermaid(theme);
+            } catch (error) {
+              console.error(error);
+            }
+          };
+          
+          document.body.addEventListener('dark-theme-set', () => initMermaid('dark'));
+          document.body.addEventListener('light-theme-set', () => initMermaid('default'));
+
+          const mode = localStorage.getItem('dark_mode');
+          if (mode === 'auto') {
+            const osMode = window.matchMedia("(prefers-color-scheme: dark)").matches;
+            initMermaid(osMode ? 'dark' : 'default');
+          } else {
+            initMermaid(mode === 'true' ? 'dark' : 'default');
+          }
+        }
+      </script><script src="/js/insert_highlight.js" integrity="" crossorigin="anonymous" data-pjax></script><script src="/js/tabs.js" integrity="" crossorigin="anonymous" data-pjax></script><script type="module" data-pjax>const PhotoSwipeLightbox = (await safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe-lightbox.esm.min.js", "sha384-DiL6M\/gG\u002bwmTxmCRZyD1zee6lIhawn5TGvED0FOh7fXcN9B0aZ9dexSF\/N6lrZi\/")).default;const initPswp = (gallery, children) => {
+          if (_$$(`${gallery} ${children}`).length > 0) {
+            new PhotoSwipeLightbox({
+              gallery,
+              children,pswpModule: () => safeImport("https:\/\/npm.webcache.cn\/photoswipe@5.4.4\/dist\/photoswipe.esm.min.js", "sha384-WkkO3GCmgkC3VQWpaV8DqhKJqpzpF9JoByxDmnV8\u002boTJ7m3DfYEWX1fu1scuS4\u002bs")}).init();
+          }
+        }
+        const pswp = () => {
+          initPswp('.article-entry', 'a.article-gallery-item');
+          initPswp('.article-gallery', 'a.article-gallery-item');
+          window.lightboxStatus = 'done';
+          window.removeEventListener('lightbox:ready', pswp);
+        }
+        if(window.lightboxStatus === 'ready') {
+          pswp()
+        } else {
+          window.addEventListener('lightbox:ready', pswp);
+        }
+      </script></div>
+</div><script
+    src="https://npm.webcache.cn/busuanzi@2.3.0/bsz.pure.mini.js"
+    asyncintegrity="sha384-0M75wtSkhjIInv4coYlaJU83&#43;OypaRCIq2SukQVQX04eGTCBXJDuWAbJet56id&#43;S" crossorigin="anonymous"></script><script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+  </script><script>
+  const reimuCopyright = String.raw`
+   ______     ______     __     __    __     __  __    
+  /\  == \   /\  ___\   /\ \   /\ "-./  \   /\ \/\ \   
+  \ \  __<   \ \  __\   \ \ \  \ \ \-./\ \  \ \ \_\ \  
+   \ \_\ \_\  \ \_____\  \ \_\  \ \_\ \ \_\  \ \_____\ 
+    \/_/ /_/   \/_____/   \/_/   \/_/  \/_/   \/_____/ 
+                                                    
+  `;
+  console.log(String.raw`%c ${reimuCopyright}`, "color: #ff5252;");
+  console.log(
+    "%c Theme.Reimu" + " %c https://github.com/D-Sketon/hugo-theme-reimu ",
+    "color: white; background: #ff5252; padding:5px 0;",
+    "padding:4px;border:1px solid #ff5252;",
+  );
+</script></body>
+</html>

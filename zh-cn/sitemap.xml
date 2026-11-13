@@ -63,11 +63,6 @@
                 />
     <xhtml:link
                 rel="alternate"
-                hreflang="en"
-                href="https://example.org/en/"
-                />
-    <xhtml:link
-                rel="alternate"
                 hreflang="ja"
                 href="https://example.org/ja/"
                 />
@@ -75,6 +70,11 @@
                 rel="alternate"
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/en/"
                 />
   </url><url>
     <loc>https://example.org/harness/codex/07-report-and-tooling/</loc>

@@ -587,7 +587,7 @@ This article does not have a corresponding language version
 </ul>
 <p><strong>翻译约定</strong></p>
 <ul>
-<li>代码块、命令、参数、字段名、文件路径、工具名保留英文，方便和原仓库对照。</li>
+<li>命令、参数、字段名、文件路径、工具名保留英文，方便和原仓库对照。代码块里的文档模板（<code>SECURITY.md</code>、加固提案）和 JSON 示例中的说明性文字已译成中文；JSON 字段名和枚举值属于契约，保留英文。</li>
 <li>原文中的相对链接做了改写：指向其他技能或本技能 <code>references/</code> 的，改成本页锚点；指向插件级共享文档（如 <code>../../references/artifact-storage.md</code>、<code>../../schemas/*.json</code>）和脚本、资源文件的，链接到原仓库同一版本；<code>app://</code> 形式的客户端内部链接只保留文字。</li>
 <li>原文中正文里提到的路径（写在代码格式里的，例如&quot;阅读 <code>../../references/artifact-storage.md</code>&quot;）保持原样，它们是相对技能目录的路径，不是本页链接。</li>
 <li>标题层级统一下移：每个技能是二级标题，技能内部章节从三级开始，<code>references/</code> 文档以&quot;参考 ·&ldquo;开头。</li>
@@ -729,32 +729,35 @@ This article does not have a corresponding language version
 <a class="header-anchor" href="#3-%e8%b5%b7%e8%8d%89%e7%ad%96%e7%95%a5"></a>
 3. 起草策略
 </h3><p>使用有助于审查者判断什么是、什么不是发现项的章节：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl"><span class="gh"># Security Policy
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl"><span class="gh"># 安全策略（Security Policy）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## System and Scope
+</span></span><span class="line"><span class="cl"><span class="gu">## 系统与范围（System and Scope）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">&lt;system purpose, deployment and exposure, covered components, owners&gt;
+</span></span><span class="line"><span class="cl">&lt;系统用途、部署方式与暴露面、覆盖的组件、负责人&gt;
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Threat Model and Trust Boundaries
+</span></span><span class="line"><span class="cl"><span class="gu">## 威胁模型与信任边界（Threat Model and Trust Boundaries）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">&lt;assets, trusted actors, attacker-controlled inputs, important boundaries and assumptions&gt;
+</span></span><span class="line"><span class="cl">&lt;资产、受信任的参与者、攻击者可控的输入、重要的边界与假设&gt;
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Security Invariants
+</span></span><span class="line"><span class="cl"><span class="gu">## 安全不变量（Security Invariants）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">&lt;controls and properties that must hold&gt;
+</span></span><span class="line"><span class="cl">&lt;必须始终成立的控制措施和安全属性&gt;
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Reportable Findings and Severity Context
+</span></span><span class="line"><span class="cl"><span class="gu">## 可报告的发现项与严重性背景（Reportable Findings and Severity Context）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">&lt;what is reportable here, realistic impact and reachability, product-specific severity context&gt;
+</span></span><span class="line"><span class="cl">&lt;在这里什么算可报告、现实的影响与可达性、本产品特有的严重性背景&gt;
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Out of Scope, Exclusions, and Accepted Risk
+</span></span><span class="line"><span class="cl"><span class="gu">## 范围外、排除项与已接受的风险（Out of Scope, Exclusions, and Accepted Risk）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">&lt;owner-confirmed exclusions and why they are not reportable&gt;
+</span></span><span class="line"><span class="cl">&lt;负责人确认的排除项，以及它们为什么不可报告&gt;
 </span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Known Limitations and Compensating Controls
+</span></span><span class="line"><span class="cl"><span class="gu">## 已知限制与补偿性控制（Known Limitations and Compensating Controls）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl">&lt;known gaps, dependencies, and controls relevant to assessment&gt;
-</span></span></code></pre></div><p>保留现有的有用措辞和结构。根据系统情况增删章节；不要添加空洞的样板内容，也不要将敏感的发现项细节复制到仓库中。</p>
+</span></span><span class="line"><span class="cl">&lt;已知缺口、依赖，以及与评估相关的控制措施&gt;
+</span></span></code></pre></div><blockquote>
+<p>译注：模板的标题和占位说明已译成中文，括号里是原文标题。实际给 Codex Security 用的 <code>SECURITY.md</code> 写中文或英文都可以，章节结构才是重点。</p>
+</blockquote>
+<p>保留现有的有用措辞和结构。根据系统情况增删章节；不要添加空洞的样板内容，也不要将敏感的发现项细节复制到仓库中。</p>
 <h3 id="4-应用与验证">
 <a class="header-anchor" href="#4-%e5%ba%94%e7%94%a8%e4%b8%8e%e9%aa%8c%e8%af%81"></a>
 4. 应用与验证
@@ -1569,7 +1572,7 @@ Schema 适配
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;schema_version&#34;</span><span class="p">:</span> <span class="s2">&#34;triage-finding/v0&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;repository&#34;</span><span class="p">:</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;/path/to/repo&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;revision&#34;</span><span class="p">:</span> <span class="s2">&#34;optional git sha&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;revision&#34;</span><span class="p">:</span> <span class="s2">&#34;可选的 git sha&#34;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">},</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;findings&#34;</span><span class="p">:</span> <span class="p">[]</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
@@ -1581,16 +1584,16 @@ Schema 适配
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;triage_item_id&#34;</span><span class="p">:</span> <span class="s2">&#34;triage-001&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;input_id&#34;</span><span class="p">:</span> <span class="s2">&#34;scanner-or-user-id&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;source_type&#34;</span><span class="p">:</span> <span class="s2">&#34;sarif&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;title&#34;</span><span class="p">:</span> <span class="s2">&#34;finding title&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;title&#34;</span><span class="p">:</span> <span class="s2">&#34;发现项标题&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;normalized_input&#34;</span><span class="p">:</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;vulnerable_component&#34;</span><span class="p">:</span> <span class="s2">&#34;package, file, API, route, function, service, or unknown&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;claimed_source&#34;</span><span class="p">:</span> <span class="s2">&#34;attacker-controlled input or unknown&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;claimed_sink&#34;</span><span class="p">:</span> <span class="s2">&#34;sink or broken control or unknown&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;claimed_control&#34;</span><span class="p">:</span> <span class="s2">&#34;missing or bypassed guard, sanitizer, auth check, or unknown&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;affected_version_or_path&#34;</span><span class="p">:</span> <span class="s2">&#34;affected version, path, config, or unknown&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;preconditions&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;required condition&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;impact&#34;</span><span class="p">:</span> <span class="s2">&#34;claimed impact or unknown&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;references&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;source-provided reference&#34;</span><span class="p">]</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;vulnerable_component&#34;</span><span class="p">:</span> <span class="s2">&#34;软件包、文件、API、路由、函数、服务，或 unknown&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;claimed_source&#34;</span><span class="p">:</span> <span class="s2">&#34;攻击者可控的输入，或 unknown&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;claimed_sink&#34;</span><span class="p">:</span> <span class="s2">&#34;汇点（sink）或失效的控制，或 unknown&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;claimed_control&#34;</span><span class="p">:</span> <span class="s2">&#34;缺失或被绕过的防护、净化器（sanitizer）、鉴权检查，或 unknown&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;affected_version_or_path&#34;</span><span class="p">:</span> <span class="s2">&#34;受影响的版本、路径、配置，或 unknown&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;preconditions&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;所需的前提条件&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;impact&#34;</span><span class="p">:</span> <span class="s2">&#34;所声称的影响，或 unknown&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;references&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;来源提供的参考资料&#34;</span><span class="p">]</span>
 </span></span><span class="line"><span class="cl">  <span class="p">},</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;verdict&#34;</span><span class="p">:</span> <span class="s2">&#34;confirmed&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;confidence&#34;</span><span class="p">:</span> <span class="s2">&#34;high&#34;</span><span class="p">,</span>
@@ -1599,35 +1602,38 @@ Schema 适配
 </span></span><span class="line"><span class="cl">      <span class="nt">&#34;label&#34;</span><span class="p">:</span> <span class="s2">&#34;entrypoint&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">      <span class="nt">&#34;path&#34;</span><span class="p">:</span> <span class="s2">&#34;relative/path&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">      <span class="nt">&#34;lines&#34;</span><span class="p">:</span> <span class="s2">&#34;12-18&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="nt">&#34;detail&#34;</span><span class="p">:</span> <span class="s2">&#34;why this location matters&#34;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;detail&#34;</span><span class="p">:</span> <span class="s2">&#34;这个位置为什么重要&#34;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">  <span class="p">],</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;reachable_path&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;step 1&#34;</span><span class="p">,</span> <span class="s2">&#34;step 2&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;reachable_path&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;第 1 步&#34;</span><span class="p">,</span> <span class="s2">&#34;第 2 步&#34;</span><span class="p">],</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;boundary_assessment&#34;</span><span class="p">:</span> <span class="p">{</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;product_surface&#34;</span><span class="p">:</span> <span class="s2">&#34;hosted service, CLI, library API, local developer UI, MCP/tooling, example/demo, test/fixture, docs, generated, vendored, or unknown&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;source_trust&#34;</span><span class="p">:</span> <span class="s2">&#34;untrusted, trusted_operator, trusted_developer_config, local_only, or unknown&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;product_surface&#34;</span><span class="p">:</span> <span class="s2">&#34;托管服务、CLI、库 API、本地开发者 UI、MCP/工具、示例/演示、测试/夹具（fixture）、文档、生成代码、第三方内置代码（vendored），或 unknown&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;source_trust&#34;</span><span class="p">:</span> <span class="s2">&#34;untrusted、trusted_operator、trusted_developer_config、local_only 或 unknown&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&#34;boundary_crossed&#34;</span><span class="p">:</span> <span class="kc">true</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;policy_basis&#34;</span><span class="p">:</span> <span class="s2">&#34;SECURITY.md, package/deploy evidence, product docs, code comments, or unknown&#34;</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;policy_basis&#34;</span><span class="p">:</span> <span class="s2">&#34;SECURITY.md、打包/部署证据、产品文档、代码注释，或 unknown&#34;</span>
 </span></span><span class="line"><span class="cl">  <span class="p">},</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;exploitability_stack_rank&#34;</span><span class="p">:</span> <span class="p">{</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&#34;rank_queue&#34;</span><span class="p">:</span> <span class="s2">&#34;confirmed&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&#34;rank&#34;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">    <span class="nt">&#34;rationale&#34;</span><span class="p">:</span> <span class="s2">&#34;why this finding is more or less exploitable than other findings with the same verdict&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">    <span class="nt">&#34;rationale&#34;</span><span class="p">:</span> <span class="s2">&#34;与同一结论下的其他发现项相比，这个发现项为什么更容易或更难被利用&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">    <span class="nt">&#34;drivers&#34;</span><span class="p">:</span> <span class="p">[</span>
-</span></span><span class="line"><span class="cl">      <span class="s2">&#34;attacker reachability&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="s2">&#34;privilege required&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="s2">&#34;preconditions&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="s2">&#34;source-to-sink control&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="s2">&#34;guard strength&#34;</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;攻击者可达性&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;所需权限&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;前提条件&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;从来源到汇点的控制程度&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">      <span class="s2">&#34;防护强度&#34;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">]</span>
 </span></span><span class="line"><span class="cl">  <span class="p">},</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;evidence&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;static evidence observed&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;counterevidence&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;static evidence that weakens or defeats the claim&#34;</span><span class="p">],</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;proof_gaps&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;missing evidence or reason for human review&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;evidence&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;观察到的静态证据&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;counterevidence&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;削弱或推翻该主张的静态证据&#34;</span><span class="p">],</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;proof_gaps&#34;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&#34;缺失的证据，或需要人工审查的原因&#34;</span><span class="p">],</span>
 </span></span><span class="line"><span class="cl">  <span class="nt">&#34;recommended_next_step&#34;</span><span class="p">:</span> <span class="s2">&#34;fix-finding&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">  <span class="nt">&#34;fix_finding_handoff&#34;</span><span class="p">:</span> <span class="s2">&#34;prompt-ready summary for confirmed findings&#34;</span>
+</span></span><span class="line"><span class="cl">  <span class="nt">&#34;fix_finding_handoff&#34;</span><span class="p">:</span> <span class="s2">&#34;针对已确认发现项、可直接作为提示词的摘要&#34;</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
-</span></span></code></pre></div><p>必需的来源类型值：</p>
+</span></span></code></pre></div><blockquote>
+<p>译注：JSON 的字段名和取值固定的枚举值（如 <code>confirmed</code>、<code>high</code>、<code>entrypoint</code>、<code>fix-finding</code>、<code>source_trust</code> 的几个取值、<code>unknown</code>）是契约的一部分，保留英文；只翻译了说明性的占位文字。</p>
+</blockquote>
+<p>必需的来源类型值：</p>
 <ul>
 <li><code>sarif</code></li>
 <li><code>cve</code></li>
@@ -1814,7 +1820,7 @@ Schema 适配
 </span></span><span class="line"><span class="cl">    <span class="p">{</span>
 </span></span><span class="line"><span class="cl">      <span class="nt">&#34;id&#34;</span><span class="p">:</span> <span class="s2">&#34;finding-or-issue-id&#34;</span><span class="p">,</span>
 </span></span><span class="line"><span class="cl">      <span class="nt">&#34;status&#34;</span><span class="p">:</span> <span class="s2">&#34;fixed|still_vulnerable|inconclusive&#34;</span><span class="p">,</span>
-</span></span><span class="line"><span class="cl">      <span class="nt">&#34;evidence&#34;</span><span class="p">:</span> <span class="s2">&#34;specific current source, exploit, test, or proof-gap evidence&#34;</span>
+</span></span><span class="line"><span class="cl">      <span class="nt">&#34;evidence&#34;</span><span class="p">:</span> <span class="s2">&#34;具体的当前源代码、漏洞利用、测试或证明缺口证据&#34;</span>
 </span></span><span class="line"><span class="cl">    <span class="p">}</span>
 </span></span><span class="line"><span class="cl">  <span class="p">]</span>
 </span></span><span class="line"><span class="cl"><span class="p">}</span>
@@ -2058,19 +2064,19 @@ Schema 适配
 <a class="header-anchor" href="#%e8%81%9a%e7%84%a6%e7%9a%84%e6%8f%90%e6%a1%88"></a>
 聚焦的提案
 </h4><p>解释问题、证明其结构性成因的证据、有意义的替代方案以及建议。一个实用的大纲如下：</p>
-<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl"><span class="gh"># Security Hardening Proposal: &lt;title&gt;
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-markdown" data-lang="markdown"><span class="line"><span class="cl"><span class="gh"># 安全加固提案（Security Hardening Proposal）：&lt;标题&gt;
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Recommendation
+</span></span><span class="line"><span class="cl"><span class="gu">## 建议（Recommendation）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Evidence and Current Design
+</span></span><span class="line"><span class="cl"><span class="gu">## 证据与当前设计（Evidence and Current Design）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Desired Invariants and Constraints
+</span></span><span class="line"><span class="cl"><span class="gu">## 期望的不变量与约束（Desired Invariants and Constraints）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Options and Tradeoffs
+</span></span><span class="line"><span class="cl"><span class="gu">## 方案与权衡（Options and Tradeoffs）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Migration and Validation
+</span></span><span class="line"><span class="cl"><span class="gu">## 迁移与验证（Migration and Validation）
 </span></span></span><span class="line"><span class="cl">
-</span></span><span class="line"><span class="cl"><span class="gu">## Open Decisions
+</span></span><span class="line"><span class="cl"><span class="gu">## 待定决策（Open Decisions）
 </span></span></span></code></pre></div><p>让建议在不阅读原始发现项（finding）的情况下也能被理解。用简短的标题定义证据标识符，并解释每个被引用的条目确立了什么。在已知时引用源代码位置和修订版本。将所提供的主张、经检查的证据、推断和设计预期区分开来。</p>
 <p>对于每个认真考虑的选项，描述它如何运作、为什么其改变后的边界能提升安全性、还剩下什么风险，以及重要的成本。对替代方案进行公平的比较。当局部修复已经足够时，解释这一结论，不要编造更大的设计。</p>
 <p>通过其机制来讨论性能或资源影响，例如额外的拷贝、进程边界、保留的状态或同步。将实测结果与估算区分开来。当不确定性可能改变选择时，指出一个有用的工作负载、指标、基线和决策标准，而不是硬造一个评分。</p>
@@ -2667,7 +2673,7 @@ SAST、仓库密钥和 IaC
     aria-label="Article navigation"
     data-aos="fade-up"
   ><div class="article-nav-link-wrap left"><img
-              data-src="/random/22.webp"
+              data-src="/random/29.webp"
               data-sizes="auto"
               alt="Codex Security 07 · 报告、工单，以及安全工具自身的防御"
               class="lazyload"

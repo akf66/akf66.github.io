@@ -6,7 +6,7 @@
     <lastmod>2026-10-05T17:30:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/harness/codex/</loc>
-    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/harness/dsh/</loc>
   </url><url>
@@ -14,20 +14,25 @@
     <lastmod>2026-10-02T20:02:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/codex/</loc>
-    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
   </url><url>
-    <loc>https://example.org/harness/codex/07-report-and-tooling/</loc>
-    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
+    <loc>https://example.org/harness/codex/08-full-translation/</loc>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/harness/</loc>
-    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/</loc>
-    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
                 href="https://example.org/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/en/tags/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -39,24 +44,27 @@
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/tags/"
                 />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="https://example.org/en/tags/"
-                />
   </url><url>
     <loc>https://example.org/tags/%E5%AE%89%E5%85%A8%E5%BC%80%E5%8F%91/</loc>
-    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/</loc>
-    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
+  </url><url>
+    <loc>https://example.org/tags/%E7%BF%BB%E8%AF%91/</loc>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/</loc>
-    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
+    <lastmod>2026-11-12T10:10:00+08:00</lastmod>
     <xhtml:link
                 rel="alternate"
                 hreflang="en"
                 href="https://example.org/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.org/en/"
                 />
     <xhtml:link
                 rel="alternate"
@@ -68,11 +76,9 @@
                 hreflang="zh-tw"
                 href="https://example.org/zh-tw/"
                 />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="https://example.org/en/"
-                />
+  </url><url>
+    <loc>https://example.org/harness/codex/07-report-and-tooling/</loc>
+    <lastmod>2026-11-12T10:00:00+08:00</lastmod>
   </url><url>
     <loc>https://example.org/harness/codex/06-patch-risk-hardening/</loc>
     <lastmod>2026-11-12T09:50:00+08:00</lastmod>
@@ -164,6 +170,11 @@
                 />
     <xhtml:link
                 rel="alternate"
+                hreflang="zh-tw"
+                href="https://example.org/zh-tw/categories/"
+                />
+    <xhtml:link
+                rel="alternate"
                 hreflang="en"
                 href="https://example.org/en/categories/"
                 />
@@ -171,11 +182,6 @@
                 rel="alternate"
                 hreflang="ja"
                 href="https://example.org/ja/categories/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="zh-tw"
-                href="https://example.org/zh-tw/categories/"
                 />
   </url><url>
     <loc>https://example.org/tags/helm/</loc>
